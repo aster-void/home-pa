@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
+    "dev": "bun --env-file=.env vite dev",
+    "build": "bun --env-file=.env vite build",
     "prepare": "bun sync",
     "sync": "svelte-kit sync && bun run prisma:generate",
     "preview": "vite preview",
