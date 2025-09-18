@@ -4,4 +4,4 @@ set -euo pipefail
 cd "$(dirname -- "$0")"
 cd ..
 
-docker compose -f infra/dev.docker-compose.yml up
+docker compose -f infra/dev.docker-compose.yml up -d

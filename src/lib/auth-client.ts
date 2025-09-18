@@ -1,8 +1,19 @@
-import { createAuthClient } from 'better-auth/client';
-import type { auth } from './auth.ts';
-import { inferAdditionalFields } from 'better-auth/client/plugins';
+import { createAuthClient } from "better-auth/client";
+import type { auth } from "./auth.ts";
+import { inferAdditionalFields } from "better-auth/client/plugins";
 
 export const authClient = createAuthClient({
-	baseURL: 'http://localhost:3000',
-	plugins: [inferAdditionalFields<typeof auth>()]
+  plugins: [inferAdditionalFields<typeof auth>()],
+  fetchOptions: {
+    auth: {
+      type: "Bearer",
+      token: () => localStorage.getItem("bearer_token") || "",
+    },
+    onSuccess: (ctx) => {
+      const authToken = ctx.response.headers.get("set-auth-token");
+      if (authToken) {
+        localStorage.setItem("bearer_token", authToken);
+      }
+    },
+  },
 });

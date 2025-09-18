@@ -2,25 +2,27 @@
 
 ## Quickstart
 
-### Pre Requesties
+### Prerequisites
 
 - Bun
 
 ### Env
 
-envset:
-
-- DATABASE_URL
-- BETTER_AUTH_URL
-- BETTER_AUTH_SECRET
+copy `.env.sample` to `.env`, and fill it.
 
 ### Steps
 
 ```sh
-# 1. install deps
+# 1) Install deps (runs sync/generate)
 bun install
 
-# 2. dev server
+# 2) Start dev services (MongoDB)
+up.sh
+
+# 3) Ensure SvelteKit + Prisma are synced
+bun run sync
+
+# 4) Start dev server
 bun dev
 ```
 
@@ -42,12 +44,19 @@ up.sh # initialize dev state
 down.sh # finalize
 ```
 
-## MongoDB (Docker)
+## Dev Services
 
-- Start DB: `docker compose -f infra/docker-compose.yml up -d`
+### MongoDB
+
+part of: up.sh
+
+- Start DB: `docker compose -f infra/dev.docker-compose.yml up -d`
 - Default URI: `mongodb://root:example@localhost:27017/homepa?authSource=admin`
-- Stop DB: `docker compose -f infra/docker-compose.yml down`
+- Stop DB: `docker compose -f infra/dev.docker-compose.yml down`
 
-## Notes
+## Auth
 
-- Docs aim to stay minimal and current.
+- Endpoints: `/api/auth/*` via SvelteKit handle hook.
+- Base URL: `http://localhost:3000` (ensure `BETTER_AUTH_URL` matches).
+- Client: see `src/lib/auth-client.ts`.
+- Demo UI: visit `/auth` for sign in/up.
