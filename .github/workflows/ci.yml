@@ -27,4 +27,3 @@ jobs:
       # checks
       - run: bun run check
       - run: bun run build
-
