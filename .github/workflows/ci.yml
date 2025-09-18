@@ -25,5 +25,5 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
 
       # checks
-      - run: bun run check
       - run: bun run build
+      - run: bun run check
