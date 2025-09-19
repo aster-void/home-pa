@@ -22,7 +22,7 @@ jobs:
       - run: bunx prisma generate
         env:
           # Dummy URL; generation does not connect to DB
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+          DATABASE_URL: mongodb://root:example@localhost:27017/homepa?authSource=admin
 
       # checks
       - run: bun run build
