@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=./json-schema/docker-compose.yml.json
+services:
+  mongo:
+    image: mongo:7
+    container_name: home-pa-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", 'db.adminCommand("ping")']
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - mongo-data:/data/db
+    attach: false
+
+volumes:
+  mongo-data:
