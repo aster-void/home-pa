@@ -1,18 +1,8 @@
 import * as v from "valibot";
 
-const toNumber = () =>
-  v.pipe(
-    v.string(),
-    v.transform((t) => Number(t)),
-    v.number(),
-  );
-
 const Env = v.object({
-  BASE_URL: v.string(),
-  PORT: toNumber(),
-  DATABASE_URL: v.string(),
-  BETTER_AUTH_URL: v.string(),
-  BETTER_AUTH_SECRET: v.string(),
+  BASE_URL: v.optional(v.string(), "http://localhost:3000"),
+  PORT: v.optional(v.string(), "3000"),
 });
 
 export const env = v.parse(Env, process.env);

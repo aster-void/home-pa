@@ -7,6 +7,6 @@ import { env } from "./src/lib/server/env.ts";
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   server: {
-    port: env.PORT,
+    port: Number(env.PORT),
   },
 });
