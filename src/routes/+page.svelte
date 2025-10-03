@@ -1,44 +1,30 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { getContext } from 'svelte';
   import { AppController } from '$lib/controllers/app.controller.svelte.js';
-  import Navigation from '$lib/components/Navigation.svelte';
-  import CalendarView from '$lib/components/CalendarView.svelte';
-  import MemoView from '$lib/components/MemoView.svelte';
-  import LogsView from '$lib/components/LogsView.svelte';
-  import SuggestionPanel from '$lib/components/SuggestionPanel.svelte';
+  import CalendarTabView from '$lib/components/CalendarTabView.svelte';
+  import PersonalAssistantView from '$lib/components/PersonalAssistantView.svelte';
 
-  // Initialize controller
-  const controller = new AppController();
+  // Get controller from context
+  const controller = getContext<AppController>('controller');
 
-  // Initialize app when component mounts
-  onMount(() => {
-    controller.initialize();
-  });
+  // Get current view from controller store
+  const currentViewStore = controller?.currentView;
+  const currentView = $derived(currentViewStore ? $currentViewStore : 'calendar');
 </script>
 
-<div class="app">
-  <Navigation {controller} />
-  
-  <main class="main-content">
-    {#if controller.currentView === 'calendar'}
-      <CalendarView {controller} />
-    {:else if controller.currentView === 'memo'}
-      <MemoView {controller} />
-    {:else if controller.currentView === 'logs'}
-      <LogsView {controller} />
+<main class="main-content">
+  {#if controller}
+    {#if currentView === 'calendar'}
+      <CalendarTabView {controller} />
+    {:else if currentView === 'personal-assistant'}
+      <PersonalAssistantView {controller} />
     {/if}
-  </main>
-  
-  <SuggestionPanel {controller} />
-</div>
+  {/if}
+</main>
 
 <style>
-  :global(.app) {
-    min-height: 100vh;
-    background-color: #f8fafc;
-  }
-
   .main-content {
-    padding: 0;
+    min-height: calc(100vh - 80px); /* Account for bottom navigation */
+    background-color: #f8fafc;
   }
 </style>

@@ -1,11 +1,26 @@
 <script lang="ts">
   import type { AppController } from '../controllers/app.controller.svelte.js';
+  import type { Suggestion } from '../types.js';
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
+
+  // Get current suggestion from store
+  let currentSuggestion = $state(null as Suggestion | null);
+  
+  // Subscribe to controller store changes
+  $effect(() => {
+    if (controller) {
+      const unsubscribe = controller.currentSuggestion.subscribe(value => {
+        currentSuggestion = value;
+      });
+      
+      return unsubscribe;
+    }
+  });
 </script>
 
-{#if controller.currentSuggestion}
+{#if currentSuggestion}
   <div class="suggestion-panel">
     <div class="suggestion-header">
       <h3>時間の提案</h3>
@@ -15,11 +30,11 @@
     <div class="suggestion-content">
       <div class="gap-info">
         <span class="gap-label">空き時間:</span>
-        <span class="gap-time">{controller.currentSuggestion?.gapMin || 0}分</span>
+        <span class="gap-time">{currentSuggestion?.gapMin || 0}分</span>
       </div>
       
       <div class="suggestion-text">
-        {controller.currentSuggestion?.template || ''}
+        {currentSuggestion?.template || ''}
       </div>
       
       <div class="reaction-buttons">

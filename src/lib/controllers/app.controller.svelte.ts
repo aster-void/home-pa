@@ -1,27 +1,44 @@
-// Main application controller using Svelte 5 runes
+// Main application controller using Svelte stores
 import type { Event, Memo, ViewMode, Suggestion } from '../types.js';
+import { writable, type Writable } from 'svelte/store';
 import { events, memos, suggestionLogs, eventOperations, memoOperations, suggestionLogOperations, selectedDate } from '../stores/data.js';
 import { suggestionService } from '../services/suggestion.js';
 
+interface EventFormData {
+  title: string;
+  start: string;
+  end: string;
+  isEditing: boolean;
+  editingId: string | null;
+}
+
+interface MemoFormData {
+  text: string;
+  isEditing: boolean;
+  editingId: string | null;
+}
+
 export class AppController {
-  // State using Svelte 5 runes
-  currentView = $state<'calendar' | 'memo' | 'logs'>('calendar');
-  viewMode = $state<ViewMode>('day');
-  currentSuggestion = $state(null as Suggestion | null);
+  // State using Svelte stores
+  currentView: Writable<'calendar' | 'personal-assistant'> = writable('calendar');
+  viewMode: Writable<ViewMode> = writable('day');
+  currentSuggestion: Writable<Suggestion | null> = writable(null);
+  selectedDate: Writable<Date> = writable(new Date());
+  isMemoOpen: Writable<boolean> = writable(false);
   
   // Form states
-  eventForm = $state({
+  eventForm: Writable<EventFormData> = writable({
     title: '',
     start: '',
     end: '',
     isEditing: false,
-    editingId: null as string | null
+    editingId: null
   });
   
-  memoForm = $state({
+  memoForm: Writable<MemoFormData> = writable({
     text: '',
     isEditing: false,
-    editingId: null as string | null
+    editingId: null
   });
 
   // Store operations (components will access stores directly)
@@ -38,8 +55,8 @@ export class AppController {
   }
   
   // Methods
-  setView(view: 'calendar' | 'memo' | 'logs'): void {
-    this.currentView = view;
+  setView(view: 'calendar' | 'personal-assistant'): void {
+    this.currentView.set(view);
     
     // Check for suggestions when returning to calendar
     if (view === 'calendar') {
@@ -47,29 +64,41 @@ export class AppController {
     }
   }
   
+  toggleMemo(): void {
+    this.isMemoOpen.update(open => !open);
+  }
+  
+  setMemoOpen(open: boolean): void {
+    this.isMemoOpen.set(open);
+  }
+  
   setViewMode(mode: ViewMode): void {
-    this.viewMode = mode;
+    this.viewMode.set(mode);
   }
   
   setSelectedDate(date: Date): void {
-    selectedDate.set(date);
+    this.selectedDate.set(date);
   }
   
   // Event management
   createEvent(): void {
+    let formData: any;
+    this.eventForm.subscribe(data => formData = data)();
+    
+    
     // Validate form fields
-    if (!this.eventForm.title?.trim()) {
+    if (!formData.title?.trim()) {
       alert('タイトルを入力してください');
       return;
     }
     
-    if (!this.eventForm.start || !this.eventForm.end) {
+    if (!formData.start || !formData.end) {
       alert('開始時間と終了時間を入力してください');
       return;
     }
     
-    const startDate = new Date(this.eventForm.start);
-    const endDate = new Date(this.eventForm.end);
+    const startDate = new Date(formData.start);
+    const endDate = new Date(formData.end);
     
     if (startDate >= endDate) {
       alert('終了時間は開始時間より後にしてください');
@@ -83,42 +112,43 @@ export class AppController {
       return;
     }
     
-    eventOperations.create({
-      title: this.eventForm.title.trim(),
+    const newEvent = eventOperations.create({
+      title: formData.title.trim(),
       start: startDate,
       end: endDate
     });
     
+    
     this.resetEventForm();
     this.checkForSuggestion();
-    
-    // Show success message (optional)
-    console.log('Event created successfully');
   }
   
   editEvent(event: Event): void {
-    this.eventForm = {
+    this.eventForm.set({
       title: event.title,
       start: event.start.toISOString().slice(0, 16),
       end: event.end.toISOString().slice(0, 16),
       isEditing: true,
       editingId: event.id
-    };
+    });
   }
   
   updateEvent(): void {
-    if (!this.eventForm.editingId) return;
+    let formData: any;
+    this.eventForm.subscribe(data => formData = data)();
     
-    const startDate = new Date(this.eventForm.start);
-    const endDate = new Date(this.eventForm.end);
+    if (!formData.editingId) return;
+    
+    const startDate = new Date(formData.start);
+    const endDate = new Date(formData.end);
     
     if (startDate >= endDate) {
       alert('終了時間は開始時間より後にしてください');
       return;
     }
     
-    eventOperations.update(this.eventForm.editingId, {
-      title: this.eventForm.title,
+    eventOperations.update(formData.editingId, {
+      title: formData.title,
       start: startDate,
       end: endDate
     });
@@ -127,9 +157,7 @@ export class AppController {
   }
   
   deleteEvent(id: string): void {
-    if (confirm('この予定を削除しますか？')) {
-      eventOperations.delete(id);
-    }
+    eventOperations.delete(id);
   }
   
   resetEventForm(): void {
@@ -138,52 +166,56 @@ export class AppController {
     const startTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 2 hours from now
     
-    this.eventForm = {
+    this.eventForm.set({
       title: '',
       start: startTime.toISOString().slice(0, 16),
       end: endTime.toISOString().slice(0, 16),
       isEditing: false,
       editingId: null
-    };
+    });
   }
   
   // Memo management
   createMemo(): void {
-    if (!this.memoForm.text.trim()) {
+    let formData: any;
+    this.memoForm.subscribe(data => formData = data)();
+    
+    if (!formData.text.trim()) {
       return;
     }
     
-    memoOperations.create(this.memoForm.text.trim());
+    memoOperations.create(formData.text.trim());
     this.resetMemoForm();
   }
   
   editMemo(memo: Memo): void {
-    this.memoForm = {
+    this.memoForm.set({
       text: memo.text,
       isEditing: true,
       editingId: memo.id
-    };
+    });
   }
   
   updateMemo(): void {
-    if (!this.memoForm.editingId) return;
+    let formData: any;
+    this.memoForm.subscribe(data => formData = data)();
     
-    memoOperations.update(this.memoForm.editingId, this.memoForm.text.trim());
+    if (!formData.editingId) return;
+    
+    memoOperations.update(formData.editingId, formData.text.trim());
     this.resetMemoForm();
   }
   
   deleteMemo(id: string): void {
-    if (confirm('このメモを削除しますか？')) {
-      memoOperations.delete(id);
-    }
+    memoOperations.delete(id);
   }
   
   resetMemoForm(): void {
-    this.memoForm = {
+    this.memoForm.set({
       text: '',
       isEditing: false,
       editingId: null
-    };
+    });
   }
   
   // Suggestion management
@@ -193,18 +225,21 @@ export class AppController {
     }
     
     const suggestion = suggestionService.checkForSuggestion();
-    this.currentSuggestion = suggestion;
+    this.currentSuggestion.set(suggestion);
   }
   
   reactToSuggestion(reaction: 'accepted' | 'rejected' | 'later'): void {
-    if (!this.currentSuggestion) return;
+    let suggestion: any;
+    this.currentSuggestion.subscribe(data => suggestion = data)();
     
-    suggestionService.logReaction(this.currentSuggestion, reaction);
-    this.currentSuggestion = null;
+    if (!suggestion) return;
+    
+    suggestionService.logReaction(suggestion, reaction);
+    this.currentSuggestion.set(null);
   }
   
   dismissSuggestion(): void {
-    this.currentSuggestion = null;
+    this.currentSuggestion.set(null);
   }
   
   // Utility methods
@@ -229,7 +264,7 @@ export class AppController {
     let currentDate: Date = new Date();
     
     // Get current date from store
-    selectedDate.subscribe(date => {
+    this.selectedDate.subscribe(date => {
       currentDate = new Date(date);
     })();
     
@@ -240,7 +275,7 @@ export class AppController {
   
   
   constructor() {
-    selectedDate.set(new Date());
+    this.selectedDate.set(new Date());
     this.initialize();
   }
 
@@ -251,8 +286,11 @@ export class AppController {
     const startTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 2 hours from now
     
-    this.eventForm.start = startTime.toISOString().slice(0, 16);
-    this.eventForm.end = endTime.toISOString().slice(0, 16);
+    this.eventForm.update(form => ({
+      ...form,
+      start: startTime.toISOString().slice(0, 16),
+      end: endTime.toISOString().slice(0, 16)
+    }));
     
     // Check for initial suggestion
     this.checkForSuggestion();

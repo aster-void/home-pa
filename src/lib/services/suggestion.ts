@@ -1,5 +1,6 @@
 // Suggestion service for gap time detection and proposal
 import type { Event, Suggestion, SuggestionLog } from '../types.js';
+import { get } from 'svelte/store';
 import { events, suggestionLogs, suggestionLogOperations } from '../stores/data.js';
 
 export class SuggestionService {
@@ -16,13 +17,11 @@ export class SuggestionService {
    * Check for gap time and generate suggestion if applicable
    */
   checkForSuggestion(currentTime: Date = new Date()): Suggestion | null {
-    let nextEvent: Event | null = null;
+    // Get current events from store synchronously
+    const currentEvents = get(events);
     
-    // Get current events from store
-    events.subscribe(currentEvents => {
-      const futureEvents = currentEvents.filter(event => event.start > currentTime);
-      nextEvent = futureEvents.length > 0 ? futureEvents[0] : null;
-    })();
+    const futureEvents = currentEvents.filter(event => event.start > currentTime);
+    const nextEvent = futureEvents.length > 0 ? futureEvents[0] : null;
     
     let gapMinutes: number;
     let eventId: string | undefined;
@@ -71,13 +70,7 @@ export class SuggestionService {
    * Get suggestion logs for analysis
    */
   getLogs(): SuggestionLog[] {
-    let logs: SuggestionLog[] = [];
-    
-    suggestionLogs.subscribe(currentLogs => {
-      logs = currentLogs;
-    })();
-    
-    return logs;
+    return get(suggestionLogs);
   }
 
   /**
@@ -85,14 +78,9 @@ export class SuggestionService {
    */
   hasRecentSuggestion(minutesAgo: number = 10): boolean {
     const recent = new Date(Date.now() - minutesAgo * 60 * 1000);
-    let hasRecent = false;
-    
-    suggestionLogs.subscribe(currentLogs => {
-      const recentLogs = currentLogs.filter(log => log.at >= recent);
-      hasRecent = recentLogs.length > 0;
-    })();
-    
-    return hasRecent;
+    const currentLogs = get(suggestionLogs);
+    const recentLogs = currentLogs.filter(log => log.at >= recent);
+    return recentLogs.length > 0;
   }
 
   /**

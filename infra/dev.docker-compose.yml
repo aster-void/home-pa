@@ -1,22 +1,46 @@
 # yaml-language-server: $schema=./json-schema/docker-compose.yml.json
 services:
+  # WARNING: This MongoDB instance is intentionally unsecured for local development only.
+  # It has no authentication and is bound to localhost only. Do not use this configuration
+  # in production or on untrusted networks.
   mongo:
     image: mongo:7
     container_name: home-pa-mongo
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=example
+    command: ["mongod", "--replSet", "rs0", "--bind_ip", "127.0.0.1"]
     healthcheck:
       test: ["CMD", "mongosh", "--eval", 'db.adminCommand("ping")']
-      interval: 60s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
     volumes:
       - mongo-data:/data/db
     attach: false
+    networks:
+      - mongo-network
+
+  mongo-init:
+    image: mongo:7
+    container_name: home-pa-mongo-init
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      - MONGO_HOST=mongo
+      - MONGO_PORT=27017
+      - REPLICA_SET_NAME=rs0
+    volumes:
+      - ../scripts/init-replica-set.sh:/init-replica-set.sh:ro
+    command: ["/bin/bash", "/init-replica-set.sh"]
+    networks:
+      - mongo-network
+    restart: "no"
 
 volumes:
   mongo-data:
+
+networks:
+  mongo-network:
+    driver: bridge
