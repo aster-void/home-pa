@@ -9,6 +9,7 @@
     "prepare": "bun sync",
     "sync": "svelte-kit sync && bun run prisma:generate",
     "preview": "vite preview",
+    "start": "node build",
     "check": "bun type:check && bun lint:check && bun format:check",
     "fix": "bun format:fix",
     "prisma:generate": "prisma generate",
