@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.js';
+  import type { AppController } from '../controllers/app.controller.svelte.ts';
 
   let p: { controller: AppController } = $props();
   const { controller } = p;

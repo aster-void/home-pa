@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getContext } from 'svelte';
-  import { AppController } from '$lib/controllers/app.controller.svelte.js';
+  import { AppController } from '$lib/controllers/app.controller.svelte.ts';
   import CalendarTabView from '$lib/components/CalendarTabView.svelte';
   import PersonalAssistantView from '$lib/components/PersonalAssistantView.svelte';
 

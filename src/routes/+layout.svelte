@@ -2,7 +2,7 @@
   import "../app.css";
   import favicon from "@/assets/favicon.svg";
   import BottomNavigation from "$lib/components/BottomNavigation.svelte";
-  import { AppController } from "$lib/controllers/app.controller.svelte.js";
+  import { AppController } from "$lib/controllers/app.controller.svelte.ts";
   import { setContext } from 'svelte';
 
   let { children } = $props();

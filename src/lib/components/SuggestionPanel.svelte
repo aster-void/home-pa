@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.js';
+  import type { AppController } from '../controllers/app.controller.svelte.ts';
   import type { Suggestion } from '../types.js';
 
   let p: { controller: AppController } = $props();

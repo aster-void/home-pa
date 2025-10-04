@@ -5,10 +5,12 @@ import { prisma } from "./server/prisma";
 import { appName } from "./app-info.ts";
 import { getRequestEvent } from "$app/server";
 import { bearer } from "better-auth/plugins";
+import { dev } from "$app/environment";
 
 export const auth = betterAuth({
   appName,
   database: prismaAdapter(prisma, { provider: "mongodb" }),
-  // basePath defaults to "/api/auth"; uses BETTER_AUTH_URL when set
+  // Only use BETTER_AUTH_URL in production
+  ...(dev ? {} : { baseURL: process.env.BETTER_AUTH_URL }),
   plugins: [bearer(), sveltekitCookies(getRequestEvent)],
 });
