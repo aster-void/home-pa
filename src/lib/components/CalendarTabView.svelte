@@ -69,6 +69,9 @@
           </div>
         </div>
       {/if}
+    </div>
+    
+    <!-- Mobile overlay - outside memo-section for proper layering -->
     {#if isMobile && isMemoOpen}
       <div 
         class="mobile-overlay"
@@ -84,7 +87,6 @@
         aria-label="Close memo overlay"
       ></div>
     {/if}
-    </div>
   </div>
 </div>
 
@@ -96,25 +98,27 @@
 
   .hamburger-button {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
+    top: var(--space-md);
+    right: var(--space-md);
     z-index: 1001;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--coral);
+    color: var(--white);
+    border: 1px solid var(--coral);
+    border-radius: 999px;
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s;
+    box-shadow: var(--shadow-subtle);
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    font-family: var(--font-sans);
+    font-weight: 600;
   }
 
   .hamburger-button:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
   }
 
   .hamburger-icon {
@@ -126,7 +130,7 @@
   .hamburger-icon span {
     width: 18px;
     height: 2px;
-    background: white;
+    background: var(--white);
     border-radius: 1px;
   }
 
@@ -136,13 +140,13 @@
   }
 
   .calendar-layout.desktop {
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--space-md);
+    padding: var(--space-md);
   }
 
   .calendar-layout.mobile {
     flex-direction: column;
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   .calendar-section {
@@ -173,7 +177,8 @@
     width: 100%;
     height: 100%;
     z-index: 1000;
-    background: white;
+    background: var(--card);
+    backdrop-filter: blur(6px) saturate(110%);
     transform: translateX(100%);
     transition: transform 0.3s ease;
   }
@@ -186,14 +191,12 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    transition: all 0.2s;
+    padding: var(--space-md);
   }
 
+  .calendar-layout.mobile .memo-container {
+    padding: 0; /* Remove padding on mobile for full-screen memo */
+  }
 
   .memo-content {
     flex: 1;
@@ -207,8 +210,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    background: rgba(15, 34, 48, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 998; /* Lower than memo-section to be behind it */
   }
 
 </style>

@@ -216,6 +216,75 @@
     return durationMinutes * (400 / 1440); // Scale to fit 400px height
   }
 
+  // Helper function to check if an event should be shown on a specific date
+  function shouldShowEventOnDate(event: Event, targetDate: Date): boolean {
+    const eventStartDate = new Date(event.start);
+    const eventEndDate = new Date(event.end);
+    const targetDateString = targetDate.toDateString();
+    
+    // Show event if it starts OR ends on the target date
+    return eventStartDate.toDateString() === targetDateString || 
+           eventEndDate.toDateString() === targetDateString;
+  }
+
+  // Helper function to get events for a specific date (including midnight-crossing events)
+  function getEventsForDate(events: Event[], targetDate: Date): Event[] {
+    const targetDateString = targetDate.toDateString();
+    
+    return events.filter(event => {
+      const eventStartDate = new Date(event.start);
+      const eventEndDate = new Date(event.end);
+      
+      return eventStartDate.toDateString() === targetDateString || 
+             eventEndDate.toDateString() === targetDateString;
+    }).map(event => {
+      const eventStartDate = new Date(event.start);
+      const eventEndDate = new Date(event.end);
+      const startsOnTarget = eventStartDate.toDateString() === targetDateString;
+      const endsOnTarget = eventEndDate.toDateString() === targetDateString;
+      
+      // If event starts and ends on the same day, return as is
+      if (startsOnTarget && endsOnTarget) {
+        return event;
+      }
+      
+      // If event starts on target date but ends next day, truncate at midnight
+      if (startsOnTarget && !endsOnTarget) {
+        const truncatedEnd = new Date(targetDate);
+        truncatedEnd.setHours(23, 59, 59, 999);
+        return {
+          ...event,
+          end: truncatedEnd
+        };
+      }
+      
+      // If event ends on target date but started yesterday, start at midnight
+      if (!startsOnTarget && endsOnTarget) {
+        const truncatedStart = new Date(targetDate);
+        truncatedStart.setHours(0, 0, 0, 0);
+        return {
+          ...event,
+          start: truncatedStart
+        };
+      }
+      
+      return event;
+    });
+  }
+
+  // Helper function to get full events for event list (no truncation)
+  function getFullEventsForDate(events: Event[], targetDate: Date): Event[] {
+    const targetDateString = targetDate.toDateString();
+    
+    return events.filter(event => {
+      const eventStartDate = new Date(event.start);
+      const eventEndDate = new Date(event.end);
+      
+      return eventStartDate.toDateString() === targetDateString || 
+             eventEndDate.toDateString() === targetDateString;
+    });
+  }
+
   function getEventColumns(events: Event[]): Event[][] {
     if (events.length === 0) return [];
     
@@ -287,7 +356,7 @@
         >
           <div class="day-number">{day.getDate()}</div>
           <div class="day-events">
-            {#each $events.filter(event => new Date(event.start).toDateString() === day.toDateString()) as event (event.id)}
+            {#each getEventsForDate($events, day) as event (event.id)}
               <div class="event-dot" style="background-color: {getEventColor(event)}"></div>
             {/each}
           </div>
@@ -299,11 +368,11 @@
   <!-- Selected Date Events - Always Visible -->
   <div class="selected-date-events">
     <h3>予定 - {controller.formatDate(selectedDate)}</h3>
-    {#if $events.filter(event => new Date(event.start).toDateString() === selectedDate.toDateString()).length === 0}
+    {#if getFullEventsForDate($events, selectedDate).length === 0}
       <p class="empty-state">この日の予定はありません</p>
     {:else}
       <div class="events-list">
-        {#each $events.filter(event => new Date(event.start).toDateString() === selectedDate.toDateString()) as event (event.id)}
+        {#each getFullEventsForDate($events, selectedDate) as event (event.id)}
           <div 
             class="event-item" 
             onclick={() => controller.editEvent(event)}
@@ -318,7 +387,7 @@
               </div>
             </div>
             <div class="event-actions">
-              <button onclick={() => controller.editEvent(event)}>編集</button>
+              <button onclick={() => { controller.editEvent(event); showEventForm = true; }}>編集</button>
               <button onclick={() => controller.deleteEvent(event.id)} class="danger">削除</button>
             </div>
           </div>
@@ -337,7 +406,7 @@
         </div>
         
         <div class="timeline-container">
-          {#if $events.filter(event => new Date(event.start).toDateString() === selectedDate.toDateString()).length === 0}
+          {#if getEventsForDate($events, selectedDate).length === 0}
             <p class="empty-state">この日の予定はありません</p>
           {:else}
             <div class="timeline-view">
@@ -356,13 +425,13 @@
               
               <!-- Event columns -->
               <div class="timeline-columns">
-                {#each getEventColumns($events.filter(event => new Date(event.start).toDateString() === selectedDate.toDateString())) as column, columnIndex}
-                  <div class="timeline-column" style="width: {100 / getEventColumns($events.filter(event => new Date(event.start).toDateString() === selectedDate.toDateString())).length}%;">
+                {#each getEventColumns(getEventsForDate($events, selectedDate)) as column, columnIndex}
+                  <div class="timeline-column" style="width: {100 / getEventColumns(getEventsForDate($events, selectedDate)).length}%;">
                     {#each column as event (event.id)}
                       <div 
                         class="timeline-event-block" 
-                        onclick={() => controller.editEvent(event)}
-                        onkeydown={(e) => e.key === 'Enter' && controller.editEvent(event)}
+                        onclick={() => { controller.editEvent(event); showEventForm = true; }}
+                        onkeydown={(e) => e.key === 'Enter' && (controller.editEvent(event), showEventForm = true)}
                         role="button"
                         tabindex="0"
                         style="
@@ -474,8 +543,11 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: white;
-    border-radius: 0.5rem;
+    background: var(--panel);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    backdrop-filter: blur(6px) saturate(110%);
+    box-shadow: var(--glow);
     overflow: hidden;
   }
 
@@ -490,56 +562,65 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e5e7eb;
-    background: #f9fafb;
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(0,200,255,0.05);
   }
 
   .month-navigation {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .month-navigation h2 {
     margin: 0;
-    font-size: 1.25rem;
-    color: #1f2937;
+    font-family: var(--font-display);
+    font-size: var(--fs-lg);
+    color: var(--primary);
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-shadow: 0 0 8px rgba(0,200,255,0.15);
   }
 
   .month-navigation button {
     width: 2rem;
     height: 2rem;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 0.375rem;
+    border: 1px solid var(--primary);
+    background: transparent;
+    border-radius: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    color: var(--primary);
+    font-family: var(--font-display);
+    transition: all 0.18s ease;
   }
 
   .month-navigation button:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
+    background: var(--primary);
+    color: var(--bg);
+    box-shadow: 0 0 14px rgba(0,200,255,0.22);
+    transform: translateY(-2px);
   }
 
   .add-event-button {
-    padding: 0.5rem 1rem;
-    background: #3b82f6;
-    color: white;
-    border: none;
-    border-radius: 0.375rem;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--coral);
+    color: var(--white);
+    border: 1px solid var(--coral);
+    border-radius: 999px;
     cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .add-event-button:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
   }
 
   .calendar-days {
@@ -552,41 +633,46 @@
   .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    background: #f3f4f6;
-    border-bottom: 1px solid #e5e7eb;
+    background: rgba(0,200,255,0.05);
+    border-bottom: 1px solid var(--glass-border);
   }
 
   .weekday {
-    padding: 0.75rem 0.5rem;
+    padding: var(--space-sm) var(--space-xs);
     text-align: center;
     font-weight: 600;
-    color: #374151;
+    color: var(--muted);
     font-size: 0.875rem;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-
   .calendar-day {
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 0.5rem;
+    border-right: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    padding: var(--space-sm);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.18s ease;
     display: flex;
     flex-direction: column;
     min-height: 80px;
+    background: rgba(0,200,255,0.02);
   }
 
   .calendar-day:hover {
-    background: #f9fafb;
+    background: rgba(0,200,255,0.08);
+    box-shadow: inset 0 0 12px rgba(0,200,255,0.1);
   }
 
   .calendar-day.today {
-    background: #eff6ff;
+    background: rgba(0,200,255,0.1);
+    box-shadow: inset 0 0 12px rgba(0,200,255,0.15);
   }
 
   .calendar-day.today .day-number {
-    background: #3b82f6;
-    color: white;
+    background: var(--primary);
+    color: var(--bg);
     border-radius: 50%;
     width: 1.5rem;
     height: 1.5rem;
@@ -594,21 +680,27 @@
     align-items: center;
     justify-content: center;
     font-weight: 600;
+    font-family: var(--font-display);
+    box-shadow: 0 0 8px rgba(0,200,255,0.3);
   }
 
   .calendar-day.selected {
-    background: #dbeafe;
-    border: 2px solid #3b82f6;
+    background: rgba(0,200,255,0.15);
+    border: 2px solid var(--primary);
+    box-shadow: inset 0 0 12px rgba(0,200,255,0.2), 0 0 12px rgba(0,200,255,0.2);
   }
 
   .calendar-day.other-month {
-    color: #9ca3af;
-    background: #f9fafb;
+    color: var(--muted);
+    background: rgba(102,224,255,0.02);
+    opacity: 0.6;
   }
 
   .day-number {
     font-weight: 500;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
+    color: var(--text);
+    font-family: var(--font-display);
   }
 
   .day-events {
@@ -623,68 +715,75 @@
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 4px rgba(0,200,255,0.3);
   }
 
   .selected-date-events {
-    padding: 1rem;
-    border-top: 1px solid #e5e7eb;
-    background: #f9fafb;
+    padding: var(--space-md);
+    border-top: 1px solid var(--glass-border);
+    background: rgba(0,200,255,0.05);
     max-height: 250px;
     overflow-y: auto;
     flex-shrink: 0;
   }
 
   .selected-date-events h3 {
-    margin: 0 0 1rem 0;
-    color: #1f2937;
+    margin: 0 0 var(--space-md) 0;
+    color: var(--primary);
     font-size: 1rem;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-sm);
   }
 
   .event-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    padding: var(--space-sm);
+    background: rgba(0,200,255,0.08);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.18s ease;
   }
 
   .event-item:hover {
-    background: #f3f4f6;
-    border-color: #d1d5db;
-    transform: translateY(-1px);
+    background: rgba(0,200,255,0.12);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 0 12px rgba(0,200,255,0.15);
   }
 
   .event-content {
     flex: 1;
-    margin-right: 1rem;
+    margin-right: var(--space-md);
   }
 
   .event-title {
     font-weight: 500;
-    color: #1f2937;
-    margin-bottom: 0.25rem;
+    color: var(--text);
+    margin-bottom: var(--space-xs);
+    font-family: var(--font-display);
   }
 
   .event-time {
     font-size: 0.75rem;
-    color: #6b7280;
+    color: var(--muted);
+    font-family: var(--font-display);
   }
 
   .event-actions {
     display: flex;
-    gap: 0.5rem;
+    gap: var(--space-xs);
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.18s ease;
   }
 
   .event-item:hover .event-actions {
@@ -692,29 +791,41 @@
   }
 
   .event-actions button {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 0.25rem;
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--primary);
+    background: transparent;
+    border-radius: 4px;
     cursor: pointer;
     font-size: 0.75rem;
-    transition: all 0.2s;
+    color: var(--primary);
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.18s ease;
   }
 
   .event-actions button.danger {
-    color: #dc2626;
-    border-color: #fca5a5;
+    color: var(--danger);
+    border-color: var(--danger);
   }
 
   .event-actions button:hover {
-    background: #f3f4f6;
+    background: var(--primary);
+    color: var(--bg);
+    box-shadow: 0 0 8px rgba(0,200,255,0.2);
+  }
+
+  .event-actions button.danger:hover {
+    background: var(--danger);
+    color: var(--bg);
+    box-shadow: 0 0 8px rgba(255,59,59,0.2);
   }
 
   .empty-state {
     text-align: center;
-    color: #6b7280;
+    color: var(--muted);
     font-style: italic;
-    padding: 1rem;
+    padding: var(--space-md);
   }
 
   /* Timeline Popup Styles */
@@ -724,7 +835,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 34, 48, 0.8);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -732,29 +844,32 @@
   }
 
   .popup-content {
-    background: white;
-    border-radius: 0.75rem;
-    padding: 1.5rem;
+    background: var(--card);
+    border: 1px solid rgba(15, 34, 48, 0.05);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-soft);
   }
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
   }
 
   .popup-header h3 {
     margin: 0;
-    color: #1f2937;
-    font-size: 1.25rem;
+    color: var(--navy-900);
+    font-size: var(--fs-lg);
+    font-family: var(--font-sans);
+    font-weight: 600;
   }
 
   .timeline-container {
@@ -766,9 +881,9 @@
   .timeline-view {
     position: relative;
     height: 400px; /* Fixed height - no scrolling */
-    background: #fafafa;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    background: rgba(240, 138, 119, 0.05);
+    border: 1px solid rgba(240, 138, 119, 0.2);
+    border-radius: var(--radius-md);
     overflow: hidden;
   }
 
@@ -795,17 +910,18 @@
     left: 0.25rem;
     top: -0.5rem;
     font-size: 0.625rem;
-    color: #6b7280;
-    background: #fafafa;
+    color: var(--muted);
+    background: rgba(0,200,255,0.05);
     padding: 0 0.125rem;
     font-weight: 500;
     line-height: 1;
+    font-family: var(--font-display);
   }
 
   .hour-line {
     width: 100%;
     height: 1px;
-    background: #e5e7eb;
+    background: var(--glass-border);
     margin-left: 2.5rem;
   }
 
@@ -814,9 +930,10 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: #ef4444;
+    background: var(--accent);
     z-index: 10;
     pointer-events: none;
+    box-shadow: 0 0 8px rgba(255,204,0,0.5);
   }
 
   .current-time-line::before {
@@ -826,7 +943,7 @@
     top: -4px;
     width: 0;
     height: 0;
-    border-left: 6px solid #ef4444;
+    border-left: 6px solid var(--accent);
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
   }
@@ -843,7 +960,7 @@
   .timeline-column {
     position: relative;
     height: 100%;
-    border-right: 1px solid #e5e7eb;
+    border-right: 1px solid var(--glass-border);
   }
 
   .timeline-column:last-child {
@@ -855,18 +972,18 @@
     left: 0.125rem;
     right: 0.125rem;
     padding: 0.25rem;
-    border-radius: 0.125rem;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: all 0.18s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 8px rgba(0,200,255,0.2);
     overflow: hidden;
     min-height: 20px;
   }
 
   .timeline-event-block:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
     z-index: 5;
   }
 
@@ -878,6 +995,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-family: var(--font-sans);
   }
 
   .timeline-event-time {
@@ -887,6 +1005,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-family: var(--font-display);
   }
 
   /* Modal Styles */
@@ -896,7 +1015,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 34, 48, 0.8);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -904,108 +1024,133 @@
   }
 
   .modal-content {
-    background: white;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
+    background: var(--card);
+    border: 1px solid rgba(15, 34, 48, 0.05);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
     width: 90%;
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: var(--shadow-soft);
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
   }
 
   .modal-header h3 {
     margin: 0;
-    color: #1f2937;
+    color: var(--navy-900);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--fs-lg);
   }
 
   .close-button {
     width: 2rem;
     height: 2rem;
-    border: none;
-    background: #ef4444;
-    color: white;
+    border: 1px solid #dc3545;
+    background: transparent;
+    color: #dc3545;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1rem;
-    transition: all 0.2s;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .close-button:hover {
-    background: #dc2626;
+    background: #dc3545;
+    color: var(--white);
+    box-shadow: 0 4px 14px rgba(220, 53, 69, 0.3);
     transform: scale(1.1);
   }
 
   .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-md);
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 
   .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #374151;
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: var(--fs-sm);
   }
 
   .form-group input {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 1rem;
+    padding: var(--space-sm);
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: 999px;
+    font-size: var(--fs-md);
+    background: var(--white);
+    color: var(--navy-700);
+    font-family: var(--font-sans);
+    transition: all 0.18s ease;
+  }
+
+  .form-group input:focus {
+    border-color: var(--coral);
+    outline: 2px solid rgba(240, 138, 119, 0.18);
+    outline-offset: 2px;
   }
 
   .form-actions {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
   }
 
   .form-actions button {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 0.375rem;
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--coral);
+    background: transparent;
+    border-radius: 999px;
     cursor: pointer;
-    font-size: 0.875rem;
-    transition: all 0.2s;
+    font-size: var(--fs-sm);
+    color: var(--coral);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .form-actions button:first-child {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
+    background: var(--coral);
+    color: var(--white);
   }
 
   .form-actions button:first-child:hover {
-    background: #2563eb;
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
   }
 
   .form-actions button:hover {
-    background: #f3f4f6;
+    background: var(--coral);
+    color: var(--white);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
   }
 
   @media (max-width: 768px) {
     .calendar-day {
       min-height: 60px;
-      padding: 0.25rem;
+      padding: var(--space-xs);
     }
 
     .day-number {
@@ -1019,6 +1164,17 @@
 
     .form-row {
       grid-template-columns: 1fr;
+    }
+
+    .calendar-header {
+      flex-direction: column;
+      gap: var(--space-md);
+      align-items: flex-start;
+    }
+
+    .month-navigation {
+      width: 100%;
+      justify-content: space-between;
     }
   }
 </style>

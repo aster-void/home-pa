@@ -25,6 +25,6 @@
 <style>
   .main-content {
     min-height: calc(100vh - 80px); /* Account for bottom navigation */
-    background-color: #f8fafc;
+    background: var(--bg);
   }
 </style>

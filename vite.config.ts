@@ -2,9 +2,11 @@ import tailwindcss from "@tailwindcss/vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
 
+import { env } from "./src/lib/server/env.ts";
+
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   server: {
-    port: Number(process.env.PORT || 3000),
+    port: Number(env.PORT),
   },
 });

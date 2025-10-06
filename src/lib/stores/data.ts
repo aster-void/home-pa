@@ -1,14 +1,36 @@
-// Svelte stores for reactive data management
+/**
+ * @fileoverview Svelte stores for reactive data management
+ * 
+ * This module provides centralized state management for the personal assistant application.
+ * It includes stores for events, memos, suggestion logs, and derived computed values.
+ * 
+ * @author Personal Assistant Team
+ * @version 1.0.0
+ */
+
 import { writable, derived } from 'svelte/store';
 import type { Event, Memo, SuggestionLog } from '../types.js';
 
-// Base stores for raw data
+/**
+ * Core application data stores
+ */
+/** @type {import('svelte/store').Writable<Event[]>} Calendar events store */
 export const events = writable<Event[]>([]);
+
+/** @type {import('svelte/store').Writable<Memo[]>} Memos store */
 export const memos = writable<Memo[]>([]);
+
+/** @type {import('svelte/store').Writable<SuggestionLog[]>} Suggestion logs store */
 export const suggestionLogs = writable<SuggestionLog[]>([]);
+
+/** @type {import('svelte/store').Writable<Date>} Currently selected date store */
 export const selectedDate = writable<Date>(new Date());
 
-// Helper function to create new event
+/**
+ * Helper function to create a new event with generated ID
+ * @param event - Event data without ID
+ * @returns Event with generated UUID
+ */
 function createEvent(event: Omit<Event, 'id'>): Event {
   return {
     ...event,
@@ -16,7 +38,11 @@ function createEvent(event: Omit<Event, 'id'>): Event {
   };
 }
 
-// Helper function to create new memo
+/**
+ * Helper function to create a new memo with generated ID
+ * @param text - Memo text content
+ * @returns Memo with generated UUID
+ */
 function createMemo(text: string): Memo {
   return {
     id: crypto.randomUUID(),
@@ -24,7 +50,11 @@ function createMemo(text: string): Memo {
   };
 }
 
-// Helper function to create new suggestion log
+/**
+ * Helper function to create a new suggestion log with generated ID
+ * @param log - Log data without ID
+ * @returns SuggestionLog with generated UUID
+ */
 function createSuggestionLog(log: Omit<SuggestionLog, 'id'>): SuggestionLog {
   return {
     ...log,
@@ -32,12 +62,19 @@ function createSuggestionLog(log: Omit<SuggestionLog, 'id'>): SuggestionLog {
   };
 }
 
-// Helper function to sort events by start time
+/**
+ * Helper function to sort events by start time (ascending)
+ * @param eventsList - Array of events to sort
+ * @returns New sorted array of events
+ */
 function sortEvents(eventsList: Event[]): Event[] {
   return [...eventsList].sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
-// Event operations
+/**
+ * Event management operations
+ * Provides CRUD operations for calendar events with automatic sorting
+ */
 export const eventOperations = {
   create(event: Omit<Event, 'id'>): Event {
     const newEvent = createEvent(event);
@@ -102,7 +139,10 @@ export const eventOperations = {
   }
 };
 
-// Memo operations
+/**
+ * Memo management operations
+ * Provides CRUD operations for user memos
+ */
 export const memoOperations = {
   create(text: string): Memo {
     const newMemo = createMemo(text);
@@ -143,7 +183,10 @@ export const memoOperations = {
   }
 };
 
-// Suggestion log operations
+/**
+ * Suggestion log management operations
+ * Provides operations for tracking user interactions with suggestions
+ */
 export const suggestionLogOperations = {
   create(log: Omit<SuggestionLog, 'id'>): SuggestionLog {
     const newLog = createSuggestionLog(log);
@@ -152,7 +195,14 @@ export const suggestionLogOperations = {
   }
 };
 
-// Derived stores for computed values
+/**
+ * Derived stores for computed values
+ */
+
+/**
+ * Events filtered for the currently selected date
+ * Automatically updates when events or selectedDate changes
+ */
 export const todaysEvents = derived(
   [events, selectedDate],
   ([$events, $selectedDate]) => {
@@ -163,7 +213,11 @@ export const todaysEvents = derived(
   }
 );
 
-// Utility function to clear all data (for testing)
+/**
+ * Utility function to clear all application data
+ * Primarily used for testing and development
+ * @warning This will permanently delete all user data
+ */
 export function clearAllData(): void {
   events.set([]);
   memos.set([]);

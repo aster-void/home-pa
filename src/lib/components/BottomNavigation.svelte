@@ -45,9 +45,9 @@
     left: 0;
     right: 0;
     display: flex;
-    background-color: #ffffff;
-    border-top: 1px solid #e5e7eb;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    background: var(--white);
+    border-top: 1px solid rgba(15, 34, 48, 0.08);
+    box-shadow: 0 -4px 14px rgba(8, 12, 20, 0.06);
     z-index: 1000;
   }
 
@@ -57,43 +57,48 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0.75rem 0.5rem;
+    padding: var(--space-sm) var(--space-xs);
     border: none;
-    background: none;
+    background: transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
-    color: #6b7280;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    color: var(--muted);
+    font-family: var(--font-sans);
   }
 
   .nav-item:focus-visible {
-    outline: 2px solid #3b82f6;
-    outline-offset: -2px;
+    outline: 2px solid rgba(240, 138, 119, 0.18);
+    outline-offset: 2px;
   }
 
   .nav-item:hover {
-    background-color: #f3f4f6;
-    color: #374151;
+    background: rgba(240, 138, 119, 0.08);
+    color: var(--coral);
   }
 
   .nav-item.active {
-    color: #3b82f6;
-    background-color: #eff6ff;
+    color: var(--coral);
+    background: rgba(240, 138, 119, 0.1);
   }
 
   .nav-icon {
     font-size: 1.5rem;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--space-xs);
+  }
+
+  .nav-item.active .nav-icon {
+    transform: scale(1.1);
   }
 
   .nav-label {
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: var(--fs-sm);
+    font-weight: 600;
     text-align: center;
   }
 
   @media (max-width: 640px) {
     .nav-item {
-      padding: 0.5rem 0.25rem;
+      padding: var(--space-xs) var(--space-xs);
     }
     
     .nav-icon {

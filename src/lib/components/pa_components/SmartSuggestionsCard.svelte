@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import type { Suggestion } from '../types.js';
+  import BaseCard from './BaseCard.svelte';
+  import type { AppController } from '../../controllers/app.controller.svelte.ts';
+  import type { Suggestion } from '../../types.js';
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
-  // Get current suggestion from store
+  // Get current suggestion from controller
   let currentSuggestion = $state(null as Suggestion | null);
   
   // Subscribe to controller store changes
@@ -18,19 +19,23 @@
       return unsubscribe;
     }
   });
+
+  // Get status for the card
+  const suggestionStatus = $derived(currentSuggestion ? 'Active' : 'No suggestions');
+  const statusType = $derived(currentSuggestion ? 'active' : 'inactive');
 </script>
 
-{#if currentSuggestion}
-  <div class="suggestion-panel">
-    <div class="suggestion-header">
-      <h3>時間の提案</h3>
-      <button onclick={() => controller.dismissSuggestion()} class="close-btn">×</button>
-    </div>
-    
-    <div class="suggestion-content">
+<BaseCard 
+  title="Smart Suggestions" 
+  status={suggestionStatus}
+  statusType={statusType}
+  class="suggestions-card"
+>
+  {#if currentSuggestion}
+    <div class="current-suggestion">
       <div class="gap-info">
-        <span class="gap-label">空き時間:</span>
-        <span class="gap-time">{currentSuggestion?.gapMin || 0}分</span>
+        <span class="gap-label">Available Time:</span>
+        <span class="gap-time">{currentSuggestion?.gapMin || 0} minutes</span>
       </div>
       
       <div class="suggestion-text">
@@ -42,136 +47,92 @@
           onclick={() => controller.reactToSuggestion('accepted')}
           class="accept-btn"
         >
-          受け入れ
+          Accept
         </button>
         <button 
           onclick={() => controller.reactToSuggestion('rejected')}
           class="reject-btn"
         >
-          拒否
+          Reject
         </button>
         <button 
           onclick={() => controller.reactToSuggestion('later')}
           class="later-btn"
         >
-          後で
+          Later
+        </button>
+        <button 
+          onclick={() => controller.dismissSuggestion()}
+          class="dismiss-btn"
+        >
+          Dismiss
         </button>
       </div>
     </div>
-  </div>
-{/if}
+  {:else}
+    <div class="no-suggestion">
+      <p>No active suggestions at the moment.</p>
+      <p class="no-suggestion-hint">Suggestions will appear when you have free time gaps.</p>
+    </div>
+  {/if}
+</BaseCard>
 
 <style>
-  .suggestion-panel {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 320px;
-    background: var(--card);
-    border: 1px solid rgba(15, 34, 48, 0.05);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-    z-index: 1000;
-    animation: slideIn 0.3s ease-out;
-  }
-
-  @keyframes slideIn {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .suggestion-header {
+  .current-suggestion {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1rem 0 1rem;
-  }
-
-  .suggestion-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    color: var(--navy-900);
-    font-family: var(--font-sans);
-    font-weight: 600;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  }
-
-  .close-btn:hover {
-    color: var(--coral);
-    transform: scale(1.1);
-  }
-
-  .suggestion-content {
-    padding: 1rem;
+    flex-direction: column;
+    gap: var(--space-md);
   }
 
   .gap-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
-    padding: 0.75rem;
+    padding: var(--space-sm);
     background: rgba(240, 138, 119, 0.1);
+    border: 1px solid rgba(240, 138, 119, 0.2);
     border-radius: var(--radius-md);
   }
 
   .gap-label {
     font-weight: 600;
     color: var(--coral);
-    font-family: var(--font-sans);
+    font-size: var(--fs-sm);
   }
 
   .gap-time {
+    font-family: var(--font-sans);
     font-weight: 600;
     color: var(--navy-900);
     font-size: var(--fs-lg);
-    font-family: var(--font-sans);
   }
 
   .suggestion-text {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    padding: var(--space-md);
     background: rgba(240, 138, 119, 0.05);
+    border: 1px solid rgba(240, 138, 119, 0.2);
     border-radius: var(--radius-md);
     color: var(--navy-700);
     font-weight: 500;
     text-align: center;
     font-family: var(--font-sans);
+    line-height: 1.4;
   }
 
   .reaction-buttons {
-    display: flex;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
   }
 
   .reaction-buttons button {
-    flex: 1;
-    padding: 0.75rem;
+    padding: var(--space-sm);
     border: 1px solid transparent;
     border-radius: 999px;
     cursor: pointer;
     font-weight: 600;
     font-family: var(--font-sans);
+    font-size: var(--fs-sm);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
@@ -184,8 +145,8 @@
   .accept-btn:hover {
     background: var(--coral);
     color: var(--white);
-    transform: translateY(-2px);
     box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
   }
 
   .reject-btn {
@@ -197,8 +158,8 @@
   .reject-btn:hover {
     background: #dc3545;
     color: var(--white);
-    transform: translateY(-2px);
     box-shadow: 0 4px 14px rgba(220, 53, 69, 0.3);
+    transform: translateY(-2px);
   }
 
   .later-btn {
@@ -211,5 +172,37 @@
     background: var(--muted);
     color: var(--white);
     transform: translateY(-2px);
+  }
+
+  .dismiss-btn {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border-color: #ffc107;
+  }
+
+  .dismiss-btn:hover {
+    background: #ffc107;
+    color: var(--white);
+    box-shadow: 0 4px 14px rgba(255, 193, 7, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .no-suggestion {
+    text-align: center;
+    padding: 2rem;
+    color: var(--muted);
+  }
+
+  .no-suggestion-hint {
+    font-size: var(--fs-md);
+    margin-top: var(--space-sm);
+    color: var(--muted);
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .reaction-buttons {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

@@ -1,85 +1,151 @@
 <script lang="ts">
   import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import SuggestionPanel from './SuggestionPanel.svelte';
   import LogsView from './LogsView.svelte';
+  import { FreeTimeGapsCard, SmartSuggestionsCard } from './pa_components/index.js';
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
-  // Local state to toggle between logs and suggestions view
+  // Local state for the adaptive layout
   let showLogs = $state(false);
 </script>
 
 <div class="personal-assistant-view">
   <div class="assistant-header">
     <h2>Personal Assistant</h2>
-    <button 
-      class="developer-button"
-      onclick={() => showLogs = !showLogs}
-    >
-      {showLogs ? 'Hide' : 'Developer'} Logs
-    </button>
+    <div class="header-actions">
+      <button 
+        class="action-button"
+        class:active={showLogs}
+        onclick={() => showLogs = !showLogs}
+      >
+        {showLogs ? 'Hide' : 'Show'} Logs
+      </button>
+    </div>
   </div>
 
-  {#if showLogs}
-    <div class="logs-section">
-      <LogsView {controller} />
+  <div class="adaptive-content">
+    <!-- Main Overview Section -->
+    <div class="overview-section">
+      <!-- Free Time Gaps Card -->
+      <FreeTimeGapsCard />
+      
+      <!-- Smart Suggestions Card -->
+      <SmartSuggestionsCard {controller} />
     </div>
-  {:else}
-    <div class="suggestions-section">
-      <SuggestionPanel {controller} />
-    </div>
-  {/if}
+
+    <!-- Developer Logs Section (Collapsible) -->
+    {#if showLogs}
+      <div class="logs-section">
+        <LogsView {controller} />
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
   .personal-assistant-view {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem;
-    min-height: calc(100vh - 120px); /* Account for navigation */
+    padding: var(--space-lg);
+    min-height: calc(100vh - 120px);
   }
 
   .assistant-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
   }
 
   .assistant-header h2 {
     margin: 0;
-    font-size: 1.5rem;
-    color: #1f2937;
+    font-family: var(--font-sans);
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    color: var(--navy-900);
   }
 
-  .developer-button {
-    padding: 0.5rem 1rem;
-    border: 1px solid #d1d5db;
-    background: white;
-    border-radius: 0.375rem;
+  .header-actions {
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  .action-button {
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid var(--coral);
+    background: transparent;
+    border-radius: 999px;
     cursor: pointer;
-    font-size: 0.875rem;
-    color: #6b7280;
-    transition: all 0.2s;
+    font-size: var(--fs-sm);
+    color: var(--coral);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
-  .developer-button:hover {
-    background: #f3f4f6;
-    color: #374151;
+  .action-button:hover {
+    background: var(--coral);
+    color: var(--white);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .action-button.active {
+    background: var(--coral);
+    color: var(--white);
+    border-color: var(--coral);
+    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
+  }
+
+  .adaptive-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+
+  .overview-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
   }
 
   .logs-section {
-    background: #f9fafb;
-    border-radius: 0.5rem;
-    padding: 1rem;
+    background: var(--card);
+    border: 1px solid rgba(15, 34, 48, 0.05);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-subtle);
+    transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
-  .suggestions-section {
-    background: #f9fafb;
-    border-radius: 0.5rem;
-    padding: 1rem;
+  .logs-section:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .personal-assistant-view {
+      padding: var(--space-md);
+    }
+
+    .overview-section {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+
+    .assistant-header {
+      flex-direction: column;
+      gap: var(--space-md);
+      align-items: flex-start;
+    }
+
+    .header-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 </style>
