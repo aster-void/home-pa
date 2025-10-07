@@ -16,15 +16,18 @@ pa_components/
 ## Components
 
 ### BaseCard.svelte
+
 A reusable base component that provides consistent styling and structure for all PA cards.
 
 **Props:**
+
 - `title: string` - The card title
 - `status?: string` - Optional status text
 - `statusType?: 'active' | 'inactive' | 'warning' | 'error'` - Status indicator type
 - `class?: string` - Additional CSS classes
 
 **Usage:**
+
 ```svelte
 <BaseCard title="My Card" status="Active" statusType="active">
   <!-- Card content goes here -->
@@ -32,9 +35,11 @@ A reusable base component that provides consistent styling and structure for all
 ```
 
 ### FreeTimeGapsCard.svelte
+
 Displays free time gaps with statistics, day boundary configuration, and gap list.
 
 **Features:**
+
 - Real-time gap calculation
 - Day boundary editing
 - Gap statistics (total time, count, largest gap)
@@ -42,12 +47,15 @@ Displays free time gaps with statistics, day boundary configuration, and gap lis
 - Responsive design
 
 ### SmartSuggestionsCard.svelte
+
 Shows AI-powered suggestions based on available free time.
 
 **Props:**
+
 - `controller: AppController` - The app controller for suggestion management
 
 **Features:**
+
 - Real-time suggestion display
 - Status indicators (active/inactive)
 - Action buttons (Accept, Reject, Later, Dismiss)
@@ -58,31 +66,35 @@ Shows AI-powered suggestions based on available free time.
 To add a new Personal Assistant feature:
 
 1. **Create the component file:**
+
    ```bash
    touch src/lib/components/pa_components/NewFeatureCard.svelte
    ```
 
 2. **Use BaseCard as the foundation:**
+
    ```svelte
    <script lang="ts">
-     import BaseCard from './BaseCard.svelte';
-     
+     import BaseCard from "./BaseCard.svelte";
+
      // Your component logic here
    </script>
-   
+
    <BaseCard title="New Feature" status="Ready" statusType="active">
      <!-- Your feature content -->
    </BaseCard>
    ```
 
 3. **Export from index.ts:**
+
    ```typescript
-   export { default as NewFeatureCard } from './NewFeatureCard.svelte';
+   export { default as NewFeatureCard } from "./NewFeatureCard.svelte";
    ```
 
 4. **Import in PersonalAssistantView.svelte:**
+
    ```svelte
-   import { NewFeatureCard } from './pa_components/index.js';
+   import {NewFeatureCard} from './pa_components/index.js';
    ```
 
 5. **Add to the grid layout:**

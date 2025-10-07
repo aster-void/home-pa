@@ -1,9 +1,9 @@
 /**
  * @fileoverview Gap-finding algorithm for personal assistant
- * 
+ *
  * This module implements the core algorithm for finding free time gaps between events.
  * It handles event sorting, merging overlapping events, and calculating available time slots.
- * 
+ *
  * @author Personal Assistant Team
  * @version 1.0.0
  */
@@ -13,7 +13,7 @@
  */
 export interface TimeSlot {
   start: string; // HH:mm format
-  end: string;   // HH:mm format
+  end: string; // HH:mm format
 }
 
 /**
@@ -24,7 +24,7 @@ export interface Event {
   id: string;
   title: string;
   start: string; // HH:mm format
-  end: string;   // HH:mm format
+  end: string; // HH:mm format
   crossesMidnight?: boolean;
 }
 
@@ -43,12 +43,12 @@ export interface Gap {
  */
 export interface DayBoundaries {
   dayStart: string; // HH:mm format, e.g., "08:00"
-  dayEnd: string;   // HH:mm format, e.g., "23:00"
+  dayEnd: string; // HH:mm format, e.g., "23:00"
 }
 
 /**
  * Gap-Finding Algorithm for Personal Assistant
- * 
+ *
  * 1. Collect all events for the target day
  * 2. Represent each event by its start (X) and end (X')
  * 3. Sort events by start time
@@ -59,7 +59,9 @@ export interface DayBoundaries {
 export class GapFinder {
   private dayBoundaries: DayBoundaries;
 
-  constructor(dayBoundaries: DayBoundaries = { dayStart: "08:00", dayEnd: "23:00" }) {
+  constructor(
+    dayBoundaries: DayBoundaries = { dayStart: "08:00", dayEnd: "23:00" },
+  ) {
     this.dayBoundaries = dayBoundaries;
   }
 
@@ -69,21 +71,23 @@ export class GapFinder {
   findGaps(events: Event[]): Gap[] {
     if (events.length === 0) {
       // No events = one big gap from day start to day end
-      return [this.createGap(this.dayBoundaries.dayStart, this.dayBoundaries.dayEnd)];
+      return [
+        this.createGap(this.dayBoundaries.dayStart, this.dayBoundaries.dayEnd),
+      ];
     }
 
     // 1. Handle midnight-crossing events
     const processedEvents = this.processMidnightEvents(events);
-    
+
     // 2. Sort events by start time
     const sortedEvents = this.sortEventsByStart(processedEvents);
-    
+
     // 3. Build non-overlapping event blocks
     const eventBlocks = this.buildEventBlocks(sortedEvents);
-    
+
     // 4. Find gaps between blocks and day boundaries
     const gaps = this.findGapsBetweenBlocks(eventBlocks);
-    
+
     return gaps;
   }
 
@@ -91,14 +95,14 @@ export class GapFinder {
    * Process events that cross midnight
    */
   private processMidnightEvents(events: Event[]): Event[] {
-    return events.map(event => {
+    return events.map((event) => {
       if (this.timeToMinutes(event.start) > this.timeToMinutes(event.end)) {
         // Event crosses midnight
         return {
           ...event,
           crossesMidnight: true,
           // Split into two events: end of day and start of day
-          end: this.dayBoundaries.dayEnd
+          end: this.dayBoundaries.dayEnd,
         };
       }
       return event;
@@ -125,9 +129,11 @@ export class GapFinder {
 
     for (let i = 1; i < events.length; i++) {
       const event = events[i];
-      
+
       // Check if event overlaps with current block
-      if (this.timeToMinutes(event.start) <= this.timeToMinutes(currentBlock.end)) {
+      if (
+        this.timeToMinutes(event.start) <= this.timeToMinutes(currentBlock.end)
+      ) {
         // Merge: extend current block's end time
         currentBlock.end = this.maxTime(currentBlock.end, event.end);
       } else {
@@ -152,12 +158,19 @@ export class GapFinder {
     // Gap before first event (from day start)
     if (blocks.length > 0) {
       const firstBlock = blocks[0];
-      if (this.timeToMinutes(firstBlock.start) > this.timeToMinutes(this.dayBoundaries.dayStart)) {
-        gaps.push(this.createGap(this.dayBoundaries.dayStart, firstBlock.start));
+      if (
+        this.timeToMinutes(firstBlock.start) >
+        this.timeToMinutes(this.dayBoundaries.dayStart)
+      ) {
+        gaps.push(
+          this.createGap(this.dayBoundaries.dayStart, firstBlock.start),
+        );
       }
     } else {
       // No events = one big gap
-      gaps.push(this.createGap(this.dayBoundaries.dayStart, this.dayBoundaries.dayEnd));
+      gaps.push(
+        this.createGap(this.dayBoundaries.dayStart, this.dayBoundaries.dayEnd),
+      );
       return gaps;
     }
 
@@ -165,15 +178,21 @@ export class GapFinder {
     for (let i = 0; i < blocks.length - 1; i++) {
       const currentBlock = blocks[i];
       const nextBlock = blocks[i + 1];
-      
-      if (this.timeToMinutes(currentBlock.end) < this.timeToMinutes(nextBlock.start)) {
+
+      if (
+        this.timeToMinutes(currentBlock.end) <
+        this.timeToMinutes(nextBlock.start)
+      ) {
         gaps.push(this.createGap(currentBlock.end, nextBlock.start));
       }
     }
 
     // Gap after last event (to day end)
     const lastBlock = blocks[blocks.length - 1];
-    if (this.timeToMinutes(lastBlock.end) < this.timeToMinutes(this.dayBoundaries.dayEnd)) {
+    if (
+      this.timeToMinutes(lastBlock.end) <
+      this.timeToMinutes(this.dayBoundaries.dayEnd)
+    ) {
       gaps.push(this.createGap(lastBlock.end, this.dayBoundaries.dayEnd));
     }
 
@@ -191,7 +210,7 @@ export class GapFinder {
     return {
       start,
       end,
-      duration: Math.max(0, duration) // Ensure non-negative duration
+      duration: Math.max(0, duration), // Ensure non-negative duration
     };
   }
 
@@ -199,7 +218,7 @@ export class GapFinder {
    * Convert time string (HH:mm) to minutes since midnight
    */
   private timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   }
 
@@ -209,14 +228,16 @@ export class GapFinder {
   private minutesToTime(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
   }
 
   /**
    * Return the later of two times
    */
   private maxTime(time1: string, time2: string): string {
-    return this.timeToMinutes(time1) > this.timeToMinutes(time2) ? time1 : time2;
+    return this.timeToMinutes(time1) > this.timeToMinutes(time2)
+      ? time1
+      : time2;
   }
 
   /**
@@ -239,7 +260,7 @@ export class GapFinder {
   formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    
+
     if (hours === 0) {
       return `${mins}m`;
     } else if (mins === 0) {

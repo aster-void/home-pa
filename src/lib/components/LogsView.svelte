@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import { suggestionLogs } from '../stores/data.js';
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import { suggestionLogs } from "../stores/data.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
@@ -14,7 +14,9 @@
   {#if $suggestionLogs.length === 0}
     <div class="empty-state">
       <p>まだ提案ログがありません</p>
-      <p class="help-text">予定を作成すると、空き時間に基づいて提案が表示されます</p>
+      <p class="help-text">
+        予定を作成すると、空き時間に基づいて提案が表示されます
+      </p>
     </div>
   {:else}
     <div class="logs-list">
@@ -24,20 +26,20 @@
             <span class="log-time">{controller.formatDateTime(log.at)}</span>
             <span class="log-gap">{log.gapMin}分の空き時間</span>
           </div>
-          
+
           <div class="log-reaction">
             <span class="reaction-label">反応:</span>
             <span class="reaction-badge {log.reaction}">
-              {#if log.reaction === 'accepted'}
+              {#if log.reaction === "accepted"}
                 受け入れ
-              {:else if log.reaction === 'rejected'}
+              {:else if log.reaction === "rejected"}
                 拒否
               {:else}
                 後で
               {/if}
             </span>
           </div>
-          
+
           {#if log.eventId}
             <div class="log-event">
               <span class="event-label">関連予定:</span>

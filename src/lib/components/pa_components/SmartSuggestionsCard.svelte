@@ -1,34 +1,36 @@
 <script lang="ts">
-  import BaseCard from './BaseCard.svelte';
-  import type { AppController } from '../../controllers/app.controller.svelte.ts';
-  import type { Suggestion } from '../../types.js';
+  import BaseCard from "./BaseCard.svelte";
+  import type { AppController } from "../../controllers/app.controller.svelte.ts";
+  import type { Suggestion } from "../../types.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
   // Get current suggestion from controller
   let currentSuggestion = $state(null as Suggestion | null);
-  
+
   // Subscribe to controller store changes
   $effect(() => {
     if (controller) {
-      const unsubscribe = controller.currentSuggestion.subscribe(value => {
+      const unsubscribe = controller.currentSuggestion.subscribe((value) => {
         currentSuggestion = value;
       });
-      
+
       return unsubscribe;
     }
   });
 
   // Get status for the card
-  const suggestionStatus = $derived(currentSuggestion ? 'Active' : 'No suggestions');
-  const statusType = $derived(currentSuggestion ? 'active' : 'inactive');
+  const suggestionStatus = $derived(
+    currentSuggestion ? "Active" : "No suggestions",
+  );
+  const statusType = $derived(currentSuggestion ? "active" : "inactive");
 </script>
 
-<BaseCard 
-  title="Smart Suggestions" 
+<BaseCard
+  title="Smart Suggestions"
   status={suggestionStatus}
-  statusType={statusType}
+  {statusType}
   class="suggestions-card"
 >
   {#if currentSuggestion}
@@ -37,31 +39,31 @@
         <span class="gap-label">Available Time:</span>
         <span class="gap-time">{currentSuggestion?.gapMin || 0} minutes</span>
       </div>
-      
+
       <div class="suggestion-text">
-        {currentSuggestion?.template || ''}
+        {currentSuggestion?.template || ""}
       </div>
-      
+
       <div class="reaction-buttons">
-        <button 
-          onclick={() => controller.reactToSuggestion('accepted')}
+        <button
+          onclick={() => controller.reactToSuggestion("accepted")}
           class="accept-btn"
         >
           Accept
         </button>
-        <button 
-          onclick={() => controller.reactToSuggestion('rejected')}
+        <button
+          onclick={() => controller.reactToSuggestion("rejected")}
           class="reject-btn"
         >
           Reject
         </button>
-        <button 
-          onclick={() => controller.reactToSuggestion('later')}
+        <button
+          onclick={() => controller.reactToSuggestion("later")}
           class="later-btn"
         >
           Later
         </button>
-        <button 
+        <button
           onclick={() => controller.dismissSuggestion()}
           class="dismiss-btn"
         >
@@ -72,7 +74,9 @@
   {:else}
     <div class="no-suggestion">
       <p>No active suggestions at the moment.</p>
-      <p class="no-suggestion-hint">Suggestions will appear when you have free time gaps.</p>
+      <p class="no-suggestion-hint">
+        Suggestions will appear when you have free time gaps.
+      </p>
     </div>
   {/if}
 </BaseCard>

@@ -1,22 +1,24 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
-  import { AppController } from '$lib/controllers/app.controller.svelte.ts';
-  import CalendarTabView from '$lib/components/CalendarTabView.svelte';
-  import PersonalAssistantView from '$lib/components/PersonalAssistantView.svelte';
+  import { getContext } from "svelte";
+  import { AppController } from "$lib/controllers/app.controller.svelte.ts";
+  import CalendarTabView from "$lib/components/CalendarTabView.svelte";
+  import PersonalAssistantView from "$lib/components/PersonalAssistantView.svelte";
 
   // Get controller from context
-  const controller = getContext<AppController>('controller');
+  const controller = getContext<AppController>("controller");
 
   // Get current view from controller store
   const currentViewStore = controller?.currentView;
-  const currentView = $derived(currentViewStore ? $currentViewStore : 'calendar');
+  const currentView = $derived(
+    $currentViewStore ? $currentViewStore : "calendar",
+  );
 </script>
 
 <main class="main-content">
   {#if controller}
-    {#if currentView === 'calendar'}
+    {#if currentView === "calendar"}
       <CalendarTabView {controller} />
-    {:else if currentView === 'personal-assistant'}
+    {:else if currentView === "personal-assistant"}
       <PersonalAssistantView {controller} />
     {/if}
   {/if}

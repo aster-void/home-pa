@@ -1,11 +1,13 @@
 # M1 Core - Usage Guide
 
 ## Overview
+
 This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "input → suggestion → reaction → log" loop with native Svelte stores for optimal performance and reactivity.
 
 ## Features
 
 ### 📅 Calendar Management
+
 - **Create Events**: Add new calendar events with title, start time, and end time
 - **Edit Events**: Modify existing events with form pre-population
 - **Delete Events**: Remove events with confirmation dialog
@@ -14,12 +16,14 @@ This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "inpu
 - **Smart Validation**: Prevents creating events in the past or with invalid times
 
 ### 📝 Memo Management
+
 - **Simple Memos**: Create and manage text-based memos
 - **Edit/Delete**: Full CRUD operations for memos
 - **Clean Interface**: Single input field for easy note-taking
 - **Instant Updates**: Real-time UI updates when memos are modified
 
 ### 💡 Smart Suggestions
+
 - **Gap Detection**: Automatically detects free time between events (30+ minutes)
 - **Smart Proposals**: Suggests productive activities for available time
 - **Reaction Tracking**: Accept, reject, or mark suggestions for later
@@ -27,6 +31,7 @@ This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "inpu
 - **Positioned UI**: Suggestion panel positioned at bottom-right corner
 
 ### 📊 Activity Logs
+
 - **Track Reactions**: View history of all suggestion interactions
 - **Time Analysis**: See how much free time you had and how you used it
 - **Simple Format**: Clean, easy-to-read log entries with timestamps
@@ -35,6 +40,7 @@ This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "inpu
 ## Getting Started
 
 ### Development Setup
+
 ```bash
 # Start the database (optional - app works without it)
 ./scripts/up.sh
@@ -49,6 +55,7 @@ bun dev
 The app will be available at `http://localhost:3000`
 
 ### Quick Start
+
 1. **Create Events**: Fill out the event form and click "作成" (Create)
 2. **View Events**: Switch between "日表示" (Day View) and "リスト表示" (List View)
 3. **Get Suggestions**: Return to calendar view to trigger suggestions for free time
@@ -58,12 +65,14 @@ The app will be available at `http://localhost:3000`
 ## Architecture
 
 ### Svelte 5 Runes
+
 - Uses modern Svelte 5 syntax with `$state`, `$derived`, and `$props`
 - Controller pattern for clean separation of concerns
 - Reactive state management without legacy patterns
 - Function-based derived states for proper reactivity
 
 ### Native Svelte Stores
+
 - **Reactive by Default**: Svelte stores provide automatic reactivity
 - **Optimal Performance**: Only affected components re-render
 - **Clean Architecture**: Standard Svelte patterns for data management
@@ -72,6 +81,7 @@ The app will be available at `http://localhost:3000`
 - **Type Safe**: Full TypeScript support with proper inference
 
 ### Component Structure
+
 ```
 src/lib/
 ├── types.ts                    # TypeScript interfaces
@@ -102,7 +112,7 @@ src/lib/
 ✅ **Form Validation**: Smart validation prevents invalid data  
 ✅ **Suggestion Triggers**: Auto-suggestions when returning to calendar  
 ✅ **Native Stores**: Uses Svelte stores for optimal performance  
-✅ **Type Safety**: Full TypeScript support throughout  
+✅ **Type Safety**: Full TypeScript support throughout
 
 ## Data Flow
 
@@ -116,6 +126,7 @@ src/lib/
 ## Store Architecture
 
 ### Base Stores
+
 ```typescript
 // Writable stores for raw data
 export const events = writable<Event[]>([]);
@@ -125,16 +136,24 @@ export const selectedDate = writable<Date>(new Date());
 ```
 
 ### Store Operations
+
 ```typescript
 // Clean CRUD operations with automatic reactivity
 export const eventOperations = {
-  create(event) { /* Updates store automatically */ },
-  update(id, updates) { /* Updates store automatically */ },
-  delete(id) { /* Updates store automatically */ }
+  create(event) {
+    /* Updates store automatically */
+  },
+  update(id, updates) {
+    /* Updates store automatically */
+  },
+  delete(id) {
+    /* Updates store automatically */
+  },
 };
 ```
 
 ### Derived Stores
+
 ```typescript
 // Computed values that update automatically
 export const todaysEvents = derived(
@@ -146,9 +165,10 @@ export const todaysEvents = derived(
 ```
 
 ### Component Usage
+
 ```svelte
 <script>
-  import { events, todaysEvents } from '../stores/data.js';
+  import { events, todaysEvents } from "../stores/data.js";
 </script>
 
 <!-- Automatic reactivity - no manual triggers needed -->
@@ -160,6 +180,7 @@ export const todaysEvents = derived(
 ## Usage Patterns
 
 ### Creating Events
+
 1. Navigate to Calendar view
 2. Fill in event title, start time, and end time
 3. Click "作成" (Create) button
@@ -167,17 +188,20 @@ export const todaysEvents = derived(
 5. Event appears immediately in the list
 
 ### Getting Suggestions
+
 - **Automatic**: Suggestions appear when returning to calendar view
 - **Gap-based**: Only shows for 30+ minutes of free time
 - **Always Available**: Shows default suggestion if no events exist
 
 ### Managing Memos
+
 1. Navigate to Memo view
 2. Type memo text and click "追加" (Add)
 3. Edit existing memos by clicking "編集" (Edit)
 4. Delete memos with "削除" (Delete) button
 
 ### Viewing Logs
+
 - Navigate to Logs view to see all suggestion interactions
 - Each log entry shows: timestamp, gap time, reaction type
 - Logs update in real-time as you react to suggestions
@@ -185,6 +209,7 @@ export const todaysEvents = derived(
 ## Current Implementation Status
 
 ### ✅ Fully Implemented
+
 - Event CRUD with form validation
 - Memo CRUD operations
 - Suggestion system with gap detection
@@ -195,6 +220,7 @@ export const todaysEvents = derived(
 - Japanese UI with proper error messages
 
 ### 🔧 Technical Features
+
 - **Svelte 5 Runes**: Modern reactive patterns with `$state`, `$derived`
 - **Native Svelte Stores**: `writable`, `derived` for optimal performance
 - **Store Operations**: Clean CRUD operations with automatic reactivity

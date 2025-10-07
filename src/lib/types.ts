@@ -17,7 +17,7 @@ export interface SuggestionLog {
   at: Date;
   gapMin: number;
   eventId?: string;
-  reaction: 'accepted' | 'rejected' | 'later';
+  reaction: "accepted" | "rejected" | "later";
 }
 
 export interface Suggestion {
@@ -27,5 +27,5 @@ export interface Suggestion {
   eventId?: string;
 }
 
-export type ViewMode = 'day' | 'list';
-export type ReactionType = 'accepted' | 'rejected' | 'later';
+export type ViewMode = "day" | "list";
+export type ReactionType = "accepted" | "rejected" | "later";

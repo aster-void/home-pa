@@ -1,7 +1,10 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import LogsView from './LogsView.svelte';
-  import { FreeTimeGapsCard, SmartSuggestionsCard } from './pa_components/index.js';
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import LogsView from "./LogsView.svelte";
+  import {
+    FreeTimeGapsCard,
+    SmartSuggestionsCard,
+  } from "./pa_components/index.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
@@ -14,12 +17,12 @@
   <div class="assistant-header">
     <h2>Personal Assistant</h2>
     <div class="header-actions">
-      <button 
+      <button
         class="action-button"
         class:active={showLogs}
-        onclick={() => showLogs = !showLogs}
+        onclick={() => (showLogs = !showLogs)}
       >
-        {showLogs ? 'Hide' : 'Show'} Logs
+        {showLogs ? "Hide" : "Show"} Logs
       </button>
     </div>
   </div>
@@ -29,7 +32,7 @@
     <div class="overview-section">
       <!-- Free Time Gaps Card -->
       <FreeTimeGapsCard />
-      
+
       <!-- Smart Suggestions Card -->
       <SmartSuggestionsCard {controller} />
     </div>
@@ -118,7 +121,9 @@
     border-radius: var(--radius-md);
     padding: var(--space-md);
     box-shadow: var(--shadow-subtle);
-    transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
+      box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .logs-section:hover {

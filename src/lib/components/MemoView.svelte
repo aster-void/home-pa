@@ -1,23 +1,23 @@
 <script lang="ts">
-  import type { Memo } from '../types.js';
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import { memos } from '../stores/data.js';
+  import type { Memo } from "../types.js";
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import { memos } from "../stores/data.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
   // Local UI state - treated as source of truth for form inputs
-  let memoText = $state('');
+  let memoText = $state("");
   let isMemoEditing = $state(false);
   let showAddForm = $state(false);
   let editingMemoId = $state<string | null>(null);
-  
+
   // Initialize from controller once on mount - one-way sync only
   let isInitialized = $state(false);
-  
+
   $effect(() => {
     if (controller && !isInitialized) {
-      const unsubscribe = controller.memoForm.subscribe(form => {
+      const unsubscribe = controller.memoForm.subscribe((form) => {
         // Only sync on first initialization to avoid circular updates
         if (!isInitialized) {
           memoText = form.text;
@@ -25,14 +25,14 @@
           isInitialized = true;
         }
       });
-      
+
       return unsubscribe;
     }
   });
 
   function startNewMemo() {
     // Reset local state and controller
-    memoText = '';
+    memoText = "";
     isMemoEditing = false;
     controller.resetMemoForm();
     showAddForm = true;
@@ -40,7 +40,7 @@
 
   function cancelMemo() {
     // Reset local state and controller
-    memoText = '';
+    memoText = "";
     isMemoEditing = false;
     controller.resetMemoForm();
     showAddForm = false;
@@ -50,10 +50,10 @@
     controller.memoForm.set({
       text: memoText,
       isEditing: false,
-      editingId: null
+      editingId: null,
     });
     controller.createMemo();
-    memoText = '';
+    memoText = "";
     showAddForm = false;
   }
 
@@ -70,7 +70,7 @@
       controller.memoForm.set({
         text: memoText,
         isEditing: true,
-        editingId: editingMemoId
+        editingId: editingMemoId,
       });
       controller.updateMemo();
       cancelEditMemo();
@@ -79,7 +79,7 @@
 
   function cancelEditMemo() {
     editingMemoId = null;
-    memoText = '';
+    memoText = "";
     isMemoEditing = false;
     // Reset controller state as well
     controller.resetMemoForm();
@@ -112,14 +112,18 @@
             controller.memoForm.set({
               text: memoText,
               isEditing: false,
-              editingId: null
+              editingId: null,
             });
           }}
         ></textarea>
-        
+
         <div class="form-actions">
           <button class="cancel-button" onclick={cancelMemo}>Cancel</button>
-          <button class="save-button" onclick={saveMemo} disabled={!memoText.trim()}>Save</button>
+          <button
+            class="save-button"
+            onclick={saveMemo}
+            disabled={!memoText.trim()}>Save</button
+          >
         </div>
       </div>
     </div>
@@ -150,31 +154,33 @@
                     controller.memoForm.set({
                       text: memoText,
                       isEditing: true,
-                      editingId: editingMemoId
+                      editingId: editingMemoId,
                     });
                   }
                 }}
               ></textarea>
             </div>
-            
+
             <div class="memo-edit-actions">
               <button class="save-edit-button" onclick={saveEditMemo}>✓</button>
-              <button class="cancel-edit-button" onclick={cancelEditMemo}>✕</button>
+              <button class="cancel-edit-button" onclick={cancelEditMemo}
+                >✕</button
+              >
             </div>
           {:else}
             <!-- View mode -->
-            <div 
-              class="memo-content" 
+            <div
+              class="memo-content"
               onclick={() => startEditMemo(memo)}
-              onkeydown={(e) => e.key === 'Enter' && startEditMemo(memo)}
+              onkeydown={(e) => e.key === "Enter" && startEditMemo(memo)}
               role="button"
               tabindex="0"
             >
               <div class="memo-text">{memo.text}</div>
             </div>
-            
+
             <div class="memo-actions">
-              <button 
+              <button
                 class="delete-button"
                 onclick={() => deleteMemoDirectly(memo.id)}
                 title="Delete"
@@ -187,7 +193,6 @@
       {/each}
     {/if}
   </div>
-
 </div>
 
 <style>
@@ -220,7 +225,7 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-md);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border-bottom: 1px solid var(--glass-border);
     border-radius: 10px 10px 0 0;
   }
@@ -233,7 +238,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    text-shadow: 0 0 8px rgba(0,200,255,0.15);
+    text-shadow: 0 0 8px rgba(0, 200, 255, 0.15);
   }
 
   .add-button {
@@ -259,7 +264,7 @@
   }
 
   .memo-form {
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border-bottom: 1px solid var(--glass-border);
     padding: var(--space-md);
   }
@@ -279,7 +284,7 @@
     font-size: 1rem;
     font-family: var(--font-body);
     line-height: 1.5;
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     color: var(--text);
     padding: var(--space-sm);
     transition: all 0.18s ease;
@@ -287,7 +292,7 @@
 
   .memo-textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 8px rgba(0,200,255,0.2);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
   }
 
   .memo-textarea::placeholder {
@@ -300,7 +305,8 @@
     justify-content: flex-end;
   }
 
-  .cancel-button, .save-button {
+  .cancel-button,
+  .save-button {
     padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--primary);
     border-radius: 6px;
@@ -330,15 +336,15 @@
   }
 
   .save-button:hover:not(:disabled) {
-    box-shadow: 0 0 14px rgba(0,200,255,0.22);
+    box-shadow: 0 0 14px rgba(0, 200, 255, 0.22);
     transform: translateY(-2px);
   }
 
   .save-button:disabled {
-    background: rgba(102,224,255,0.3);
+    background: rgba(102, 224, 255, 0.3);
     color: var(--muted);
     cursor: not-allowed;
-    border-color: rgba(102,224,255,0.3);
+    border-color: rgba(102, 224, 255, 0.3);
   }
 
   .memos-list {
@@ -361,7 +367,7 @@
     font-size: 3rem;
     margin-bottom: var(--space-md);
     opacity: 0.5;
-    filter: drop-shadow(0 0 8px rgba(0,200,255,0.3));
+    filter: drop-shadow(0 0 8px rgba(0, 200, 255, 0.3));
   }
 
   .empty-state p {
@@ -373,30 +379,30 @@
 
   .empty-subtitle {
     font-size: 0.875rem;
-    color: rgba(230,247,255,0.75);
+    color: rgba(230, 247, 255, 0.75);
   }
 
   .memo-item {
     display: flex;
     align-items: center;
     padding: var(--space-md);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
     margin-bottom: var(--space-sm);
-    box-shadow: 0 0 8px rgba(0,200,255,0.1);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.1);
     transition: all 0.18s ease;
   }
 
   .memo-item:hover {
-    box-shadow: 0 0 16px rgba(0,200,255,0.2);
+    box-shadow: 0 0 16px rgba(0, 200, 255, 0.2);
     transform: translateY(-2px);
     border-color: var(--primary);
   }
 
   .memo-item.editing {
     border: 2px solid var(--primary);
-    box-shadow: 0 0 20px rgba(0,200,255,0.3);
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
   }
 
   .memo-content {
@@ -428,7 +434,7 @@
     font-size: 1rem;
     font-family: var(--font-body);
     line-height: 1.5;
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     color: var(--text);
     padding: var(--space-sm);
     transition: all 0.18s ease;
@@ -436,7 +442,7 @@
 
   .memo-edit-textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 8px rgba(0,200,255,0.2);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
   }
 
   .memo-edit-textarea::placeholder {
@@ -449,7 +455,8 @@
     opacity: 1;
   }
 
-  .save-edit-button, .cancel-edit-button {
+  .save-edit-button,
+  .cancel-edit-button {
     width: 2rem;
     height: 2rem;
     border: 1px solid transparent;
@@ -469,7 +476,7 @@
   }
 
   .save-edit-button:hover {
-    box-shadow: 0 0 12px rgba(0,200,255,0.3);
+    box-shadow: 0 0 12px rgba(0, 200, 255, 0.3);
     transform: scale(1.1);
   }
 
@@ -480,7 +487,7 @@
   }
 
   .cancel-edit-button:hover {
-    box-shadow: 0 0 12px rgba(255,59,59,0.3);
+    box-shadow: 0 0 12px rgba(255, 59, 59, 0.3);
     transform: scale(1.1);
   }
 
@@ -513,7 +520,7 @@
   .delete-button:hover {
     background: var(--danger);
     color: var(--bg);
-    box-shadow: 0 0 12px rgba(255,59,59,0.3);
+    box-shadow: 0 0 12px rgba(255, 59, 59, 0.3);
   }
 
   @media (max-width: 768px) {

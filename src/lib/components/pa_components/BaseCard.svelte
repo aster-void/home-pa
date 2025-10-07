@@ -1,12 +1,19 @@
 <script lang="ts">
-  let p: { 
+  let p: {
     title: string;
     status?: string;
-    statusType?: 'active' | 'inactive' | 'warning' | 'error';
+    statusType?: "active" | "inactive" | "warning" | "error";
     class?: string;
+    children?: import("svelte").Snippet;
   } = $props();
-  
-  const { title, status, statusType = 'inactive', class: className = '' } = p;
+
+  const {
+    title,
+    status,
+    statusType = "inactive",
+    class: className = "",
+    children,
+  } = p;
 </script>
 
 <div class="card {className}">
@@ -18,9 +25,9 @@
       </div>
     {/if}
   </div>
-  
+
   <div class="card-content">
-    <slot />
+    {@render children?.()}
   </div>
 </div>
 
@@ -31,7 +38,9 @@
     border-radius: var(--radius-md);
     padding: var(--space-md);
     box-shadow: var(--shadow-subtle);
-    transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1), box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    transition:
+      transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
+      box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
   .card:focus-within,

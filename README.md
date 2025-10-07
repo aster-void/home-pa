@@ -60,4 +60,5 @@ part of: up.sh
 - Base URL: `http://localhost:3000` (ensure `BETTER_AUTH_URL` matches).
 - Client: see `src/lib/auth-client.ts`.
 - Demo UI: visit `/auth` for sign in/up.
+
 # Development Branch Test

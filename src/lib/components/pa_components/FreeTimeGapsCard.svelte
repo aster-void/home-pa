@@ -1,6 +1,11 @@
 <script lang="ts">
-  import BaseCard from './BaseCard.svelte';
-  import { gaps, gapStats, dayBoundaries, dayBoundaryActions } from '../../stores/gaps.js';
+  import BaseCard from "./BaseCard.svelte";
+  import {
+    gaps,
+    gapStats,
+    dayBoundaries,
+    dayBoundaryActions,
+  } from "../../stores/gaps.js";
 
   // Local state for editing day boundaries
   let editingBoundaries = $state(false);
@@ -31,9 +36,9 @@
 
   // Format time for display
   function formatTime(time: string): string {
-    const [hours, minutes] = time.split(':');
+    const [hours, minutes] = time.split(":");
     const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const ampm = hour >= 12 ? "PM" : "AM";
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
     return `${displayHour}:${minutes} ${ampm}`;
   }
@@ -42,11 +47,11 @@
   function formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    
+
     if (hours === 0) {
-      return `${mins} minute${mins !== 1 ? 's' : ''}`;
+      return `${mins} minute${mins !== 1 ? "s" : ""}`;
     } else if (mins === 0) {
-      return `${hours} hour${hours !== 1 ? 's' : ''}`;
+      return `${hours} hour${hours !== 1 ? "s" : ""}`;
     } else {
       return `${hours}h ${mins}m`;
     }
@@ -55,32 +60,35 @@
   // Get current time in HH:mm format
   function getCurrentTime(): string {
     const now = new Date();
-    return now.toLocaleTimeString('en-GB', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
+    return now.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     });
   }
 
   // Determine gap status and color
-  function getGapStatus(gap: any): 'past' | 'current' | 'future' {
+  function getGapStatus(gap: any): "past" | "current" | "future" {
     const currentTime = getCurrentTime();
     const currentMinutes = timeToMinutes(currentTime);
     const gapStartMinutes = timeToMinutes(gap.start);
     const gapEndMinutes = timeToMinutes(gap.end);
-    
+
     if (currentMinutes >= gapEndMinutes) {
-      return 'past'; // Gap has ended
-    } else if (currentMinutes >= gapStartMinutes && currentMinutes < gapEndMinutes) {
-      return 'current'; // Current time is within this gap
+      return "past"; // Gap has ended
+    } else if (
+      currentMinutes >= gapStartMinutes &&
+      currentMinutes < gapEndMinutes
+    ) {
+      return "current"; // Current time is within this gap
     } else {
-      return 'future'; // Gap is in the future
+      return "future"; // Gap is in the future
     }
   }
 
   // Convert time to minutes for comparison
   function timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(':').map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   }
 </script>
@@ -90,12 +98,11 @@
     <div class="day-boundaries">
       <span class="boundary-label">Active Hours:</span>
       <span class="boundary-time">
-        {formatTime($dayBoundaries.dayStart)} - {formatTime($dayBoundaries.dayEnd)}
+        {formatTime($dayBoundaries.dayStart)} - {formatTime(
+          $dayBoundaries.dayEnd,
+        )}
       </span>
-      <button 
-        class="edit-button"
-        onclick={startEditingBoundaries}
-      >
+      <button class="edit-button" onclick={startEditingBoundaries}>
         Edit
       </button>
     </div>
@@ -106,25 +113,15 @@
       <div class="editor-row">
         <label>
           Day Start:
-          <input 
-            type="time" 
-            bind:value={tempDayStart}
-            class="time-input"
-          />
+          <input type="time" bind:value={tempDayStart} class="time-input" />
         </label>
         <label>
           Day End:
-          <input 
-            type="time" 
-            bind:value={tempDayEnd}
-            class="time-input"
-          />
+          <input type="time" bind:value={tempDayEnd} class="time-input" />
         </label>
       </div>
       <div class="editor-actions">
-        <button class="save-button" onclick={saveBoundaries}>
-          Save
-        </button>
+        <button class="save-button" onclick={saveBoundaries}> Save </button>
         <button class="cancel-button" onclick={cancelEditingBoundaries}>
           Cancel
         </button>
@@ -148,7 +145,9 @@
     {#if $gapStats.gapCount > 0}
       <div class="stat-item">
         <span class="stat-label">Largest Gap:</span>
-        <span class="stat-value">{formatDuration($gapStats.largestGap.duration)}</span>
+        <span class="stat-value"
+          >{formatDuration($gapStats.largestGap.duration)}</span
+        >
       </div>
     {/if}
   </div>
@@ -161,9 +160,14 @@
         <p class="no-gaps-hint">Add some events to see your free time slots!</p>
       </div>
     {:else}
-      {#each $gaps as gap, index}
+      {#each $gaps as gap, index (index)}
         {@const status = getGapStatus(gap)}
-        <div class="gap-item" class:past={status === 'past'} class:current={status === 'current'} class:future={status === 'future'}>
+        <div
+          class="gap-item"
+          class:past={status === "past"}
+          class:current={status === "current"}
+          class:future={status === "future"}
+        >
           <div class="gap-time">
             <span class="gap-start">{formatTime(gap.start)}</span>
             <span class="gap-separator">→</span>
@@ -330,7 +334,7 @@
     gap: var(--space-sm);
     margin-bottom: var(--space-md);
     padding: var(--space-sm);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border: 1px solid var(--glass-border);
     border-radius: 6px;
   }
@@ -356,7 +360,7 @@
     font-size: 1.2rem;
     line-height: 1;
     color: var(--text);
-    text-shadow: 0 0 6px rgba(0,200,255,0.12);
+    text-shadow: 0 0 6px rgba(0, 200, 255, 0.12);
     font-weight: 600;
   }
 
@@ -375,7 +379,7 @@
   .no-gaps-hint {
     font-size: 0.875rem;
     margin-top: var(--space-sm);
-    color: rgba(230,247,255,0.75);
+    color: rgba(230, 247, 255, 0.75);
   }
 
   .gap-item {
@@ -383,27 +387,27 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--space-md);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border-radius: 8px;
     border-left: 4px solid var(--primary);
     transition: all 0.18s ease;
   }
 
   .gap-item.past {
-    background: rgba(102,224,255,0.03);
+    background: rgba(102, 224, 255, 0.03);
     border-left-color: var(--muted);
     color: var(--muted);
   }
 
   .gap-item.current {
-    background: rgba(0,200,255,0.1);
+    background: rgba(0, 200, 255, 0.1);
     border-left-color: var(--accent);
     color: var(--accent);
-    box-shadow: 0 0 12px rgba(255,204,0,0.15);
+    box-shadow: 0 0 12px rgba(255, 204, 0, 0.15);
   }
 
   .gap-item.future {
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border-left-color: var(--primary);
     color: var(--text);
   }
@@ -425,7 +429,7 @@
   .gap-duration {
     font-size: 0.875rem;
     color: var(--muted);
-    background: rgba(0,200,255,0.1);
+    background: rgba(0, 200, 255, 0.1);
     padding: var(--space-xs) var(--space-sm);
     border-radius: 6px;
     border: 1px solid var(--glass-border);

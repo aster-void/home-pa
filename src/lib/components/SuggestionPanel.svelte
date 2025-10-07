@@ -1,20 +1,20 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import type { Suggestion } from '../types.js';
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import type { Suggestion } from "../types.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
   // Get current suggestion from store
   let currentSuggestion = $state(null as Suggestion | null);
-  
+
   // Subscribe to controller store changes
   $effect(() => {
     if (controller) {
-      const unsubscribe = controller.currentSuggestion.subscribe(value => {
+      const unsubscribe = controller.currentSuggestion.subscribe((value) => {
         currentSuggestion = value;
       });
-      
+
       return unsubscribe;
     }
   });
@@ -24,34 +24,36 @@
   <div class="suggestion-panel">
     <div class="suggestion-header">
       <h3>時間の提案</h3>
-      <button onclick={() => controller.dismissSuggestion()} class="close-btn">×</button>
+      <button onclick={() => controller.dismissSuggestion()} class="close-btn"
+        >×</button
+      >
     </div>
-    
+
     <div class="suggestion-content">
       <div class="gap-info">
         <span class="gap-label">空き時間:</span>
         <span class="gap-time">{currentSuggestion?.gapMin || 0}分</span>
       </div>
-      
+
       <div class="suggestion-text">
-        {currentSuggestion?.template || ''}
+        {currentSuggestion?.template || ""}
       </div>
-      
+
       <div class="reaction-buttons">
-        <button 
-          onclick={() => controller.reactToSuggestion('accepted')}
+        <button
+          onclick={() => controller.reactToSuggestion("accepted")}
           class="accept-btn"
         >
           受け入れ
         </button>
-        <button 
-          onclick={() => controller.reactToSuggestion('rejected')}
+        <button
+          onclick={() => controller.reactToSuggestion("rejected")}
           class="reject-btn"
         >
           拒否
         </button>
-        <button 
-          onclick={() => controller.reactToSuggestion('later')}
+        <button
+          onclick={() => controller.reactToSuggestion("later")}
           class="later-btn"
         >
           後で

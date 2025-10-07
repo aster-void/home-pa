@@ -1,40 +1,41 @@
 <script lang="ts">
-  import type { Event } from '../types.js';
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import { events, eventOperations, todaysEvents } from '../stores/data.js';
+  import { get } from "svelte/store";
+  import type { Event } from "../types.js";
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import { events, eventOperations, selectedDate } from "../stores/data.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
   // Local reactive variables that sync with controller stores
-  let currentViewMode = $state('month');
-  let selectedDate = $state(new Date());
+  let currentViewMode = $state("month");
+  let localSelectedDate = $state(new Date());
   let currentMonth = $state(new Date());
-  let eventTitle = $state('');
-  let eventStart = $state('');
-  let eventEnd = $state('');
+  let eventTitle = $state("");
+  let eventStart = $state("");
+  let eventEnd = $state("");
   let isEventEditing = $state(false);
   let showEventForm = $state(false);
   let showTimelinePopup = $state(false);
-  
+
   // Subscribe to controller store changes
   $effect(() => {
     if (controller) {
-      const unsubscribe1 = controller.viewMode.subscribe(value => {
+      const unsubscribe1 = controller.viewMode.subscribe((value) => {
         currentViewMode = value;
       });
-      
-      const unsubscribe2 = controller.selectedDate.subscribe(date => {
-        selectedDate = new Date(date);
+
+      const unsubscribe2 = selectedDate.subscribe((date: Date) => {
+        localSelectedDate = new Date(date);
       });
-      
-      const unsubscribe3 = controller.eventForm.subscribe(form => {
+
+      const unsubscribe3 = controller.eventForm.subscribe((form) => {
         eventTitle = form.title;
         eventStart = form.start;
         eventEnd = form.end;
         isEventEditing = form.isEditing;
       });
-      
+
       return () => {
         unsubscribe1();
         unsubscribe2();
@@ -42,15 +43,15 @@
       };
     }
   });
-  
+
   // Sync form changes back to controller store
   $effect(() => {
     if (controller) {
-      controller.eventForm.update(form => ({
+      controller.eventForm.update((form) => ({
         ...form,
         title: eventTitle,
         start: eventStart,
-        end: eventEnd
+        end: eventEnd,
       }));
     }
   });
@@ -59,27 +60,32 @@
   function getCalendarDays() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0); // Last day of the month
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
+
     const days = [];
     const currentDate = new Date(startDate);
-    
+
     // Calculate how many days we need to show
     // We need to go from startDate to the end of the month plus enough days to complete the last week
     const endOfMonth = new Date(lastDay);
     const daysToCompleteLastWeek = (6 - lastDay.getDay()) % 7; // Days needed to complete the last week
-    const totalDaysNeeded = Math.ceil((endOfMonth.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 + daysToCompleteLastWeek;
-    
+    const totalDaysNeeded =
+      Math.ceil(
+        (endOfMonth.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) +
+      1 +
+      daysToCompleteLastWeek;
+
     // Generate days dynamically to cover the full month plus complete weeks
     for (let i = 0; i < totalDaysNeeded; i++) {
       days.push(new Date(currentDate));
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return days;
   }
 
@@ -89,21 +95,20 @@
   }
 
   function isSelected(date: Date) {
-    return date.toDateString() === selectedDate.toDateString();
+    return date.toDateString() === localSelectedDate.toDateString();
   }
 
   function isCurrentMonth(date: Date) {
     return date.getMonth() === currentMonth.getMonth();
   }
 
-
   function selectDate(date: Date) {
     // Check if this date is already selected
     const wasAlreadySelected = isSelected(date);
-    
+
     // Always update the selected date
     controller.setSelectedDate(date);
-    
+
     // Only show popup if clicking on the already selected date
     if (wasAlreadySelected) {
       showTimelinePopup = !showTimelinePopup;
@@ -113,91 +118,89 @@
   }
 
   function navigateMonth(direction: number) {
-    currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + direction, 1);
+    currentMonth = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + direction,
+      1,
+    );
   }
 
   function createEvent() {
-    const startTime = new Date(selectedDate);
+    const startTime = new Date(localSelectedDate);
     startTime.setHours(9, 0, 0, 0);
     const endTime = new Date(startTime);
     endTime.setHours(10, 0, 0, 0);
-    
+
     // Set the form data
     controller.eventForm.set({
-      title: '',
+      title: "",
       start: startTime.toISOString().slice(0, 16),
       end: endTime.toISOString().slice(0, 16),
       isEditing: false,
-      editingId: null
+      editingId: null,
     });
-    
+
     // Also update local variables
-    eventTitle = '';
+    eventTitle = "";
     eventStart = startTime.toISOString().slice(0, 16);
     eventEnd = endTime.toISOString().slice(0, 16);
     isEventEditing = false;
-    
+
     showEventForm = true;
   }
 
   function getEventColor(event: Event): string {
     // Simple color assignment based on event title hash
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'];
-    const hash = event.title.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
+    const colors = [
+      "#3b82f6",
+      "#ef4444",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#06b6d4",
+    ];
+    const hash = event.title.split("").reduce((a, b) => {
+      a = (a << 5) - a + b.charCodeAt(0);
       return a & a;
     }, 0);
     return colors[Math.abs(hash) % colors.length];
   }
 
   function formatTime(date: Date): string {
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
+    return date.toLocaleTimeString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     });
-  }
-
-  function getCurrentTimePosition(): number {
-    const now = new Date();
-    const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-    
-    // Only show current time line if it's today
-    if (currentDate.toDateString() !== selectedDateOnly.toDateString()) {
-      return -1000; // Hide the line
-    }
-    
-    const hours = now.getHours();
-    const minutes = now.getMinutes();
-    return (hours * 60) + minutes;
   }
 
   function getCurrentTimePositionScaled(): number {
     const now = new Date();
-    const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-    
+    const currentDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const localSelectedDateOnly = new Date(
+      localSelectedDate.getFullYear(),
+      localSelectedDate.getMonth(),
+      localSelectedDate.getDate(),
+    );
+
     // Only show current time line if it's today
-    if (currentDate.toDateString() !== selectedDateOnly.toDateString()) {
+    if (currentDate.toDateString() !== localSelectedDateOnly.toDateString()) {
       return -1000; // Hide the line
     }
-    
+
     const hours = now.getHours();
     const minutes = now.getMinutes();
-    return ((hours * 60) + minutes) * (400 / 1440); // Scale to fit 400px height
-  }
-
-  function getEventPosition(startTime: Date): number {
-    const hours = startTime.getHours();
-    const minutes = startTime.getMinutes();
-    return (hours * 60) + minutes;
+    return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
   }
 
   function getEventPositionScaled(startTime: Date): number {
     const hours = startTime.getHours();
     const minutes = startTime.getMinutes();
-    return ((hours * 60) + minutes) * (400 / 1440); // Scale to fit 400px height
+    return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
   }
 
   function getEventHeight(event: Event): number {
@@ -221,100 +224,136 @@
     const eventStartDate = new Date(event.start);
     const eventEndDate = new Date(event.end);
     const targetDateString = targetDate.toDateString();
-    
+
     // Show event if it starts OR ends on the target date
-    return eventStartDate.toDateString() === targetDateString || 
-           eventEndDate.toDateString() === targetDateString;
+    return (
+      eventStartDate.toDateString() === targetDateString ||
+      eventEndDate.toDateString() === targetDateString
+    );
   }
 
   // Helper function to get events for a specific date (including midnight-crossing events)
   function getEventsForDate(events: Event[], targetDate: Date): Event[] {
-    const targetDateString = targetDate.toDateString();
-    
-    return events.filter(event => {
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
-      
-      return eventStartDate.toDateString() === targetDateString || 
-             eventEndDate.toDateString() === targetDateString;
-    }).map(event => {
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
-      const startsOnTarget = eventStartDate.toDateString() === targetDateString;
-      const endsOnTarget = eventEndDate.toDateString() === targetDateString;
-      
-      // If event starts and ends on the same day, return as is
-      if (startsOnTarget && endsOnTarget) {
+    const targetDateStart = new Date(targetDate);
+    targetDateStart.setHours(0, 0, 0, 0);
+    const targetDateEnd = new Date(targetDate);
+    targetDateEnd.setHours(23, 59, 59, 999);
+    const targetDateStartTime = targetDateStart.getTime();
+    const targetDateEndTime = targetDateEnd.getTime();
+
+    return events
+      .filter((event) => {
+        const eventStartDate = new Date(event.start);
+        const eventEndDate = new Date(event.end);
+        const eventStartTime = eventStartDate.getTime();
+        const eventEndTime = eventEndDate.getTime();
+
+        // Include events where target date falls between start and end (inclusive)
+        return eventStartTime <= targetDateEndTime && eventEndTime >= targetDateStartTime;
+      })
+      .map((event) => {
+        const eventStartDate = new Date(event.start);
+        const eventEndDate = new Date(event.end);
+        const eventStartTime = eventStartDate.getTime();
+        const eventEndTime = eventEndDate.getTime();
+        
+        const startsOnTarget = eventStartTime >= targetDateStartTime && eventStartTime <= targetDateEndTime;
+        const endsOnTarget = eventEndTime >= targetDateStartTime && eventEndTime <= targetDateEndTime;
+        const spansTarget = eventStartTime < targetDateStartTime && eventEndTime > targetDateEndTime;
+
+        // If event starts and ends on the same day, return as is
+        if (startsOnTarget && endsOnTarget) {
+          return event;
+        }
+
+        // If event starts on target date but ends next day, truncate at midnight
+        if (startsOnTarget && !endsOnTarget) {
+          const truncatedEnd = new Date(targetDate);
+          truncatedEnd.setHours(23, 59, 59, 999);
+          return {
+            ...event,
+            end: truncatedEnd,
+          };
+        }
+
+        // If event ends on target date but started yesterday, start at midnight
+        if (!startsOnTarget && endsOnTarget) {
+          const truncatedStart = new Date(targetDate);
+          truncatedStart.setHours(0, 0, 0, 0);
+          return {
+            ...event,
+            start: truncatedStart,
+          };
+        }
+
+        // If event spans the target date (starts before and ends after), truncate to full day
+        if (spansTarget) {
+          const truncatedStart = new Date(targetDate);
+          truncatedStart.setHours(0, 0, 0, 0);
+          const truncatedEnd = new Date(targetDate);
+          truncatedEnd.setHours(23, 59, 59, 999);
+          return {
+            ...event,
+            start: truncatedStart,
+            end: truncatedEnd,
+          };
+        }
+
         return event;
-      }
-      
-      // If event starts on target date but ends next day, truncate at midnight
-      if (startsOnTarget && !endsOnTarget) {
-        const truncatedEnd = new Date(targetDate);
-        truncatedEnd.setHours(23, 59, 59, 999);
-        return {
-          ...event,
-          end: truncatedEnd
-        };
-      }
-      
-      // If event ends on target date but started yesterday, start at midnight
-      if (!startsOnTarget && endsOnTarget) {
-        const truncatedStart = new Date(targetDate);
-        truncatedStart.setHours(0, 0, 0, 0);
-        return {
-          ...event,
-          start: truncatedStart
-        };
-      }
-      
-      return event;
-    });
+      });
   }
 
   // Helper function to get full events for event list (no truncation)
   function getFullEventsForDate(events: Event[], targetDate: Date): Event[] {
-    const targetDateString = targetDate.toDateString();
-    
-    return events.filter(event => {
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
+    // Compute start of day (00:00:00) and end of day (23:59:59.999) for target date
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return events.filter((event) => {
+      // Parse event start and end dates
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end);
       
-      return eventStartDate.toDateString() === targetDateString || 
-             eventEndDate.toDateString() === targetDateString;
+      // Return events where eventStart <= endOfDay && eventEnd >= startOfDay
+      // This includes multi-day events that span the target date
+      return eventStart <= endOfDay && eventEnd >= startOfDay;
     });
   }
 
   function getEventColumns(events: Event[]): Event[][] {
     if (events.length === 0) return [];
-    
+
     // Sort events by start time
-    const sortedEvents = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
-    
+    const sortedEvents = [...events].sort(
+      (a, b) => a.start.getTime() - b.start.getTime(),
+    );
+
     const columns: Event[][] = [];
-    
+
     for (const event of sortedEvents) {
       // Find the first column where this event doesn't overlap
       let columnIndex = 0;
       while (columnIndex < columns.length) {
         const column = columns[columnIndex];
         const lastEvent = column[column.length - 1];
-        
+
         // Check if this event overlaps with the last event in this column
         if (event.start >= lastEvent.end) {
           break;
         }
         columnIndex++;
       }
-      
+
       // If no suitable column found, create a new one
       if (columnIndex >= columns.length) {
         columns.push([]);
       }
-      
+
       columns[columnIndex].push(event);
     }
-    
+
     return columns;
   }
 </script>
@@ -324,10 +363,15 @@
   <div class="calendar-header">
     <div class="month-navigation">
       <button onclick={() => navigateMonth(-1)}>←</button>
-      <h2>{currentMonth.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}</h2>
+      <h2>
+        {currentMonth.toLocaleDateString("ja-JP", {
+          year: "numeric",
+          month: "long",
+        })}
+      </h2>
       <button onclick={() => navigateMonth(1)}>→</button>
     </div>
-    
+
     <button class="add-event-button" onclick={createEvent}>
       + 予定を追加
     </button>
@@ -344,20 +388,25 @@
       <div class="weekday">金</div>
       <div class="weekday">土</div>
     </div>
-    
+
     <div class="calendar-days">
       {#each getCalendarDays() as day (day.getTime())}
-        <div 
-          class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day) ? 'selected' : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
+        <div
+          class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day)
+            ? 'selected'
+            : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
           onclick={() => selectDate(day)}
-          onkeydown={(e) => e.key === 'Enter' && selectDate(day)}
+          onkeydown={(e) => e.key === "Enter" && selectDate(day)}
           role="button"
           tabindex="0"
         >
           <div class="day-number">{day.getDate()}</div>
           <div class="day-events">
             {#each getEventsForDate($events, day) as event (event.id)}
-              <div class="event-dot" style="background-color: {getEventColor(event)}"></div>
+              <div
+                class="event-dot"
+                style="background-color: {getEventColor(event)}"
+              ></div>
             {/each}
           </div>
         </div>
@@ -367,28 +416,38 @@
 
   <!-- Selected Date Events - Always Visible -->
   <div class="selected-date-events">
-    <h3>予定 - {controller.formatDate(selectedDate)}</h3>
-    {#if getFullEventsForDate($events, selectedDate).length === 0}
+    <h3>予定 - {controller.formatDate(localSelectedDate)}</h3>
+    {#if getFullEventsForDate($events, localSelectedDate).length === 0}
       <p class="empty-state">この日の予定はありません</p>
     {:else}
       <div class="events-list">
-        {#each getFullEventsForDate($events, selectedDate) as event (event.id)}
-          <div 
-            class="event-item" 
+        {#each getFullEventsForDate($events, localSelectedDate) as event (event.id)}
+          <div
+            class="event-item"
             onclick={() => controller.editEvent(event)}
-            onkeydown={(e) => e.key === 'Enter' && controller.editEvent(event)}
+            onkeydown={(e) => e.key === "Enter" && controller.editEvent(event)}
             role="button"
             tabindex="0"
           >
             <div class="event-content">
               <div class="event-title">{event.title}</div>
               <div class="event-time">
-                {controller.formatDateTime(event.start)} - {controller.formatDateTime(event.end)}
+                {controller.formatDateTime(event.start)} - {controller.formatDateTime(
+                  event.end,
+                )}
               </div>
             </div>
             <div class="event-actions">
-              <button onclick={() => { controller.editEvent(event); showEventForm = true; }}>編集</button>
-              <button onclick={() => controller.deleteEvent(event.id)} class="danger">削除</button>
+              <button
+                onclick={() => {
+                  controller.editEvent(event);
+                  showEventForm = true;
+                }}>編集</button
+              >
+              <button
+                onclick={() => controller.deleteEvent(event.id)}
+                class="danger">削除</button
+              >
             </div>
           </div>
         {/each}
@@ -401,37 +460,56 @@
     <div class="timeline-popup">
       <div class="popup-content">
         <div class="popup-header">
-          <h3>タイムライン - {controller.formatDate(selectedDate)}</h3>
-          <button class="close-button" onclick={() => showTimelinePopup = false}>✕</button>
+          <h3>タイムライン - {controller.formatDate(localSelectedDate)}</h3>
+          <button
+            class="close-button"
+            onclick={() => (showTimelinePopup = false)}>✕</button
+          >
         </div>
-        
+
         <div class="timeline-container">
-          {#if getEventsForDate($events, selectedDate).length === 0}
+          {#if getEventsForDate($events, localSelectedDate).length === 0}
             <p class="empty-state">この日の予定はありません</p>
           {:else}
             <div class="timeline-view">
               <!-- Hour indicators -->
               <div class="timeline-hours">
-                {#each Array(24) as _, hour}
+                {#each Array(24) as _, hour (hour)}
                   <div class="hour-indicator" style="top: {hour * 16.67}px;">
-                    <span class="hour-label">{hour.toString().padStart(2, '0')}:00</span>
+                    <span class="hour-label"
+                      >{hour.toString().padStart(2, "0")}:00</span
+                    >
                     <div class="hour-line"></div>
                   </div>
                 {/each}
               </div>
-              
+
               <!-- Current time indicator -->
-              <div class="current-time-line" style="top: {getCurrentTimePositionScaled()}px;"></div>
-              
+              <div
+                class="current-time-line"
+                style="top: {getCurrentTimePositionScaled()}px;"
+              ></div>
+
               <!-- Event columns -->
               <div class="timeline-columns">
-                {#each getEventColumns(getEventsForDate($events, selectedDate)) as column, columnIndex}
-                  <div class="timeline-column" style="width: {100 / getEventColumns(getEventsForDate($events, selectedDate)).length}%;">
+                {#each getEventColumns(getEventsForDate($events, localSelectedDate)) as column, columnIndex (columnIndex)}
+                  <div
+                    class="timeline-column"
+                    style="width: {100 /
+                      getEventColumns(
+                        getEventsForDate($events, localSelectedDate),
+                      ).length}%;"
+                  >
                     {#each column as event (event.id)}
-                      <div 
-                        class="timeline-event-block" 
-                        onclick={() => { controller.editEvent(event); showEventForm = true; }}
-                        onkeydown={(e) => e.key === 'Enter' && (controller.editEvent(event), showEventForm = true)}
+                      <div
+                        class="timeline-event-block"
+                        onclick={() => {
+                          controller.editEvent(event);
+                          showEventForm = true;
+                        }}
+                        onkeydown={(e) =>
+                          e.key === "Enter" &&
+                          (controller.editEvent(event), (showEventForm = true))}
                         role="button"
                         tabindex="0"
                         style="
@@ -462,10 +540,12 @@
     <div class="event-form-modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>{isEventEditing ? '予定を編集' : '新しい予定'}</h3>
-          <button class="close-button" onclick={() => showEventForm = false}>✕</button>
+          <h3>{isEventEditing ? "予定を編集" : "新しい予定"}</h3>
+          <button class="close-button" onclick={() => (showEventForm = false)}
+            >✕</button
+          >
         </div>
-        
+
         <div class="form-group">
           <label for="event-title">タイトル</label>
           <input
@@ -475,7 +555,7 @@
             placeholder="予定のタイトルを入力"
           />
         </div>
-        
+
         <div class="form-row">
           <div class="form-group">
             <label for="event-start">開始時刻</label>
@@ -485,52 +565,55 @@
               bind:value={eventStart}
             />
           </div>
-          
+
           <div class="form-group">
             <label for="event-end">終了時刻</label>
-            <input
-              id="event-end"
-              type="datetime-local"
-              bind:value={eventEnd}
-            />
+            <input id="event-end" type="datetime-local" bind:value={eventEnd} />
           </div>
         </div>
-        
+
         <div class="form-actions">
           {#if isEventEditing}
-            <button onclick={() => { 
-              // Get current editing ID
-              let editingId: string | null = null;
-              controller.eventForm.subscribe(f => editingId = f.editingId)();
-              
-              // Update the controller form with current values
-              controller.eventForm.set({
-                title: eventTitle,
-                start: eventStart,
-                end: eventEnd,
-                isEditing: true,
-                editingId: editingId
-              });
-              controller.updateEvent(); 
-              showEventForm = false; 
-            }}>更新</button>
-            <button onclick={() => { controller.resetEventForm(); showEventForm = false; }}>キャンセル</button>
+            <button
+              onclick={() => {
+                // Get current form data synchronously
+                const currentForm = get(controller.eventForm);
+                
+                // Update the controller form with current values
+                controller.eventForm.set({
+                  title: eventTitle,
+                  start: eventStart,
+                  end: eventEnd,
+                  isEditing: true,
+                  editingId: currentForm.editingId,
+                });
+                controller.updateEvent();
+                showEventForm = false;
+              }}>更新</button
+            >
+            <button
+              onclick={() => {
+                controller.resetEventForm();
+                showEventForm = false;
+              }}>キャンセル</button
+            >
           {:else}
-            <button onclick={() => { 
-              // Update the controller form with current values
-              controller.eventForm.set({
-                title: eventTitle,
-                start: eventStart,
-                end: eventEnd,
-                isEditing: false,
-                editingId: null
-              });
-              
-              
-              controller.createEvent(); 
-              showEventForm = false; 
-            }}>作成</button>
-            <button onclick={() => showEventForm = false}>キャンセル</button>
+            <button
+              onclick={() => {
+                // Update the controller form with current values
+                controller.eventForm.set({
+                  title: eventTitle,
+                  start: eventStart,
+                  end: eventEnd,
+                  isEditing: false,
+                  editingId: null,
+                });
+
+                controller.createEvent();
+                showEventForm = false;
+              }}>作成</button
+            >
+            <button onclick={() => (showEventForm = false)}>キャンセル</button>
           {/if}
         </div>
       </div>
@@ -564,7 +647,7 @@
     align-items: center;
     padding: var(--space-md);
     border-bottom: 1px solid var(--glass-border);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
   }
 
   .month-navigation {
@@ -581,7 +664,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    text-shadow: 0 0 8px rgba(0,200,255,0.15);
+    text-shadow: 0 0 8px rgba(0, 200, 255, 0.15);
   }
 
   .month-navigation button {
@@ -602,7 +685,7 @@
   .month-navigation button:hover {
     background: var(--primary);
     color: var(--bg);
-    box-shadow: 0 0 14px rgba(0,200,255,0.22);
+    box-shadow: 0 0 14px rgba(0, 200, 255, 0.22);
     transform: translateY(-2px);
   }
 
@@ -633,7 +716,7 @@
   .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     border-bottom: 1px solid var(--glass-border);
   }
 
@@ -657,17 +740,17 @@
     display: flex;
     flex-direction: column;
     min-height: 80px;
-    background: rgba(0,200,255,0.02);
+    background: rgba(0, 200, 255, 0.02);
   }
 
   .calendar-day:hover {
-    background: rgba(0,200,255,0.08);
-    box-shadow: inset 0 0 12px rgba(0,200,255,0.1);
+    background: rgba(0, 200, 255, 0.08);
+    box-shadow: inset 0 0 12px rgba(0, 200, 255, 0.1);
   }
 
   .calendar-day.today {
-    background: rgba(0,200,255,0.1);
-    box-shadow: inset 0 0 12px rgba(0,200,255,0.15);
+    background: rgba(0, 200, 255, 0.1);
+    box-shadow: inset 0 0 12px rgba(0, 200, 255, 0.15);
   }
 
   .calendar-day.today .day-number {
@@ -681,18 +764,20 @@
     justify-content: center;
     font-weight: 600;
     font-family: var(--font-display);
-    box-shadow: 0 0 8px rgba(0,200,255,0.3);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
   }
 
   .calendar-day.selected {
-    background: rgba(0,200,255,0.15);
+    background: rgba(0, 200, 255, 0.15);
     border: 2px solid var(--primary);
-    box-shadow: inset 0 0 12px rgba(0,200,255,0.2), 0 0 12px rgba(0,200,255,0.2);
+    box-shadow:
+      inset 0 0 12px rgba(0, 200, 255, 0.2),
+      0 0 12px rgba(0, 200, 255, 0.2);
   }
 
   .calendar-day.other-month {
     color: var(--muted);
-    background: rgba(102,224,255,0.02);
+    background: rgba(102, 224, 255, 0.02);
     opacity: 0.6;
   }
 
@@ -715,13 +800,13 @@
     height: 6px;
     border-radius: 50%;
     flex-shrink: 0;
-    box-shadow: 0 0 4px rgba(0,200,255,0.3);
+    box-shadow: 0 0 4px rgba(0, 200, 255, 0.3);
   }
 
   .selected-date-events {
     padding: var(--space-md);
     border-top: 1px solid var(--glass-border);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     max-height: 250px;
     overflow-y: auto;
     flex-shrink: 0;
@@ -747,7 +832,7 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-sm);
-    background: rgba(0,200,255,0.08);
+    background: rgba(0, 200, 255, 0.08);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
     cursor: pointer;
@@ -755,10 +840,10 @@
   }
 
   .event-item:hover {
-    background: rgba(0,200,255,0.12);
+    background: rgba(0, 200, 255, 0.12);
     border-color: var(--primary);
     transform: translateY(-2px);
-    box-shadow: 0 0 12px rgba(0,200,255,0.15);
+    box-shadow: 0 0 12px rgba(0, 200, 255, 0.15);
   }
 
   .event-content {
@@ -812,13 +897,13 @@
   .event-actions button:hover {
     background: var(--primary);
     color: var(--bg);
-    box-shadow: 0 0 8px rgba(0,200,255,0.2);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
   }
 
   .event-actions button.danger:hover {
     background: var(--danger);
     color: var(--bg);
-    box-shadow: 0 0 8px rgba(255,59,59,0.2);
+    box-shadow: 0 0 8px rgba(255, 59, 59, 0.2);
   }
 
   .empty-state {
@@ -911,7 +996,7 @@
     top: -0.5rem;
     font-size: 0.625rem;
     color: var(--muted);
-    background: rgba(0,200,255,0.05);
+    background: rgba(0, 200, 255, 0.05);
     padding: 0 0.125rem;
     font-weight: 500;
     line-height: 1;
@@ -933,11 +1018,11 @@
     background: var(--accent);
     z-index: 10;
     pointer-events: none;
-    box-shadow: 0 0 8px rgba(255,204,0,0.5);
+    box-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
   }
 
   .current-time-line::before {
-    content: '';
+    content: "";
     position: absolute;
     left: 0;
     top: -4px;
@@ -976,7 +1061,7 @@
     cursor: pointer;
     transition: all 0.18s ease;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 8px rgba(0,200,255,0.2);
+    box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
     overflow: hidden;
     min-height: 20px;
   }

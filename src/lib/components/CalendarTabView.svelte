@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
-  import CalendarView from './CalendarView.svelte';
-  import MemoView from './MemoView.svelte';
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
+  import CalendarView from "./CalendarView.svelte";
+  import MemoView from "./MemoView.svelte";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
@@ -9,11 +9,11 @@
   // Get memo open state from controller store
   let isMemoOpen = $state(false);
   let isMobile = $state(false);
-  
+
   // Subscribe to controller store changes
   $effect(() => {
     if (controller) {
-      const unsubscribe = controller.isMemoOpen.subscribe(value => {
+      const unsubscribe = controller.isMemoOpen.subscribe((value) => {
         isMemoOpen = value;
       });
       return unsubscribe;
@@ -23,23 +23,23 @@
   // Check if mobile view
   $effect(() => {
     // Guard against SSR - only run on client
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     const checkMobile = () => {
       isMobile = window.innerWidth < 768;
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   });
 </script>
 
 <div class="calendar-tab">
   <!-- Mobile hamburger menu button -->
   {#if isMobile}
-    <button 
+    <button
       class="hamburger-button"
       onclick={() => controller.toggleMemo()}
       aria-expanded={isMemoOpen}
@@ -61,7 +61,10 @@
     </div>
 
     <!-- Memo View (30% on desktop, overlay on mobile) -->
-    <div id="memo-drawer" class="memo-section {isMobile ? (isMemoOpen ? 'open' : 'closed') : ''}">
+    <div
+      id="memo-drawer"
+      class="memo-section {isMobile ? (isMemoOpen ? 'open' : 'closed') : ''}"
+    >
       {#if !isMobile || isMemoOpen}
         <div class="memo-container">
           <div class="memo-content">
@@ -70,14 +73,14 @@
         </div>
       {/if}
     </div>
-    
+
     <!-- Mobile overlay - outside memo-section for proper layering -->
     {#if isMobile && isMemoOpen}
-      <div 
+      <div
         class="mobile-overlay"
         onclick={() => controller.setMemoOpen(false)}
         onkeydown={(e) => {
-          if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+          if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             controller.setMemoOpen(false);
           }
@@ -214,5 +217,4 @@
     backdrop-filter: blur(4px);
     z-index: 998; /* Lower than memo-section to be behind it */
   }
-
 </style>

@@ -1,15 +1,15 @@
 <script lang="ts">
-  import type { AppController } from '../controllers/app.controller.svelte.ts';
+  import type { AppController } from "../controllers/app.controller.svelte.ts";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
 
   // Get current view from controller store reactively
   let currentView = $state();
-  
+
   // Subscribe to store changes using $effect with proper cleanup
   $effect(() => {
-    const unsubscribe = controller.currentView.subscribe(value => {
+    const unsubscribe = controller.currentView.subscribe((value) => {
       currentView = value;
     });
     return unsubscribe;
@@ -17,20 +17,20 @@
 </script>
 
 <nav class="bottom-navigation" aria-label="Main navigation">
-  <button 
+  <button
     class="nav-item {currentView === 'calendar' ? 'active' : ''}"
-    onclick={() => controller.setView('calendar')}
-    aria-current={currentView === 'calendar' ? 'page' : undefined}
+    onclick={() => controller.setView("calendar")}
+    aria-current={currentView === "calendar" ? "page" : undefined}
     aria-label="Open calendar view"
   >
     <div class="nav-icon" aria-hidden="true">📅</div>
     <span class="nav-label">Calendar</span>
   </button>
-  
-  <button 
+
+  <button
     class="nav-item {currentView === 'personal-assistant' ? 'active' : ''}"
-    onclick={() => controller.setView('personal-assistant')}
-    aria-current={currentView === 'personal-assistant' ? 'page' : undefined}
+    onclick={() => controller.setView("personal-assistant")}
+    aria-current={currentView === "personal-assistant" ? "page" : undefined}
     aria-label="Open assistant view"
   >
     <div class="nav-icon" aria-hidden="true">🤖</div>
@@ -100,11 +100,11 @@
     .nav-item {
       padding: var(--space-xs) var(--space-xs);
     }
-    
+
     .nav-icon {
       font-size: 1.25rem;
     }
-    
+
     .nav-label {
       font-size: 0.625rem;
     }
