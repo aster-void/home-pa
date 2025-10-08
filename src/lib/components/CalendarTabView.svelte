@@ -95,7 +95,7 @@
 
 <style>
   .calendar-tab {
-    min-height: calc(100vh - var(--bottom-nav-height, 64px)); /* Account for navigation */
+    min-height: calc(100vh - var(--bottom-nav-height, 80px)); /* Account for navigation */
     position: relative;
   }
 
@@ -139,7 +139,7 @@
 
   .calendar-layout {
     display: flex;
-    height: calc(100vh - var(--bottom-nav-height, 64px));
+    height: calc(100vh - var(--bottom-nav-height, 80px));
   }
 
   .calendar-layout.desktop {

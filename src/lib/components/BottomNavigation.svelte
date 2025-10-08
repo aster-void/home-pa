@@ -53,7 +53,7 @@
     border-top: 1px solid rgba(15, 34, 48, 0.08);
     box-shadow: 0 -6px 20px rgba(8, 12, 20, 0.08);
     z-index: 1000;
-    height: calc(var(--bottom-nav-height, 64px) + env(safe-area-inset-bottom));
+    height: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
   }
 
