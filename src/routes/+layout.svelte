@@ -27,6 +27,8 @@
   .app-container {
     min-height: 100vh;
     background-color: #f8fafc;
-    padding-bottom: 80px; /* Space for bottom navigation */
+    /* Reserve space for bottom navigation including safe area */
+    --bottom-nav-height: 64px;
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom));
   }
 </style>

@@ -359,100 +359,102 @@
 </script>
 
 <div class="calendar-view">
-  <!-- Calendar Header -->
-  <div class="calendar-header">
-    <div class="month-navigation">
-      <button onclick={() => navigateMonth(-1)}>←</button>
-      <h2>
-        {currentMonth.toLocaleDateString("ja-JP", {
-          year: "numeric",
-          month: "long",
-        })}
-      </h2>
-      <button onclick={() => navigateMonth(1)}>→</button>
+  <div class="calendar-main">
+    <!-- Calendar Header (inside the same scrollable container as grid) -->
+    <div class="calendar-header">
+      <div class="month-navigation">
+        <button onclick={() => navigateMonth(-1)}>←</button>
+        <h2>
+          {currentMonth.toLocaleDateString("ja-JP", {
+            year: "numeric",
+            month: "long",
+          })}
+        </h2>
+        <button onclick={() => navigateMonth(1)}>→</button>
+      </div>
+
+      <button class="add-event-button" onclick={createEvent}>
+        + 予定を追加
+      </button>
     </div>
 
-    <button class="add-event-button" onclick={createEvent}>
-      + 予定を追加
-    </button>
-  </div>
+    <!-- Calendar Grid -->
+    <div class="calendar-grid">
+      <div class="calendar-weekdays">
+        <div class="weekday">日</div>
+        <div class="weekday">月</div>
+        <div class="weekday">火</div>
+        <div class="weekday">水</div>
+        <div class="weekday">木</div>
+        <div class="weekday">金</div>
+        <div class="weekday">土</div>
+      </div>
 
-  <!-- Calendar Grid -->
-  <div class="calendar-grid">
-    <div class="calendar-weekdays">
-      <div class="weekday">日</div>
-      <div class="weekday">月</div>
-      <div class="weekday">火</div>
-      <div class="weekday">水</div>
-      <div class="weekday">木</div>
-      <div class="weekday">金</div>
-      <div class="weekday">土</div>
-    </div>
-
-    <div class="calendar-days">
-      {#each getCalendarDays() as day (day.getTime())}
-        <div
-          class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day)
-            ? 'selected'
-            : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
-          onclick={() => selectDate(day)}
-          onkeydown={(e) => e.key === "Enter" && selectDate(day)}
-          role="button"
-          tabindex="0"
-        >
-          <div class="day-number">{day.getDate()}</div>
-          <div class="day-events">
-            {#each getEventsForDate($events, day) as event (event.id)}
-              <div
-                class="event-dot"
-                style="background-color: {getEventColor(event)}"
-              ></div>
-            {/each}
-          </div>
-        </div>
-      {/each}
-    </div>
-  </div>
-
-  <!-- Selected Date Events - Always Visible -->
-  <div class="selected-date-events">
-    <h3>予定 - {controller.formatDate(localSelectedDate)}</h3>
-    {#if getFullEventsForDate($events, localSelectedDate).length === 0}
-      <p class="empty-state">この日の予定はありません</p>
-    {:else}
-      <div class="events-list">
-        {#each getFullEventsForDate($events, localSelectedDate) as event (event.id)}
+      <div class="calendar-days">
+        {#each getCalendarDays() as day (day.getTime())}
           <div
-            class="event-item"
-            onclick={() => controller.editEvent(event)}
-            onkeydown={(e) => e.key === "Enter" && controller.editEvent(event)}
+            class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day)
+              ? 'selected'
+              : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
+            onclick={() => selectDate(day)}
+            onkeydown={(e) => e.key === "Enter" && selectDate(day)}
             role="button"
             tabindex="0"
           >
-            <div class="event-content">
-              <div class="event-title">{event.title}</div>
-              <div class="event-time">
-                {controller.formatDateTime(event.start)} - {controller.formatDateTime(
-                  event.end,
-                )}
-              </div>
-            </div>
-            <div class="event-actions">
-              <button
-                onclick={() => {
-                  controller.editEvent(event);
-                  showEventForm = true;
-                }}>編集</button
-              >
-              <button
-                onclick={() => controller.deleteEvent(event.id)}
-                class="danger">削除</button
-              >
+            <div class="day-number">{day.getDate()}</div>
+            <div class="day-events">
+              {#each getEventsForDate($events, day) as event (event.id)}
+                <div
+                  class="event-dot"
+                  style="background-color: {getEventColor(event)}"
+                ></div>
+              {/each}
             </div>
           </div>
         {/each}
       </div>
-    {/if}
+    </div>
+
+    <!-- Selected Date Events - Always Visible -->
+    <div class="selected-date-events">
+      <h3>予定 - {controller.formatDate(localSelectedDate)}</h3>
+      {#if getFullEventsForDate($events, localSelectedDate).length === 0}
+        <p class="empty-state">この日の予定はありません</p>
+      {:else}
+        <div class="events-list">
+          {#each getFullEventsForDate($events, localSelectedDate) as event (event.id)}
+            <div
+              class="event-item"
+              onclick={() => controller.editEvent(event)}
+              onkeydown={(e) => e.key === "Enter" && controller.editEvent(event)}
+              role="button"
+              tabindex="0"
+            >
+              <div class="event-content">
+                <div class="event-title">{event.title}</div>
+                <div class="event-time">
+                  {controller.formatDateTime(event.start)} - {controller.formatDateTime(
+                    event.end,
+                  )}
+                </div>
+              </div>
+              <div class="event-actions">
+                <button
+                  onclick={() => {
+                    controller.editEvent(event);
+                    showEventForm = true;
+                  }}>編集</button
+                >
+                <button
+                  onclick={() => controller.deleteEvent(event.id)}
+                  class="danger">削除</button
+                >
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
   </div>
 
   <!-- Timeline Popup -->
@@ -632,13 +634,22 @@
     backdrop-filter: blur(6px) saturate(110%);
     box-shadow: var(--glow);
     overflow: hidden;
+    min-height: 0;
+  }
+
+  .calendar-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .calendar-grid {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    flex: 1 1 auto;
+    min-height: 400px; /* minimum height for weekdays + 6 weeks × 60px + padding */
   }
 
   .calendar-header {
@@ -711,6 +722,7 @@
     grid-template-columns: repeat(7, 1fr);
     flex: 1;
     min-height: 0;
+    grid-auto-rows: minmax(60px, 1fr); /* minimum 60px height per row */
   }
 
   .calendar-weekdays {
@@ -739,7 +751,7 @@
     transition: all 0.18s ease;
     display: flex;
     flex-direction: column;
-    min-height: 80px;
+    min-height: 100%; /* fill the grid row height */
     background: rgba(0, 200, 255, 0.02);
   }
 
@@ -807,9 +819,7 @@
     padding: var(--space-md);
     border-top: 1px solid var(--glass-border);
     background: rgba(0, 200, 255, 0.05);
-    max-height: 250px;
-    overflow-y: auto;
-    flex-shrink: 0;
+    flex: 0 0 auto;
   }
 
   .selected-date-events h3 {
@@ -940,6 +950,12 @@
     box-shadow: var(--shadow-soft);
   }
 
+  .timeline-container {
+    height: 400px;
+    overflow: hidden;
+    position: relative;
+  }
+
   .popup-header {
     display: flex;
     justify-content: space-between;
@@ -957,15 +973,9 @@
     font-weight: 600;
   }
 
-  .timeline-container {
-    height: 400px;
-    overflow: hidden;
-    position: relative;
-  }
-
   .timeline-view {
     position: relative;
-    height: 400px; /* Fixed height - no scrolling */
+    height: 400px;
     background: rgba(240, 138, 119, 0.05);
     border: 1px solid rgba(240, 138, 119, 0.2);
     border-radius: var(--radius-md);
@@ -1232,7 +1242,13 @@
     transform: translateY(-2px);
   }
 
+  /* responsive adjustment: height→auto, max-height→50vh */
   @media (max-width: 768px) {
+    .timeline-view {
+      height: auto;
+      max-height: 50vh;
+    }
+
     .calendar-day {
       min-height: 60px;
       padding: var(--space-xs);
