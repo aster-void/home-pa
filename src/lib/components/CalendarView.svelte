@@ -356,6 +356,106 @@
 
     return columns;
   }
+
+  // Helper to check if this is the first day of an event
+  function isFirstDayOfEvent(event: Event, targetDate: Date): boolean {
+    const eventStartDate = new Date(event.start);
+    eventStartDate.setHours(0, 0, 0, 0);
+    const targetDateOnly = new Date(targetDate);
+    targetDateOnly.setHours(0, 0, 0, 0);
+    return eventStartDate.getTime() === targetDateOnly.getTime();
+  }
+
+  // Helper to check if event spans multiple days
+  function isMultiDayEvent(event: Event): boolean {
+    const eventStartDate = new Date(event.start);
+    eventStartDate.setHours(0, 0, 0, 0);
+    const eventEndDate = new Date(event.end);
+    eventEndDate.setHours(0, 0, 0, 0);
+    return eventEndDate.getTime() > eventStartDate.getTime();
+  }
+
+  // Helper to determine bar position in multi-day event
+  function getEventBarPosition(event: Event, targetDate: Date): 'start' | 'middle' | 'end' | 'single' {
+    const eventStartDate = new Date(event.start);
+    eventStartDate.setHours(0, 0, 0, 0);
+    const eventEndDate = new Date(event.end);
+    eventEndDate.setHours(0, 0, 0, 0);
+    const targetDateOnly = new Date(targetDate);
+    targetDateOnly.setHours(0, 0, 0, 0);
+
+    const isStart = eventStartDate.getTime() === targetDateOnly.getTime();
+    const isEnd = eventEndDate.getTime() === targetDateOnly.getTime();
+    const isMultiDay = eventEndDate.getTime() > eventStartDate.getTime();
+
+    if (!isMultiDay) return 'single';
+    if (isStart) return 'start';
+    if (isEnd) return 'end';
+    return 'middle';
+  }
+
+  // Assign row indices to events so multi-day events maintain same row across days
+  function assignEventRows(events: Event[]): Map<string, number> {
+    const eventRows = new Map<string, number>();
+    
+    // Sort events by start date, then by duration (longer first)
+    const sortedEvents = [...events].sort((a, b) => {
+      const startDiff = a.start.getTime() - b.start.getTime();
+      if (startDiff !== 0) return startDiff;
+      // If same start, longer events first
+      const aDuration = a.end.getTime() - a.start.getTime();
+      const bDuration = b.end.getTime() - b.start.getTime();
+      return bDuration - aDuration;
+    });
+
+    for (const event of sortedEvents) {
+      const eventStartDate = new Date(event.start);
+      eventStartDate.setHours(0, 0, 0, 0);
+      const eventEndDate = new Date(event.end);
+      eventEndDate.setHours(0, 0, 0, 0);
+
+      // Find the first available row
+      let row = 0;
+      let rowAvailable = false;
+
+      while (!rowAvailable) {
+        rowAvailable = true;
+
+        // Check if this row is occupied by any conflicting event
+        for (const [otherEventId, otherRow] of eventRows.entries()) {
+          if (otherRow !== row) continue;
+
+          const otherEvent = events.find(e => e.id === otherEventId);
+          if (!otherEvent) continue;
+
+          const otherStartDate = new Date(otherEvent.start);
+          otherStartDate.setHours(0, 0, 0, 0);
+          const otherEndDate = new Date(otherEvent.end);
+          otherEndDate.setHours(0, 0, 0, 0);
+
+          // Check if events overlap in date range
+          if (
+            eventStartDate.getTime() <= otherEndDate.getTime() &&
+            eventEndDate.getTime() >= otherStartDate.getTime()
+          ) {
+            rowAvailable = false;
+            break;
+          }
+        }
+
+        if (!rowAvailable) {
+          row++;
+        }
+      }
+
+      eventRows.set(event.id, row);
+    }
+
+    return eventRows;
+  }
+
+  // Get the row assignment map for current events
+  let eventRowMap = $derived(assignEventRows($events));
 </script>
 
 <div class="calendar-view">
@@ -373,9 +473,7 @@
         <button onclick={() => navigateMonth(1)}>→</button>
       </div>
 
-      <button class="add-event-button" onclick={createEvent}>
-        + 予定を追加
-      </button>
+      <button class="add-event-button" onclick={createEvent}>+</button>
     </div>
 
     <!-- Calendar Grid -->
@@ -403,11 +501,18 @@
           >
             <div class="day-number">{day.getDate()}</div>
             <div class="day-events">
-              {#each getEventsForDate($events, day) as event (event.id)}
+              {#each getEventsForDate($events, day) as truncatedEvent (truncatedEvent.id)}
+                {@const barPosition = getEventBarPosition(truncatedEvent, day)}
+                {@const showLabel = isFirstDayOfEvent(truncatedEvent, day)}
+                {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
                 <div
-                  class="event-dot"
-                  style="background-color: {getEventColor(event)}"
-                ></div>
+                  class="event-bar {barPosition}"
+                  style="background-color: {getEventColor(truncatedEvent)}; top: {rowIndex * 18}px;"
+                >
+                  {#if showLabel}
+                    <span class="event-label">{truncatedEvent.title}</span>
+                  {/if}
+                </div>
               {/each}
             </div>
           </div>
@@ -624,6 +729,16 @@
 </div>
 
 <style>
+  /* Hide all scrollbars */
+  * {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+  }
+
   .calendar-view {
     height: 100%;
     display: flex;
@@ -649,14 +764,14 @@
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
-    min-height: 400px; /* minimum height for weekdays + 6 weeks × 60px + padding */
+    min-height: 600px; /* Increased from 400px to make calendar taller */
   }
 
   .calendar-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
     border-bottom: 1px solid var(--glass-border);
     background: rgba(0, 200, 255, 0.05);
   }
@@ -664,13 +779,13 @@
   .month-navigation {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-sm);
   }
 
   .month-navigation h2 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: var(--fs-lg);
+    font-size: var(--fs-md);
     color: var(--primary);
     font-weight: 600;
     text-transform: uppercase;
@@ -679,8 +794,8 @@
   }
 
   .month-navigation button {
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
     border: 1px solid var(--primary);
     background: transparent;
     border-radius: 6px;
@@ -701,14 +816,19 @@
   }
 
   .add-event-button {
-    padding: var(--space-sm) var(--space-md);
+    width: 2rem;
+    height: 2rem;
     background: var(--coral);
     color: var(--white);
     border: 1px solid var(--coral);
-    border-radius: 999px;
+    border-radius: 50%;
     cursor: pointer;
     font-weight: 600;
     font-family: var(--font-sans);
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
@@ -753,6 +873,8 @@
     flex-direction: column;
     min-height: 100%; /* fill the grid row height */
     background: rgba(0, 200, 255, 0.02);
+    position: relative;
+    overflow: hidden; /* Cut off overflowing events */
   }
 
   .calendar-day:hover {
@@ -798,21 +920,59 @@
     margin-bottom: var(--space-xs);
     color: var(--text);
     font-family: var(--font-display);
+    font-size: 0.75rem; /* Smaller to give more space */
   }
 
   .day-events {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    margin-top: auto;
+    position: relative;
+    flex: 1;
+    min-height: 0;
   }
 
-  .event-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    flex-shrink: 0;
+  .event-bar {
+    height: 16px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
     box-shadow: 0 0 4px rgba(0, 200, 255, 0.3);
+    overflow: visible;
+    position: absolute;
+    left: 0;
+    right: 0;
+  }
+
+  .event-bar.start {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    margin-right: calc(-1 * var(--space-sm) - 1px);
+    padding-right: calc(var(--space-sm) + 1px);
+  }
+
+  .event-bar.middle {
+    border-radius: 0;
+    margin-left: calc(-1 * var(--space-sm) - 1px);
+    margin-right: calc(-1 * var(--space-sm) - 1px);
+    padding-left: calc(var(--space-sm) + 1px);
+    padding-right: calc(var(--space-sm) + 1px);
+  }
+
+  .event-bar.end {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: calc(-1 * var(--space-sm) - 1px);
+    padding-left: calc(var(--space-sm) + 1px);
+  }
+
+  .event-label {
+    font-size: 0.625rem;
+    color: white;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-sans);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .selected-date-events {
@@ -820,6 +980,14 @@
     border-top: 1px solid var(--glass-border);
     background: rgba(0, 200, 255, 0.05);
     flex: 0 0 auto;
+    max-height: 200px; /* Limit event list height */
+    overflow-y: auto; /* Enable scrolling if needed */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .selected-date-events::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
   }
 
   .selected-date-events h3 {
@@ -948,6 +1116,12 @@
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: var(--shadow-soft);
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .popup-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
   }
 
   .timeline-container {
@@ -1128,6 +1302,12 @@
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-soft);
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .modal-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
   }
 
   .modal-header {
@@ -1255,12 +1435,19 @@
     }
 
     .day-number {
-      font-size: 0.875rem;
+      font-size: 0.625rem;
     }
 
-    .event-dot {
-      width: 4px;
-      height: 4px;
+    .event-bar {
+      height: 14px;
+    }
+
+    .event-label {
+      font-size: 0.5rem;
+    }
+
+    .selected-date-events {
+      max-height: 150px;
     }
 
     .form-row {
@@ -1268,14 +1455,26 @@
     }
 
     .calendar-header {
-      flex-direction: column;
-      gap: var(--space-md);
-      align-items: flex-start;
+      justify-content: flex-start;
+      padding: var(--space-xs);
     }
 
     .month-navigation {
-      width: 100%;
-      justify-content: space-between;
+      gap: var(--space-xs);
+    }
+
+    .month-navigation h2 {
+      font-size: var(--fs-sm);
+    }
+
+    .month-navigation button {
+      width: 1.5rem;
+      height: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .add-event-button {
+      display: none; /* Hide add button on mobile, save space */
     }
   }
 </style>

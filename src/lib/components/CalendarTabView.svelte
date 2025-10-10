@@ -37,20 +37,15 @@
 </script>
 
 <div class="calendar-tab">
-  <!-- Mobile hamburger menu button -->
+  <!-- Mobile sliding tab button -->
   {#if isMobile}
     <button
-      class="hamburger-button"
+      class="memo-tab {isMemoOpen ? 'open' : ''}"
       onclick={() => controller.toggleMemo()}
       aria-expanded={isMemoOpen}
       aria-controls="memo-drawer"
     >
-      <div class="hamburger-icon">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-      <span>Memo</span>
+      <span class="memo-tab-label">Memo</span>
     </button>
   {/if}
 
@@ -99,42 +94,49 @@
     position: relative;
   }
 
-  .hamburger-button {
+  .memo-tab {
     position: fixed;
-    top: var(--space-md);
-    right: var(--space-md);
+    top: var(--space-lg);
+    right: 0;
     z-index: 1001;
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-md) var(--space-sm);
     background: var(--coral);
     color: var(--white);
-    border: 1px solid var(--coral);
-    border-radius: 999px;
+    border: none;
+    border-radius: 8px 0 0 8px;
     cursor: pointer;
-    box-shadow: var(--shadow-subtle);
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    box-shadow: -2px 2px 12px rgba(240, 138, 119, 0.4);
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
     font-family: var(--font-sans);
     font-weight: 600;
+    font-size: 0.9rem;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
   }
 
-  .hamburger-button:hover {
-    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
-    transform: translateY(-2px);
+  .memo-tab.open {
+    left: 0;
+    right: auto;
+    border-radius: 0 8px 8px 0;
+    box-shadow: 2px 2px 12px rgba(240, 138, 119, 0.4);
+    writing-mode: vertical-lr;
   }
 
-  .hamburger-icon {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  .memo-tab:hover {
+    box-shadow: -4px 4px 16px rgba(240, 138, 119, 0.5);
+    padding-right: var(--space-md);
   }
 
-  .hamburger-icon span {
-    width: 18px;
-    height: 2px;
-    background: var(--white);
-    border-radius: 1px;
+  .memo-tab.open:hover {
+    box-shadow: 4px 4px 16px rgba(240, 138, 119, 0.5);
+    padding-left: var(--space-md);
+    padding-right: var(--space-sm);
+  }
+
+  .memo-tab-label {
+    letter-spacing: 0.1em;
   }
 
   .calendar-layout {

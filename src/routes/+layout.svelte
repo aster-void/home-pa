@@ -2,6 +2,7 @@
   import "../app.css";
   import favicon from "@/assets/favicon.svg";
   import BottomNavigation from "$lib/components/BottomNavigation.svelte";
+  import Toast from "$lib/components/Toast.svelte";
   import { AppController } from "$lib/controllers/app.controller.svelte.ts";
   import { setContext } from "svelte";
 
@@ -21,6 +22,7 @@
 <div class="app-container">
   {@render children?.()}
   <BottomNavigation {controller} />
+  <Toast />
 </div>
 
 <style>

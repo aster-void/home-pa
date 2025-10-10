@@ -1,10 +1,37 @@
 // Core data models for M1 specification
 
+// Recurrence types (simplified from recurrence-manager)
+export interface RecurrenceRuleRFC {
+  rrule: string;
+  frequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+  until?: Date | null;
+  count?: number | null;
+}
+
+export interface WeeklyBitmaskRule {
+  type: "WEEKLY_BITMASK";
+  anchorLocalStartISO: string;
+  intervalWeeks: number;
+  daysBitmask: number;
+  until?: Date | null;
+  count?: number | null;
+}
+
+export type Recurrence =
+  | { type: "NONE" }
+  | ({ type: "RRULE" } & RecurrenceRuleRFC)
+  | WeeklyBitmaskRule;
+
 export interface Event {
   id: string;
   title: string;
   start: Date;
   end: Date;
+  description?: string;
+  tzid?: string; // IANA timezone, defaults to system timezone
+  recurrence?: Recurrence;
+  rdateUtc?: Date[]; // Additional occurrence dates
+  exdateUtc?: Date[]; // Excluded occurrence dates
 }
 
 export interface Memo {
