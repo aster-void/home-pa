@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createRecurrenceManager, type EventMaster, type Recurrence } from './recurrence-manager';
+import { createRecurrenceManager, type EventMaster, type Recurrence } from './manager.js';
 import { DateTime } from 'luxon';
 
 describe('RecurrenceManager', () => {

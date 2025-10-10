@@ -3,7 +3,6 @@
  *
  * This module provides centralized state management for the personal assistant application.
  * It includes stores for events, memos, suggestion logs, and derived computed values.
- * Now integrated with the recurrence manager for handling recurring events.
  *
  * @author Personal Assistant Team
  * @version 1.0.0
@@ -12,17 +11,11 @@
 import { writable, derived } from "svelte/store";
 import type { Event, Memo, SuggestionLog } from "../types.js";
 import { toasts } from "./toast.js";
-// Recurrence manager temporarily disabled for stability
-// import { createRecurrenceManager, type Occurrence } from "../services/recurrence-manager.js";
-// import { DateTime } from "luxon";
-
-// Initialize the recurrence manager (singleton for the app)
-// const recurrenceManager = createRecurrenceManager();
 
 /**
  * Core application data stores
  */
-/** @type {import('svelte/store').Writable<Event[]>} Calendar events store (master events) */
+/** @type {import('svelte/store').Writable<Event[]>} Calendar events store */
 export const events = writable<Event[]>([]);
 
 /** @type {import('svelte/store').Writable<Memo[]>} Memos store */
@@ -33,59 +26,6 @@ export const suggestionLogs = writable<SuggestionLog[]>([]);
 
 /** @type {import('svelte/store').Writable<Date>} Currently selected date store */
 export const selectedDate = writable<Date>(new Date());
-
-// Recurrence manager integration temporarily disabled for stability
-/*
-export const occurrenceWindow = writable<{ start: Date; end: Date }>({
-  start: new Date(new Date().getFullYear(), 0, 1),
-  end: new Date(new Date().getFullYear() + 1, 11, 31)
-});
-
-export const expandedOccurrences = derived<[typeof events, typeof occurrenceWindow], Occurrence[]>(
-  [events, occurrenceWindow],
-  ([$events, $window], set) => {
-    set([]);
-    
-    const fetchOccurrences = async () => {
-      await recurrenceManager.clearAll();
-      
-      for (const event of $events) {
-        if (!event.recurrence || event.recurrence.type === "NONE") {
-          continue;
-        }
-        
-        const tzid = event.tzid || Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const startLocalISO = DateTime.fromJSDate(event.start, { zone: tzid }).toISO({ suppressMilliseconds: true, includeOffset: false })!;
-        const durationMs = event.end.getTime() - event.start.getTime();
-        
-        await recurrenceManager.createEvent({
-          title: event.title,
-          description: event.description,
-          startLocalISO,
-          tzid,
-          durationMs,
-          recurrence: event.recurrence,
-          rdateUtc: event.rdateUtc,
-          exdateUtc: event.exdateUtc
-        });
-      }
-      
-      const occurrences = await recurrenceManager.getOccurrencesWindow(
-        $window.start,
-        $window.end
-      );
-      
-      set(occurrences);
-    };
-    
-    fetchOccurrences().catch(err => {
-      console.error('Error fetching occurrences:', err);
-      set([]);
-    });
-  },
-  [] as Occurrence[]
-);
-*/
 
 /**
  * Helper function to create a new event with generated ID

@@ -1,6 +1,6 @@
 // Core data models for M1 specification
 
-// Recurrence types (simplified from recurrence-manager)
+// Recurrence types for recurring events
 export interface RecurrenceRuleRFC {
   rrule: string;
   frequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";

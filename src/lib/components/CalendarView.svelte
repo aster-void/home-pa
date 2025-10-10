@@ -9,7 +9,7 @@
     loadOccurrences, 
     getOccurrencesForDate,
     type RecurrenceOccurrence 
-  } from "../services/recurrence.store.js";
+  } from "../stores/recurrence.store.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;

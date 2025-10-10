@@ -4,6 +4,9 @@
  * This store handles recurring event occurrence generation without blocking
  * the main application. It uses dynamic imports and manual triggers to avoid
  * SSR/hydration issues.
+ * 
+ * Note: Recurrence manager is lazy-loaded on demand to avoid SSR issues
+ * and reduce initial bundle size (~119KB deferred until needed).
  */
 
 import { writable } from 'svelte/store';
@@ -47,7 +50,7 @@ async function getManager() {
   if (manager) return manager;
   
   if (!managerPromise) {
-    managerPromise = import('./recurrence-manager.js').then(module => {
+    managerPromise = import('../services/recurrence/manager.js').then(module => {
       manager = module.createRecurrenceManager();
       return manager;
     });
