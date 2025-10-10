@@ -1,8 +1,15 @@
 <script lang="ts">
   import { get } from "svelte/store";
+  import { onMount } from "svelte";
   import type { Event } from "../types.js";
   import type { AppController } from "../controllers/app.controller.svelte.ts";
   import { events, eventOperations, selectedDate } from "../stores/data.js";
+  import { 
+    recurrenceStore, 
+    loadOccurrences, 
+    getOccurrencesForDate,
+    type RecurrenceOccurrence 
+  } from "../services/recurrence.store.js";
 
   let p: { controller: AppController } = $props();
   const { controller } = p;
@@ -54,6 +61,42 @@
         end: eventEnd,
       }));
     }
+  });
+
+  // Load recurring event occurrences on mount
+  onMount(() => {
+    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+    loadOccurrences($events, windowStart, windowEnd);
+  });
+
+  // Reload occurrences when events change or month changes
+  $effect(() => {
+    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+    
+    // Debounce to avoid excessive reloads
+    const timeout = setTimeout(() => {
+      loadOccurrences($events, windowStart, windowEnd);
+    }, 300);
+    
+    return () => clearTimeout(timeout);
+  });
+
+  // Combine regular events with recurring occurrences for display
+  let allDisplayEvents = $derived.by(() => {
+    const regularEvents = $events.filter(e => !e.recurrence || e.recurrence.type === "NONE");
+    const occurrences = $recurrenceStore.occurrences.map((occ: RecurrenceOccurrence) => ({
+      id: occ.id,
+      title: occ.title,
+      start: occ.startUtc,
+      end: occ.endUtc,
+      description: occ.description
+    } as Event));
+    
+    return [...regularEvents, ...occurrences].sort((a, b) => 
+      a.start.getTime() - b.start.getTime()
+    );
   });
 
   // Calendar grid generation
@@ -454,8 +497,8 @@
     return eventRows;
   }
 
-  // Get the row assignment map for current events
-  let eventRowMap = $derived(assignEventRows($events));
+  // Get the row assignment map for current events (including recurring occurrences)
+  let eventRowMap = $derived(assignEventRows(allDisplayEvents));
 </script>
 
 <div class="calendar-view">
@@ -473,7 +516,20 @@
         <button onclick={() => navigateMonth(1)}>→</button>
       </div>
 
-      <button class="add-event-button" onclick={createEvent}>+</button>
+      <div class="header-actions">
+        {#if $recurrenceStore.loading}
+          <div class="recurrence-loading">
+            <span class="loading-spinner"></span>
+            <span class="loading-text">Loading recurring events...</span>
+          </div>
+        {/if}
+        {#if $recurrenceStore.error}
+          <div class="recurrence-error" title={$recurrenceStore.error}>
+            ⚠️ Recurring events unavailable
+          </div>
+        {/if}
+        <button class="add-event-button" onclick={createEvent}>+</button>
+      </div>
     </div>
 
     <!-- Calendar Grid -->
@@ -501,7 +557,7 @@
           >
             <div class="day-number">{day.getDate()}</div>
             <div class="day-events">
-              {#each getEventsForDate($events, day) as truncatedEvent (truncatedEvent.id)}
+              {#each getEventsForDate(allDisplayEvents, day) as truncatedEvent (truncatedEvent.id)}
                 {@const barPosition = getEventBarPosition(truncatedEvent, day)}
                 {@const showLabel = isFirstDayOfEvent(truncatedEvent, day)}
                 {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
@@ -774,6 +830,51 @@
     padding: var(--space-xs) var(--space-sm);
     border-bottom: 1px solid var(--glass-border);
     background: rgba(0, 200, 255, 0.05);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .recurrence-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--fs-xs);
+    color: var(--primary);
+    padding: var(--space-xs) var(--space-sm);
+    background: rgba(0, 200, 255, 0.1);
+    border-radius: var(--radius-sm);
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(0, 200, 255, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-text {
+    white-space: nowrap;
+  }
+
+  .recurrence-error {
+    font-size: var(--fs-xs);
+    color: var(--danger, #ff4444);
+    padding: var(--space-xs) var(--space-sm);
+    background: rgba(255, 68, 68, 0.1);
+    border-radius: var(--radius-sm);
+    cursor: help;
+    white-space: nowrap;
   }
 
   .month-navigation {
@@ -1424,6 +1525,16 @@
 
   /* responsive adjustment: height→auto, max-height→50vh */
   @media (max-width: 768px) {
+    .recurrence-loading .loading-text,
+    .recurrence-error {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+    }
+    
+    .header-actions {
+      gap: var(--space-xs);
+    }
+    
     .timeline-view {
       height: auto;
       max-height: 50vh;
