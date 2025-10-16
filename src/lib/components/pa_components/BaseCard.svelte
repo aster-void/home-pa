@@ -33,7 +33,7 @@
 
 <style>
   .card {
-    background: var(--card);
+    background: var(--bg-card);
     border: 1px solid rgba(15, 34, 48, 0.05);
     border-radius: var(--radius-md);
     padding: var(--space-md);
@@ -60,10 +60,11 @@
 
   .card-header h3 {
     margin: 0;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-size: var(--fs-lg);
-    font-weight: 600;
-    color: var(--navy-900);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    letter-spacing: 1px;
   }
 
   .status-section {
@@ -73,10 +74,10 @@
 
   .status-indicator {
     padding: var(--space-xs) var(--space-sm);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     font-size: var(--fs-sm);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     border: 1px solid transparent;
   }
 

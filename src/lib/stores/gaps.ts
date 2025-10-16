@@ -12,7 +12,8 @@
 import { writable, derived } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.js";
 import { GapFinder } from "../services/gap-finder.js";
-import { events as calendarEvents, selectedDate } from "./data.js";
+import { selectedDate } from "./data.js";
+import { eventsForSelectedDate } from './recurrence.store.js';
 import type { Event as CalendarEvent } from "../types.js";
 
 /**
@@ -96,12 +97,12 @@ function convertCalendarEventToGapEvent(
  * Automatically converts and filters events when calendar or date changes
  */
 export const events = derived(
-  [calendarEvents, selectedDate],
-  ([$calendarEvents, $selectedDate]) => {
-    return $calendarEvents
-      .map((event) => convertCalendarEventToGapEvent(event, $selectedDate))
+  [eventsForSelectedDate, selectedDate],
+  ([$displayEvents, $selectedDate]) => {
+    return $displayEvents
+      .map((event: any) => convertCalendarEventToGapEvent(event, $selectedDate))
       .filter((event): event is Event => event !== null);
-  },
+  }
 );
 
 /**

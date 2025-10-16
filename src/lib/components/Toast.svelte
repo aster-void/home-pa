@@ -61,8 +61,8 @@
     min-width: 250px;
     max-width: 400px;
     pointer-events: auto;
-    font-family: var(--font-sans);
-    font-size: 0.875rem;
+    font-family: var(--font-family);
+    font-size: var(--fs-sm);
   }
 
   .toast-success {

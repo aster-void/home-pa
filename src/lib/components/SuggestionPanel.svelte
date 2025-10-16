@@ -1,30 +1,15 @@
 <script lang="ts">
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
   import type { Suggestion } from "../types.js";
-
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
-
-  // Get current suggestion from store
+  import { currentSuggestion as currentSuggestionStore, suggestionActions } from "../stores/index.js";
   let currentSuggestion = $state(null as Suggestion | null);
-
-  // Subscribe to controller store changes
-  $effect(() => {
-    if (controller) {
-      const unsubscribe = controller.currentSuggestion.subscribe((value) => {
-        currentSuggestion = value;
-      });
-
-      return unsubscribe;
-    }
-  });
+  $effect(() => { currentSuggestion = $currentSuggestionStore as any; });
 </script>
 
 {#if currentSuggestion}
   <div class="suggestion-panel">
     <div class="suggestion-header">
       <h3>時間の提案</h3>
-      <button onclick={() => controller.dismissSuggestion()} class="close-btn"
+      <button onclick={() => suggestionActions.dismissSuggestion()} class="close-btn"
         >×</button
       >
     </div>
@@ -41,19 +26,19 @@
 
       <div class="reaction-buttons">
         <button
-          onclick={() => controller.reactToSuggestion("accepted")}
+          onclick={() => suggestionActions.reactToSuggestion("accepted")}
           class="accept-btn"
         >
           受け入れ
         </button>
         <button
-          onclick={() => controller.reactToSuggestion("rejected")}
+          onclick={() => suggestionActions.reactToSuggestion("rejected")}
           class="reject-btn"
         >
           拒否
         </button>
         <button
-          onclick={() => controller.reactToSuggestion("later")}
+          onclick={() => suggestionActions.reactToSuggestion("later")}
           class="later-btn"
         >
           後で
@@ -99,8 +84,8 @@
     margin: 0;
     font-size: var(--fs-lg);
     color: var(--navy-900);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
   }
 
   .close-btn {
@@ -140,14 +125,14 @@
   .gap-label {
     font-weight: 600;
     color: var(--coral);
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
   }
 
   .gap-time {
     font-weight: 600;
     color: var(--navy-900);
     font-size: var(--fs-lg);
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
   }
 
   .suggestion-text {
@@ -158,7 +143,7 @@
     color: var(--navy-700);
     font-weight: 500;
     text-align: center;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
   }
 
   .reaction-buttons {
@@ -173,7 +158,7 @@
     border-radius: 999px;
     cursor: pointer;
     font-weight: 600;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 

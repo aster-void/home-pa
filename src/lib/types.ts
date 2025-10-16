@@ -28,6 +28,9 @@ export interface Event {
   start: Date;
   end: Date;
   description?: string;
+  address?: string;
+  importance?: "low" | "medium" | "high";
+  timeLabel?: "all-day" | "some-timing"; // 終日 or どこかのタイミングで
   tzid?: string; // IANA timezone, defaults to system timezone
   recurrence?: Recurrence;
   rdateUtc?: Date[]; // Additional occurrence dates

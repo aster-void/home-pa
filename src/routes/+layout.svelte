@@ -3,16 +3,12 @@
   import favicon from "@/assets/favicon.svg";
   import BottomNavigation from "$lib/components/BottomNavigation.svelte";
   import Toast from "$lib/components/Toast.svelte";
-  import { AppController } from "$lib/controllers/app.controller.svelte.ts";
-  import { setContext } from "svelte";
+  import { initializeStores } from "$lib/stores/bootstrap.js";
 
   let { children } = $props();
 
-  // Create shared controller instance
-  const controller = new AppController();
-
-  // Set controller in context for child components
-  setContext("controller", controller);
+  // Initialize global stores on layout load
+  initializeStores();
 </script>
 
 <svelte:head>
@@ -21,7 +17,7 @@
 
 <div class="app-container">
   {@render children?.()}
-  <BottomNavigation {controller} />
+  <BottomNavigation />
   <Toast />
 </div>
 

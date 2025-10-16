@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
   import { suggestionLogs } from "../stores/data.js";
+  import { utcToLocalDateTimeString } from "../utils/date-utils.js";
 
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
+  function formatDateTime(d: Date): string {
+    return utcToLocalDateTimeString(d).replace("T", " ");
+  }
 </script>
 
 <div class="logs-view">
@@ -23,7 +24,7 @@
       {#each $suggestionLogs as log (log.id)}
         <div class="log-item">
           <div class="log-header">
-            <span class="log-time">{controller.formatDateTime(log.at)}</span>
+            <span class="log-time">{formatDateTime(log.at)}</span>
             <span class="log-gap">{log.gapMin}分の空き時間</span>
           </div>
 

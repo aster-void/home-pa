@@ -203,21 +203,21 @@
   }
 
   .boundary-time {
-    font-family: var(--font-sans);
-    font-weight: 600;
-    color: var(--navy-900);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
   }
 
   .edit-button {
     padding: var(--space-xs) var(--space-sm);
     border: 1px solid var(--coral);
     background: transparent;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--fs-sm);
     color: var(--coral);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
@@ -254,11 +254,11 @@
   .time-input {
     padding: var(--space-sm);
     border: 1px solid rgba(15, 34, 48, 0.1);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     font-size: var(--fs-md);
-    background: var(--white);
-    color: var(--navy-700);
-    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-family);
   }
 
   .time-input:focus {
@@ -277,11 +277,11 @@
     background: var(--coral);
     color: var(--white);
     border: 1px solid var(--coral);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--fs-sm);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
@@ -295,11 +295,11 @@
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--muted);
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--fs-sm);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 
@@ -314,11 +314,11 @@
     background: transparent;
     color: #dc3545;
     border: 1px solid #dc3545;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--fs-sm);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 

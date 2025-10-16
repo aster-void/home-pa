@@ -1,13 +1,9 @@
 <script lang="ts">
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
   import LogsView from "./LogsView.svelte";
   import {
     FreeTimeGapsCard,
     SmartSuggestionsCard,
   } from "./pa_components/index.js";
-
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
 
   // Local state for the adaptive layout
   let showLogs = $state(false);
@@ -34,13 +30,13 @@
       <FreeTimeGapsCard />
 
       <!-- Smart Suggestions Card -->
-      <SmartSuggestionsCard {controller} />
+      <SmartSuggestionsCard />
     </div>
 
     <!-- Developer Logs Section (Collapsible) -->
     {#if showLogs}
       <div class="logs-section">
-        <LogsView {controller} />
+        <LogsView />
       </div>
     {/if}
   </div>
@@ -65,9 +61,9 @@
 
   .assistant-header h2 {
     margin: 0;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-size: var(--fs-xl);
-    font-weight: 600;
+    font-weight: var(--font-weight-bold);
     color: var(--navy-900);
   }
 
@@ -84,8 +80,8 @@
     cursor: pointer;
     font-size: var(--fs-sm);
     color: var(--coral);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
 

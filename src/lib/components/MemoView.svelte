@@ -1,10 +1,11 @@
 <script lang="ts">
   import type { Memo } from "../types.js";
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
-  import { memos } from "../stores/data.js";
-
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
+  import { 
+    memos, 
+    memoForm, 
+    memoFormActions, 
+    memoActions 
+  } from "../stores/index.js";
 
   // Local UI state - treated as source of truth for form inputs
   let memoText = $state("");
@@ -12,47 +13,44 @@
   let showAddForm = $state(false);
   let editingMemoId = $state<string | null>(null);
 
-  // Initialize from controller once on mount - one-way sync only
+  // Initialize from store once on mount - one-way sync only
   let isInitialized = $state(false);
 
   $effect(() => {
-    if (controller && !isInitialized) {
-      const unsubscribe = controller.memoForm.subscribe((form) => {
-        // Only sync on first initialization to avoid circular updates
-        if (!isInitialized) {
-          memoText = form.text;
-          isMemoEditing = form.isEditing;
-          isInitialized = true;
-        }
-      });
-
-      return unsubscribe;
+    if (!isInitialized) {
+      const form = $memoForm;
+      // Only sync on first initialization to avoid circular updates
+      if (!isInitialized) {
+        memoText = form.text;
+        isMemoEditing = form.isEditing;
+        isInitialized = true;
+      }
     }
   });
 
   function startNewMemo() {
-    // Reset local state and controller
+    // Reset local state and store
     memoText = "";
     isMemoEditing = false;
-    controller.resetMemoForm();
+    memoFormActions.resetForm();
     showAddForm = true;
   }
 
   function cancelMemo() {
-    // Reset local state and controller
+    // Reset local state and store
     memoText = "";
     isMemoEditing = false;
-    controller.resetMemoForm();
+    memoFormActions.resetForm();
     showAddForm = false;
   }
 
   function saveMemo() {
-    controller.memoForm.set({
+    memoFormActions.updateFields({
       text: memoText,
       isEditing: false,
       editingId: null,
     });
-    controller.createMemo();
+    memoActions.create();
     memoText = "";
     showAddForm = false;
   }
@@ -61,18 +59,18 @@
     editingMemoId = memo.id;
     memoText = memo.text;
     isMemoEditing = true;
-    // Don't update controller here - let local state be the source of truth
+    // Don't update store here - let local state be the source of truth
   }
 
   function saveEditMemo() {
     if (editingMemoId) {
-      // Write current local state to controller before updating memo
-      controller.memoForm.set({
+      // Write current local state to store before updating memo
+      memoFormActions.updateFields({
         text: memoText,
         isEditing: true,
         editingId: editingMemoId,
       });
-      controller.updateMemo();
+      memoActions.update();
       cancelEditMemo();
     }
   }
@@ -81,12 +79,12 @@
     editingMemoId = null;
     memoText = "";
     isMemoEditing = false;
-    // Reset controller state as well
-    controller.resetMemoForm();
+    // Reset store state as well
+    memoFormActions.resetForm();
   }
 
   function deleteMemoDirectly(id: string) {
-    controller.deleteMemo(id);
+    memoActions.delete(id);
   }
 </script>
 
@@ -108,8 +106,8 @@
           rows="3"
           class="memo-textarea"
           onblur={() => {
-            // Save form state to controller on blur
-            controller.memoForm.set({
+            // Save form state to store on blur
+            memoFormActions.updateFields({
               text: memoText,
               isEditing: false,
               editingId: null,
@@ -149,9 +147,9 @@
                 placeholder="Reminder text..."
                 rows="2"
                 onblur={() => {
-                  // Save form state to controller on blur
+                  // Save form state to store on blur
                   if (editingMemoId) {
-                    controller.memoForm.set({
+                    memoFormActions.updateFields({
                       text: memoText,
                       isEditing: true,
                       editingId: editingMemoId,
@@ -225,16 +223,18 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-md);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-card);
     border-bottom: 1px solid var(--glass-border);
     border-radius: 10px 10px 0 0;
   }
 
   .memo-header h2 {
     margin: 0;
-    font-family: var(--font-display);
+    font-family: var(--font-family);
     font-size: var(--fs-lg);
-    color: var(--primary);
+    color: var(--event-blue);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 1px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -264,7 +264,7 @@
   }
 
   .memo-form {
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-card);
     border-bottom: 1px solid var(--glass-border);
     padding: var(--space-md);
   }
@@ -282,9 +282,9 @@
     outline: none;
     resize: none;
     font-size: 1rem;
-    font-family: var(--font-body);
+    font-family: var(--font-family);
     line-height: 1.5;
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-card);
     color: var(--text);
     padding: var(--space-sm);
     transition: all 0.18s ease;
@@ -313,7 +313,7 @@
     cursor: pointer;
     font-size: 0.875rem;
     font-weight: 500;
-    font-family: var(--font-display);
+    font-family: var(--font-family);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     transition: all 0.18s ease;
@@ -374,7 +374,7 @@
     margin: 0 0 var(--space-sm) 0;
     font-size: 1.125rem;
     font-weight: 500;
-    font-family: var(--font-display);
+    font-family: var(--font-family);
   }
 
   .empty-subtitle {
@@ -386,7 +386,7 @@
     display: flex;
     align-items: center;
     padding: var(--space-md);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-card);
     border: 1px solid var(--glass-border);
     border-radius: 8px;
     margin-bottom: var(--space-sm);
@@ -417,7 +417,7 @@
     white-space: pre-wrap;
     word-break: break-word;
     font-size: 1rem;
-    font-family: var(--font-body);
+    font-family: var(--font-family);
   }
 
   .memo-edit-content {
@@ -432,9 +432,9 @@
     outline: none;
     resize: none;
     font-size: 1rem;
-    font-family: var(--font-body);
+    font-family: var(--font-family);
     line-height: 1.5;
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-card);
     color: var(--text);
     padding: var(--space-sm);
     transition: all 0.18s ease;

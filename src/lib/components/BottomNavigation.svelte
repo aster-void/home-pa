@@ -1,26 +1,12 @@
 <script lang="ts">
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
-
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
-
-  // Get current view from controller store reactively
-  let currentView = $state();
-
-  // Subscribe to store changes using $effect with proper cleanup
-  $effect(() => {
-    const unsubscribe = controller.currentView.subscribe((value) => {
-      currentView = value;
-    });
-    return unsubscribe;
-  });
+  import { currentView, uiActions, devtools } from "../stores/index.js";
 </script>
 
 <nav class="bottom-navigation" aria-label="Main navigation">
   <button
-    class="nav-item {currentView === 'calendar' ? 'active' : ''}"
-    onclick={() => controller.setView("calendar")}
-    aria-current={currentView === "calendar" ? "page" : undefined}
+    class="nav-item {$currentView === 'calendar' ? 'active' : ''}"
+    onclick={() => uiActions.setView("calendar")}
+    aria-current={$currentView === "calendar" ? "page" : undefined}
     aria-label="Open calendar view"
   >
     <div class="nav-icon" aria-hidden="true">📅</div>
@@ -28,9 +14,9 @@
   </button>
 
   <button
-    class="nav-item {currentView === 'personal-assistant' ? 'active' : ''}"
-    onclick={() => controller.setView("personal-assistant")}
-    aria-current={currentView === "personal-assistant" ? "page" : undefined}
+    class="nav-item {$currentView === 'personal-assistant' ? 'active' : ''}"
+    onclick={() => uiActions.setView("personal-assistant")}
+    aria-current={$currentView === "personal-assistant" ? "page" : undefined}
     aria-label="Open assistant view"
   >
     <div class="nav-icon" aria-hidden="true">🤖</div>
@@ -47,7 +33,7 @@
     display: flex;
     align-items: stretch;
     gap: 0;
-    background: color-mix(in oklab, var(--white) 70%, transparent);
+    background: var(--bg-secondary);
     -webkit-backdrop-filter: saturate(120%) blur(12px);
     backdrop-filter: saturate(120%) blur(12px);
     border-top: 1px solid rgba(15, 34, 48, 0.08);
@@ -68,8 +54,8 @@
     background: transparent;
     cursor: pointer;
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-    color: var(--muted);
-    font-family: var(--font-sans);
+    color: var(--text-secondary);
+    font-family: var(--font-family);
     min-width: 0;
   }
 
@@ -99,10 +85,11 @@
   }
 
   .nav-label {
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size: var(--fs-xs);
+    font-weight: var(--font-weight-bold);
     text-align: center;
     line-height: 1;
+    letter-spacing: 0.5px;
   }
 
   @media (max-width: 640px) {

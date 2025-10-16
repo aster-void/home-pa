@@ -1,67 +1,164 @@
 <script lang="ts">
-  import { get } from "svelte/store";
   import { onMount } from "svelte";
-  import type { Event } from "../types.js";
-  import type { AppController } from "../controllers/app.controller.svelte.ts";
-  import { events, eventOperations, selectedDate } from "../stores/data.js";
+  import type { Event, Recurrence } from "../types.js";
   import { 
+    events, 
+    eventOperations, 
+    selectedDate,
+    currentView,
+    viewMode,
+    showEventForm,
+    showTimelinePopup,
+    eventForm,
+    eventFormActions,
+    eventActions,
+    uiActions,
     recurrenceStore, 
     loadOccurrences, 
     getOccurrencesForDate,
     type RecurrenceOccurrence 
-  } from "../stores/recurrence.store.js";
+  } from "../stores/index.js";
+  import { 
+    localDateStringToUTC,
+    localDateTimeStringToUTC,
+    utcToLocalDateString,
+    utcToLocalDateTimeString,
+    utcToLocalTimeString,
+    localDateTimeToUTC,
+    createAllDayUTCRange,
+  } from "../utils/date-utils.js";
 
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
-
-  // Local reactive variables that sync with controller stores
-  let currentViewMode = $state("month");
-  let localSelectedDate = $state(new Date());
+  // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
+  
+  // Form state - now using stores directly
   let eventTitle = $state("");
-  let eventStart = $state("");
-  let eventEnd = $state("");
+  let eventStartDate = $state("");
+  let eventEndDate = $state("");
+  let eventStartTime = $state("");
+  let eventEndTime = $state("");
+  let eventAddress = $state("");
+  let eventImportance = $state<"low" | "medium" | "high">("medium");
+  let eventTimeLabel = $state<"all-day" | "some-timing">("all-day");
+  // Tri-state for clarity: default (grey), all-day, some-timing
+  type TimeMode = 'default' | 'all-day' | 'some-timing';
+  let timeMode = $state<TimeMode>('default');
+  let isGreyState = $derived(timeMode === 'default');
   let isEventEditing = $state(false);
-  let showEventForm = $state(false);
-  let showTimelinePopup = $state(false);
-
-  // Subscribe to controller store changes
+  let isManualDateOrTimeEdit = $state(false);
+  
+  // Check if time fields have content
+  let hasTimeContent = $derived(
+    eventTimeLabel !== "all-day" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
+  );
+  
+  // Initialize dates when form opens
+  function initializeDates() {
+    // Use unified date utility to get local date string
+    const dateString = utcToLocalDateString($selectedDate);
+    
+    if (!eventStartDate) {
+      eventStartDate = dateString;
+    }
+    if (!eventEndDate) {
+      eventEndDate = dateString;
+    }
+  }
+  
+  // Handle time label changes
   $effect(() => {
-    if (controller) {
-      const unsubscribe1 = controller.viewMode.subscribe((value) => {
-        currentViewMode = value;
-      });
-
-      const unsubscribe2 = selectedDate.subscribe((date: Date) => {
-        localSelectedDate = new Date(date);
-      });
-
-      const unsubscribe3 = controller.eventForm.subscribe((form) => {
-        eventTitle = form.title;
-        eventStart = form.start;
-        eventEnd = form.end;
-        isEventEditing = form.isEditing;
-      });
-
-      return () => {
-        unsubscribe1();
-        unsubscribe2();
-        unsubscribe3();
-      };
+    if (eventTimeLabel === "some-timing") {
+      // For some-timing, ensure start and end dates are the same
+      if (eventStartDate && eventEndDate !== eventStartDate) {
+        eventEndDate = eventStartDate;
+      }
     }
   });
+  
+  // Recurrence form fields
+  let isRecurring = $state(false);
+  let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">("WEEKLY");
+  let recurrenceInterval = $state(1);
+  let recurrenceEndDate = $state<string>(""); // Empty = forever
+  let weeklyDays = $state<boolean[]>([false, false, false, false, false, false, false]); // Sun-Sat
+  let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
+  let monthlyPosition = $state(1);
 
-  // Sync form changes back to controller store
+  // Subscribe to store changes
   $effect(() => {
-    if (controller) {
-      controller.eventForm.update((form) => ({
-        ...form,
-        title: eventTitle,
-        start: eventStart,
-        end: eventEnd,
-      }));
+    const form = $eventForm;
+    eventTitle = form.title;
+    
+    // Parse the datetime-local format to separate date and time using unified utilities
+    // Handle start date/time
+    if (form.start) {
+      const startDateTime = new Date(form.start);
+      eventStartDate = utcToLocalDateString(startDateTime);
+      eventStartTime = utcToLocalTimeString(startDateTime);
+    } else {
+      eventStartDate = "";
+      eventStartTime = "";
     }
+    
+    // Handle end date/time
+    if (form.end) {
+      const endDateTime = new Date(form.end);
+      eventEndDate = utcToLocalDateString(endDateTime);
+      eventEndTime = utcToLocalTimeString(endDateTime);
+    } else {
+      eventEndDate = "";
+      eventEndTime = "";
+    }
+    
+    // Override time fields based on time label (but preserve user edits within session)
+    if (!isManualDateOrTimeEdit) {
+      if (form.timeLabel === "all-day") {
+        eventStartTime = "00:00";
+        eventEndTime = "23:59";
+      } else if (form.timeLabel === "some-timing") {
+        eventStartTime = "";
+        eventEndTime = "";
+      }
+    }
+    
+    eventAddress = form.address || "";
+    eventImportance = form.importance || "medium";
+    eventTimeLabel = form.timeLabel || "all-day";
+    isEventEditing = form.isEditing;
   });
+
+  // Sync local form state to store
+  $effect(() => {
+    eventFormActions.updateField('title', eventTitle);
+  });
+
+  $effect(() => {
+    eventFormActions.updateField('address', eventAddress);
+  });
+
+  $effect(() => {
+    eventFormActions.updateField('importance', eventImportance);
+  });
+
+  $effect(() => {
+    eventFormActions.updateField('timeLabel', eventTimeLabel);
+  });
+
+  // Sync date/time combinations to store
+  $effect(() => {
+    const startDateTime = eventStartDate && eventStartTime 
+      ? localDateTimeToUTC(eventStartDate, eventStartTime).toISOString().slice(0, 16)
+      : "";
+    const endDateTime = eventEndDate && eventEndTime 
+      ? localDateTimeToUTC(eventEndDate, eventEndTime).toISOString().slice(0, 16)
+      : "";
+    
+    eventFormActions.updateFields({
+      start: startDateTime,
+      end: endDateTime
+    });
+  });
+
 
   // Load recurring event occurrences on mount
   onMount(() => {
@@ -72,27 +169,85 @@
 
   // Reload occurrences when events change or month changes
   $effect(() => {
+    // Access $events synchronously to ensure reactivity tracking
+    const currentEvents = $events;
     const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
     
-    // Debounce to avoid excessive reloads
+    // Debounce to avoid excessive reloads (200ms for better performance)
     const timeout = setTimeout(() => {
-      loadOccurrences($events, windowStart, windowEnd);
-    }, 300);
+      loadOccurrences(currentEvents, windowStart, windowEnd);
+    }, 200);
     
     return () => clearTimeout(timeout);
+  });
+
+  // Also reload occurrences when form data changes (for real-time preview)
+  $effect(() => {
+    if (isEventEditing) {
+      const currentForm = $eventForm;
+      const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+      const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+      
+      // Create a temporary event object for preview
+      if (currentForm.start && currentForm.end) {
+        const tempEvent: Event = {
+          id: currentForm.editingId || 'temp',
+          title: currentForm.title,
+          start: new Date(currentForm.start),
+          end: new Date(currentForm.end),
+          description: currentForm.description,
+          address: currentForm.address,
+          importance: currentForm.importance,
+          timeLabel: currentForm.timeLabel,
+          tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+        
+        // Debounce to avoid excessive reloads during typing
+        const timeout = setTimeout(() => {
+          // Temporarily replace the event in the events array for preview
+          const eventsWithPreview = $events.map(e => 
+            e.id === currentForm.editingId ? tempEvent : e
+          );
+          loadOccurrences(eventsWithPreview, windowStart, windowEnd);
+        }, 200);
+        
+        return () => clearTimeout(timeout);
+      }
+    }
   });
 
   // Combine regular events with recurring occurrences for display
   let allDisplayEvents = $derived.by(() => {
     const regularEvents = $events.filter(e => !e.recurrence || e.recurrence.type === "NONE");
-    const occurrences = $recurrenceStore.occurrences.map((occ: RecurrenceOccurrence) => ({
-      id: occ.id,
-      title: occ.title,
-      start: occ.startUtc,
-      end: occ.endUtc,
-      description: occ.description
-    } as Event));
+    
+    // Filter occurrences to only include those for events that are still recurring
+    const recurringEventIds = new Set($events
+      .filter(e => e.recurrence && e.recurrence.type !== "NONE")
+      .map(e => e.id)
+    );
+    
+    const occurrences = $recurrenceStore.occurrences
+      .filter(occ => recurringEventIds.has(occ.eventId))
+      .map((occ: RecurrenceOccurrence) => ({
+        id: occ.id, // Use unique occurrence ID, not the master event ID
+        eventId: occ.eventId, // Keep reference to master event ID
+        title: occ.title,
+        start: occ.startUtc,
+        end: occ.endUtc,
+        description: occ.description
+      } as Event & { eventId: string }));
+    
+    // Debug logging (can be disabled for production)
+    if (false) { // Set to true for debugging
+      console.log('[CalendarView] allDisplayEvents update:', {
+        regularEvents: regularEvents.length,
+        occurrences: occurrences.length,
+        total: regularEvents.length + occurrences.length,
+        recurringEventIds: Array.from(recurringEventIds),
+        recurrenceStore: $recurrenceStore
+      });
+    }
     
     return [...regularEvents, ...occurrences].sort((a, b) => 
       a.start.getTime() - b.start.getTime()
@@ -138,7 +293,7 @@
   }
 
   function isSelected(date: Date) {
-    return date.toDateString() === localSelectedDate.toDateString();
+    return date.toDateString() === $selectedDate.toDateString();
   }
 
   function isCurrentMonth(date: Date) {
@@ -150,13 +305,17 @@
     const wasAlreadySelected = isSelected(date);
 
     // Always update the selected date
-    controller.setSelectedDate(date);
+    selectedDate.set(date);
 
-    // Only show popup if clicking on the already selected date
+    // Re-click on selected date toggles the timeline popup
     if (wasAlreadySelected) {
-      showTimelinePopup = !showTimelinePopup;
+      if ($showTimelinePopup) {
+        uiActions.hideTimelinePopup();
+      } else {
+        uiActions.showTimelinePopup();
+      }
     } else {
-      showTimelinePopup = false;
+      uiActions.hideTimelinePopup();
     }
   }
 
@@ -169,27 +328,234 @@
   }
 
   function createEvent() {
-    const startTime = new Date(localSelectedDate);
-    startTime.setHours(9, 0, 0, 0);
-    const endTime = new Date(startTime);
-    endTime.setHours(10, 0, 0, 0);
+    // Use the event actions to create a new event
+    eventActions.createNewEvent();
+    
+    // Initialize dates to selected date
+    initializeDates();
 
-    // Set the form data
-    controller.eventForm.set({
-      title: "",
-      start: startTime.toISOString().slice(0, 16),
-      end: endTime.toISOString().slice(0, 16),
-      isEditing: false,
-      editingId: null,
-    });
-
-    // Also update local variables
+    // Reset local variables
     eventTitle = "";
-    eventStart = startTime.toISOString().slice(0, 16);
-    eventEnd = endTime.toISOString().slice(0, 16);
+    eventStartTime = "00:00";
+    eventEndTime = "23:59";
+    eventAddress = "";
+    eventImportance = "medium";
+    eventTimeLabel = "all-day";
     isEventEditing = false;
+    isManualDateOrTimeEdit = false;
 
-    showEventForm = true;
+    // Reset recurrence with smart defaults
+    isRecurring = false;
+    recurrenceFrequency = "WEEKLY";
+    recurrenceInterval = 1;
+    recurrenceEndDate = "";
+    // Auto-select weekday of selected date
+    weeklyDays = [false, false, false, false, false, false, false];
+    weeklyDays[$selectedDate.getDay()] = true;
+    // Calculate week position for monthly
+    const dayOfMonth = $selectedDate.getDate();
+    monthlyPosition = Math.ceil(dayOfMonth / 7);
+    if (monthlyPosition > 4) monthlyPosition = -1;
+    monthlyType = "nthWeekday";
+  }
+
+  function buildRecurrenceObject(): Recurrence {
+    if (!isRecurring) {
+      return { type: "NONE" } as const;
+    }
+
+    let rrule = `FREQ=${recurrenceFrequency}`;
+    
+    if (recurrenceInterval > 1) {
+      rrule += `;INTERVAL=${recurrenceInterval}`;
+    }
+
+    if (recurrenceFrequency === "WEEKLY" && weeklyDays.some(d => d)) {
+      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+      const selectedDays = days.filter((_, i) => weeklyDays[i]);
+      if (selectedDays.length > 0) {
+        rrule += `;BYDAY=${selectedDays.join(",")}`;
+      }
+    }
+
+    if (recurrenceFrequency === "MONTHLY") {
+      const start = new Date(eventStartDate + "T" + (eventStartTime || "00:00"));
+      if (monthlyType === "nthWeekday") {
+        const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+        const dayOfWeek = days[start.getDay()];
+        const dayOfMonth = start.getDate();
+        const position = Math.ceil(dayOfMonth / 7);
+        const actualPosition = position > 4 ? -1 : position;
+        rrule += `;BYDAY=${dayOfWeek};BYSETPOS=${actualPosition}`;
+      }
+    }
+
+    if (recurrenceEndDate) {
+      const untilDate = new Date(recurrenceEndDate);
+      const utcDate = new Date(Date.UTC(
+        untilDate.getFullYear(),
+        untilDate.getMonth(),
+        untilDate.getDate(),
+        23, 59, 59
+      ));
+      rrule += `;UNTIL=${utcDate.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
+    }
+
+    const recurrenceObj = {
+      type: "RRULE" as const,
+      rrule,
+      frequency: recurrenceFrequency,
+      count: null,
+      until: recurrenceEndDate ? new Date(recurrenceEndDate) : null
+    };
+    
+    return recurrenceObj;
+  }
+
+  // Helper function to check if start date should be included as RDATE
+  function shouldIncludeStartDateAsRDATE(startDate: Date, recurrence: Recurrence): boolean {
+    if (recurrence.type !== "RRULE") {
+      console.log('[DEBUG] shouldIncludeStartDateAsRDATE: not RRULE');
+      return false;
+    }
+    
+    // For WEEKLY recurrence with BYDAY, check if start date's weekday matches any selected day
+    if (recurrence.frequency === "WEEKLY" && recurrence.rrule.includes("BYDAY")) {
+      const startWeekday = startDate.getDay(); // 0=Sun, 6=Sat
+      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+      const startDayCode = days[startWeekday];
+      
+      // Extract BYDAY value and check if start day is in the list
+      const bydayMatch = recurrence.rrule.match(/BYDAY=([^;]+)/);
+      const bydayList = bydayMatch ? bydayMatch[1].split(',') : [];
+      const includesStartDay = bydayList.includes(startDayCode);
+      const shouldAdd = !includesStartDay;
+      
+      console.log('[DEBUG] shouldIncludeStartDateAsRDATE check:', {
+        startDate,
+        startWeekday,
+        startDayCode,
+        rrule: recurrence.rrule,
+        bydayMatch: bydayMatch ? bydayMatch[1] : null,
+        bydayList,
+        includesStartDay,
+        shouldAdd
+      });
+      
+      // Check if start date's weekday is in the BYDAY list
+      return shouldAdd;
+    }
+    
+    console.log('[DEBUG] shouldIncludeStartDateAsRDATE: not WEEKLY or no BYDAY');
+    return false;
+  }
+
+  function parseRecurrenceForEdit(event: Event) {
+    if (!event.recurrence || event.recurrence.type === "NONE") {
+      isRecurring = false;
+      return;
+    }
+
+    isRecurring = true;
+
+    if (event.recurrence.type === "WEEKLY_BITMASK") {
+      recurrenceFrequency = "WEEKLY";
+      recurrenceInterval = event.recurrence.intervalWeeks;
+      const bitmask = event.recurrence.daysBitmask;
+      for (let i = 0; i < 7; i++) {
+        weeklyDays[i] = (bitmask & (1 << i)) !== 0;
+      }
+      recurrenceEndDate = event.recurrence.until ? event.recurrence.until.toISOString().slice(0, 10) : "";
+    } else if (event.recurrence.type === "RRULE") {
+      const rrule = event.recurrence.rrule;
+      recurrenceFrequency = event.recurrence.frequency || "WEEKLY";
+      
+      const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
+      recurrenceInterval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
+
+      if (rrule.includes("BYDAY=")) {
+        const bydayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
+        if (bydayMatch) {
+          const days = bydayMatch[1].split(",");
+          const dayMap: Record<string, number> = { "SU": 0, "MO": 1, "TU": 2, "WE": 3, "TH": 4, "FR": 5, "SA": 6 };
+          weeklyDays = [false, false, false, false, false, false, false];
+          days.forEach(day => {
+            const cleanDay = day.replace(/[+-]?\d+/, '');
+            if (dayMap[cleanDay] !== undefined) {
+              weeklyDays[dayMap[cleanDay]] = true;
+            }
+          });
+        }
+      }
+
+      if (recurrenceFrequency === "MONTHLY") {
+        if (rrule.includes("BYSETPOS=")) {
+          const posMatch = rrule.match(/BYSETPOS=([-]?\d+)/);
+          if (posMatch) {
+            monthlyPosition = parseInt(posMatch[1]);
+            monthlyType = "nthWeekday";
+          }
+        } else {
+          monthlyType = "dayOfMonth";
+        }
+      }
+
+      recurrenceEndDate = event.recurrence.until ? event.recurrence.until.toISOString().slice(0, 10) : "";
+    }
+  }
+
+  function formatRecurrenceText(recurrence: any): string {
+    if (!recurrence || recurrence.type === "NONE") {
+      return "";
+    }
+
+    if (recurrence.type === "WEEKLY_BITMASK") {
+      const days = ["日", "月", "火", "水", "木", "金", "土"];
+      const selectedDays = days.filter((_, i) => (recurrence.daysBitmask & (1 << i)) !== 0);
+      const interval = recurrence.intervalWeeks > 1 ? `${recurrence.intervalWeeks}週ごと ` : "毎週 ";
+      return `${interval}${selectedDays.join("・")}${recurrence.count ? ` (${recurrence.count}回)` : ""}`;
+    }
+
+    if (recurrence.type === "RRULE") {
+      const freq = recurrence.frequency || "DAILY";
+      const freqMap: Record<string, string> = { DAILY: "毎日", WEEKLY: "毎週", MONTHLY: "毎月", YEARLY: "毎年" };
+      const freqText = freqMap[freq] || freq;
+      
+      let result = freqText;
+      
+      if (recurrence.rrule.includes("INTERVAL=")) {
+        const match = recurrence.rrule.match(/INTERVAL=(\d+)/);
+        if (match && parseInt(match[1]) > 1) {
+          result = freq === "DAILY" ? `${match[1]}日ごと` :
+                   freq === "WEEKLY" ? `${match[1]}週ごと` :
+                   freq === "MONTHLY" ? `${match[1]}ヶ月ごと` :
+                   `${match[1]}年ごと`;
+        }
+      }
+
+      if (freq === "WEEKLY" && recurrence.rrule.includes("BYDAY=")) {
+        const match = recurrence.rrule.match(/BYDAY=([A-Z,]+)/);
+        if (match) {
+          const dayMap: Record<string, string> = { SU: "日", MO: "月", TU: "火", WE: "水", TH: "木", FR: "金", SA: "土" };
+          const days = match[1].split(",").map((d: string) => {
+            const cleanDay = d.replace(/[+-]?\d+/, '');
+            return dayMap[cleanDay] || d;
+          });
+          result += ` (${days.join("・")})`;
+        }
+      }
+
+      if (recurrence.count) {
+        result += ` ${recurrence.count}回`;
+      } else if (recurrence.until) {
+        const date = new Date(recurrence.until);
+        result += ` ${date.toLocaleDateString("ja-JP")}まで`;
+      }
+
+      return result;
+    }
+
+    return "繰り返し";
   }
 
   function getEventColor(event: Event): string {
@@ -224,14 +590,14 @@
       now.getMonth(),
       now.getDate(),
     );
-    const localSelectedDateOnly = new Date(
-      localSelectedDate.getFullYear(),
-      localSelectedDate.getMonth(),
-      localSelectedDate.getDate(),
+    const selectedDateOnly = new Date(
+      $selectedDate.getFullYear(),
+      $selectedDate.getMonth(),
+      $selectedDate.getDate(),
     );
 
     // Only show current time line if it's today
-    if (currentDate.toDateString() !== localSelectedDateOnly.toDateString()) {
+    if (currentDate.toDateString() !== selectedDateOnly.toDateString()) {
       return -1000; // Hide the line
     }
 
@@ -344,6 +710,14 @@
 
         return event;
       });
+  }
+
+  // Helper function to get events for timeline (excludes some-timing events)
+  function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
+    return getEventsForDate(events, targetDate).filter(event => {
+      // Exclude some-timing events from timeline
+      return event.timeLabel !== "some-timing";
+    });
   }
 
   // Helper function to get full events for event list (no truncation)
@@ -578,36 +952,100 @@
 
     <!-- Selected Date Events - Always Visible -->
     <div class="selected-date-events">
-      <h3>予定 - {controller.formatDate(localSelectedDate)}</h3>
-      {#if getFullEventsForDate($events, localSelectedDate).length === 0}
+      <h3>予定 - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
+      {#if getFullEventsForDate(allDisplayEvents, $selectedDate).length === 0}
         <p class="empty-state">この日の予定はありません</p>
       {:else}
         <div class="events-list">
-          {#each getFullEventsForDate($events, localSelectedDate) as event (event.id)}
+          {#each getFullEventsForDate(allDisplayEvents, $selectedDate) as event (event.id)}
+            {#snippet eventContent()}
+              {#if $events.find(e => e.id === (event as any).eventId || e.id === event.id)}
+                {@const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id)!}
+                <div class="event-content">
+                  <div class="event-header">
+                    <div class="event-title">{event.title}</div>
+                    {#if masterEvent.importance && masterEvent.importance !== 'medium'}
+                      <div class="importance-indicator {masterEvent.importance}">
+                        {masterEvent.importance === 'high' ? '🔴' : '🟡'}
+                      </div>
+                    {/if}
+                  </div>
+                  {#if masterEvent.timeLabel === 'some-timing'}
+                    <div class="event-time some-timing">どこかのタイミングで</div>
+                  {:else}
+                    <div class="event-time all-day">終日</div>
+                  {/if}
+                  {#if event.description}
+                    <div class="event-description">{event.description}</div>
+                  {/if}
+                  {#if masterEvent.address}
+                    <div class="event-address">📍 {masterEvent.address}</div>
+                  {/if}
+                  {#if masterEvent.recurrence && masterEvent.recurrence.type !== "NONE"}
+                    <div class="event-recurrence">
+                      <span class="recurrence-icon">🔄</span>
+                      <span class="recurrence-text">{formatRecurrenceText(masterEvent.recurrence)}</span>
+                    </div>
+                  {/if}
+                </div>
+              {:else}
+                <div class="event-content">
+                  <div class="event-header">
+                    <div class="event-title">{event.title}</div>
+                    {#if event.importance && event.importance !== 'medium'}
+                      <div class="importance-indicator {event.importance}">
+                        {event.importance === 'high' ? '🔴' : '🟡'}
+                      </div>
+                    {/if}
+                  </div>
+                  {#if event.timeLabel === 'some-timing'}
+                    <div class="event-time some-timing">どこかのタイミングで</div>
+                  {:else}
+                    <div class="event-time all-day">終日</div>
+                  {/if}
+                  {#if event.description}
+                    <div class="event-description">{event.description}</div>
+                  {/if}
+                  {#if event.address}
+                    <div class="event-address">📍 {event.address}</div>
+                  {/if}
+                </div>
+              {/if}
+            {/snippet}
             <div
               class="event-item"
-              onclick={() => controller.editEvent(event)}
-              onkeydown={(e) => e.key === "Enter" && controller.editEvent(event)}
+              onclick={() => {
+                const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id) || event;
+                eventActions.editEvent(masterEvent);
+                parseRecurrenceForEdit(masterEvent);
+              }}
+              onkeydown={(e) => {
+                if (e.key === "Enter") {
+                  const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                  eventActions.editEvent(masterEvent);
+                  parseRecurrenceForEdit(masterEvent);
+                }
+              }}
               role="button"
               tabindex="0"
             >
-              <div class="event-content">
-                <div class="event-title">{event.title}</div>
-                <div class="event-time">
-                  {controller.formatDateTime(event.start)} - {controller.formatDateTime(
-                    event.end,
-                  )}
-                </div>
-              </div>
+              {@render eventContent()}
               <div class="event-actions">
                 <button
-                  onclick={() => {
-                    controller.editEvent(event);
-                    showEventForm = true;
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                    eventActions.editEvent(masterEvent);
+                    parseRecurrenceForEdit(masterEvent);
                   }}>編集</button
                 >
                 <button
-                  onclick={() => controller.deleteEvent(event.id)}
+                  onclick={(e) => {
+                    e.stopPropagation();
+                    // For occurrences, delete the master event, not the occurrence
+                    const eventIdToDelete = (event as any).eventId || event.id;
+                    eventActions.delete(eventIdToDelete);
+                  }}
                   class="danger">削除</button
                 >
               </div>
@@ -619,19 +1057,19 @@
   </div>
 
   <!-- Timeline Popup -->
-  {#if showTimelinePopup}
+  {#if $showTimelinePopup}
     <div class="timeline-popup">
       <div class="popup-content">
         <div class="popup-header">
-          <h3>タイムライン - {controller.formatDate(localSelectedDate)}</h3>
+          <h3>タイムライン - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
           <button
             class="close-button"
-            onclick={() => (showTimelinePopup = false)}>✕</button
+            onclick={() => uiActions.hideTimelinePopup()}>✕</button
           >
         </div>
 
         <div class="timeline-container">
-          {#if getEventsForDate($events, localSelectedDate).length === 0}
+          {#if getEventsForTimeline(allDisplayEvents, $selectedDate).length === 0}
             <p class="empty-state">この日の予定はありません</p>
           {:else}
             <div class="timeline-view">
@@ -655,24 +1093,30 @@
 
               <!-- Event columns -->
               <div class="timeline-columns">
-                {#each getEventColumns(getEventsForDate($events, localSelectedDate)) as column, columnIndex (columnIndex)}
+                {#each getEventColumns(getEventsForTimeline(allDisplayEvents, $selectedDate)) as column, columnIndex (columnIndex)}
                   <div
                     class="timeline-column"
                     style="width: {100 /
                       getEventColumns(
-                        getEventsForDate($events, localSelectedDate),
+                        getEventsForTimeline(allDisplayEvents, $selectedDate),
                       ).length}%;"
                   >
                     {#each column as event (event.id)}
                       <div
                         class="timeline-event-block"
                         onclick={() => {
-                          controller.editEvent(event);
-                          showEventForm = true;
+                          // Find master event if this is a recurring occurrence
+                          const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id) || event;
+                          eventActions.editEvent(masterEvent);
+                          parseRecurrenceForEdit(masterEvent);
                         }}
-                        onkeydown={(e) =>
-                          e.key === "Enter" &&
-                          (controller.editEvent(event), (showEventForm = true))}
+                        onkeydown={(e) => {
+                          if (e.key === "Enter") {
+                            const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                            eventActions.editEvent(masterEvent);
+                            parseRecurrenceForEdit(masterEvent);
+                          }
+                        }}
                         role="button"
                         tabindex="0"
                         style="
@@ -699,84 +1143,281 @@
   {/if}
 
   <!-- Event Form Modal -->
-  {#if showEventForm}
+  {#if $showEventForm}
     <div class="event-form-modal">
       <div class="modal-content">
         <div class="modal-header">
           <h3>{isEventEditing ? "予定を編集" : "新しい予定"}</h3>
-          <button class="close-button" onclick={() => (showEventForm = false)}
+          <button class="close-button" onclick={() => uiActions.hideEventForm()}
             >✕</button
           >
         </div>
 
-        <div class="form-group">
-          <label for="event-title">タイトル</label>
-          <input
-            id="event-title"
-            type="text"
-            bind:value={eventTitle}
-            placeholder="予定のタイトルを入力"
-          />
-        </div>
+        <div class="modal-body">
+          <div class="form-group sticky-title">
+            <div class="inline-field">
+              <label for="event-title">タイトル</label>
+              <input
+                id="event-title"
+                type="text"
+                bind:value={eventTitle}
+                placeholder="予定のタイトルを入力"
+              />
+            </div>
+          </div>
 
-        <div class="form-row">
+
           <div class="form-group">
-            <label for="event-start">開始時刻</label>
-            <input
-              id="event-start"
-              type="datetime-local"
-              bind:value={eventStart}
-            />
+            <div class="inline-field">
+              <label for="event-address">場所</label>
+              <input
+                id="event-address"
+                type="text"
+                bind:value={eventAddress}
+                placeholder="場所を入力（任意）"
+              />
+            </div>
           </div>
 
           <div class="form-group">
-            <label for="event-end">終了時刻</label>
-            <input id="event-end" type="datetime-local" bind:value={eventEnd} />
+            <div class="inline-field" id="event-importance">
+              <label for="event-importance">重要度</label>
+              <button
+                type="button"
+                class="star-button {eventImportance === 'low' ? 'active' : ''}"
+                onclick={() => eventImportance = 'low'}
+              >
+                ⭐
+              </button>
+              <button
+                type="button"
+                class="star-button {eventImportance === 'medium' ? 'active' : ''}"
+                onclick={() => eventImportance = 'medium'}
+              >
+                ⭐⭐
+              </button>
+              <button
+                type="button"
+                class="star-button {eventImportance === 'high' ? 'active' : ''}"
+                onclick={() => eventImportance = 'high'}
+              >
+                ⭐⭐⭐
+              </button>
+            </div>
           </div>
+
+          <!-- Time Label Switches -->
+          <div class="form-group">
+            <div class="time-label-switches" id="time-label-switches">
+              <button
+                type="button"
+                class="time-switch {timeMode === 'all-day' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+                onclick={() => {
+                  timeMode = 'all-day';
+                  eventTimeLabel = 'all-day';
+                  eventFormActions.switchTimeLabel('all-day');
+                  // Set time fields to show all-day times
+                  eventStartTime = "00:00";
+                  eventEndTime = "23:59";
+                  isManualDateOrTimeEdit = false;
+                }}
+              >
+                終日
+              </button>
+              <button
+                type="button"
+                class="time-switch {timeMode === 'some-timing' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+                onclick={() => {
+                  timeMode = 'some-timing';
+                  eventTimeLabel = 'some-timing';
+                  eventFormActions.switchTimeLabel('some-timing');
+                  // Fix date to selected date when some-timing is chosen
+                  const dateString = utcToLocalDateString($selectedDate);
+                  eventStartDate = dateString;
+                  eventEndDate = dateString;
+                  isManualDateOrTimeEdit = false;
+                }}
+              >
+                どこかのタイミングで
+              </button>
+            </div>
+          </div>
+
+          <!-- Date Settings -->
+          <div class="form-group">
+            <div class="inline-field">
+              <label for="event-start-date">開始日</label>
+              <input
+                id="event-start-date"
+                type="date"
+                bind:value={eventStartDate}
+                onfocus={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; }}
+                oninput={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+              />
+            </div>
+            <div class="inline-field">
+              <label for="event-end-date">終了日</label>
+              <input
+                id="event-end-date"
+                type="date"
+                bind:value={eventEndDate}
+                onfocus={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; }}
+                oninput={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+              />
+            </div>
+          </div>
+
+          <!-- Time Settings -->
+          <div class="form-group">
+            <div class="inline-field">
+              <label for="event-start-time">開始時間</label>
+              <input
+                id="event-start-time"
+                type="time"
+                bind:value={eventStartTime}
+                onfocus={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                oninput={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+              />
+            </div>
+            <div class="inline-field">
+              <label for="event-end-time">終了時間</label>
+              <input
+                id="event-end-time"
+                type="time"
+                bind:value={eventEndTime}
+                onfocus={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                oninput={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+              />
+            </div>
+          </div>
+
+          <!-- Recurrence Settings -->
+          <div class="recurrence-toggle">
+            <label class="toggle-switch">
+              <input type="checkbox" bind:checked={isRecurring} />
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">繰り返し設定</span>
+            </label>
+          </div>
+
+          {#if isRecurring}
+            <div class="recurrence-panel">
+              <div class="recurrence-field">
+                <label for="recurrence-interval-input" class="field-label">繰り返し</label>
+                <div class="interval-row">
+                  <input
+                    id="recurrence-interval-input"
+                    type="number"
+                    min="1"
+                    bind:value={recurrenceInterval}
+                    class="interval-number"
+                    placeholder="1"
+                  />
+                  <select bind:value={recurrenceFrequency} class="unit-select">
+                    <option value="DAILY">日</option>
+                    <option value="WEEKLY">週</option>
+                    <option value="MONTHLY">月</option>
+                    <option value="YEARLY">年</option>
+                  </select>
+                  <span class="unit-suffix">ごと</span>
+                </div>
+              </div>
+
+              {#if recurrenceFrequency === "WEEKLY"}
+                <div class="recurrence-field">
+                  <span class="field-label">曜日</span>
+                  <div class="day-grid">
+                    {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i}
+                      <label class="day-pill {weeklyDays[i] ? 'active' : ''}">
+                        <input type="checkbox" bind:checked={weeklyDays[i]} />
+                        {day}
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+              {#if recurrenceFrequency === "MONTHLY"}
+                {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+                {@const dayOfMonth = startDate.getDate()}
+                {@const weekdays = ["日", "月", "火", "水", "木", "金", "土"]}
+                {@const weekday = weekdays[startDate.getDay()]}
+                {@const weekOfMonth = Math.ceil(dayOfMonth / 7)}
+                {@const positionText = weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
+                
+                <div class="recurrence-field">
+                  <span class="field-label">繰り返しパターン</span>
+                  <div class="monthly-options">
+                    <label class="option-card {monthlyType === 'dayOfMonth' ? 'selected' : ''}">
+                      <input 
+                        type="radio" 
+                        name="monthly-type" 
+                        value="dayOfMonth"
+                        bind:group={monthlyType}
+                      />
+                      <span class="option-text">毎月{dayOfMonth}日</span>
+                    </label>
+                    <label class="option-card {monthlyType === 'nthWeekday' ? 'selected' : ''}">
+                      <input 
+                        type="radio" 
+                        name="monthly-type" 
+                        value="nthWeekday"
+                        bind:group={monthlyType}
+                      />
+                      <span class="option-text">毎月{positionText}{weekday}曜日</span>
+                    </label>
+                  </div>
+                </div>
+              {/if}
+
+              {#if recurrenceFrequency === "YEARLY"}
+                {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+                {@const month = startDate.getMonth() + 1}
+                {@const day = startDate.getDate()}
+                
+                <div class="recurrence-field">
+                  <span class="field-label">繰り返しパターン</span>
+                  <div class="yearly-info">
+                    毎年{month}月{day}日
+                  </div>
+                </div>
+              {/if}
+
+              <div class="recurrence-field">
+                <label for="recurrence-end" class="field-label">
+                  終了日
+                  <small class="field-hint">空欄 = ずっと繰り返す</small>
+                </label>
+                <input
+                  id="recurrence-end"
+                  type="date"
+                  bind:value={recurrenceEndDate}
+                  class="date-input"
+                />
+              </div>
+            </div>
+          {/if}
         </div>
 
         <div class="form-actions">
           {#if isEventEditing}
             <button
               onclick={() => {
-                // Get current form data synchronously
-                const currentForm = get(controller.eventForm);
-                
-                // Update the controller form with current values
-                controller.eventForm.set({
-                  title: eventTitle,
-                  start: eventStart,
-                  end: eventEnd,
-                  isEditing: true,
-                  editingId: currentForm.editingId,
-                });
-                controller.updateEvent();
-                showEventForm = false;
+                eventActions.submitEventForm();
               }}>更新</button
             >
             <button
               onclick={() => {
-                controller.resetEventForm();
-                showEventForm = false;
+                eventActions.cancelEventForm();
               }}>キャンセル</button
             >
           {:else}
             <button
               onclick={() => {
-                // Update the controller form with current values
-                controller.eventForm.set({
-                  title: eventTitle,
-                  start: eventStart,
-                  end: eventEnd,
-                  isEditing: false,
-                  editingId: null,
-                });
-
-                controller.createEvent();
-                showEventForm = false;
+                eventActions.submitEventForm();
               }}>作成</button
             >
-            <button onclick={() => (showEventForm = false)}>キャンセル</button>
+            <button onclick={() => eventActions.cancelEventForm()}>キャンセル</button>
           {/if}
         </div>
       </div>
@@ -814,6 +1455,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    scroll-behavior: smooth;
   }
 
   .calendar-grid {
@@ -829,7 +1471,14 @@
     align-items: center;
     padding: var(--space-xs) var(--space-sm);
     border-bottom: 1px solid var(--glass-border);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-light);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
   }
 
   .header-actions {
@@ -925,7 +1574,7 @@
     border-radius: 50%;
     cursor: pointer;
     font-weight: 600;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-size: 1.25rem;
     display: flex;
     align-items: center;
@@ -949,18 +1598,19 @@
   .calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-secondary);
     border-bottom: 1px solid var(--glass-border);
   }
 
   .weekday {
     padding: var(--space-sm) var(--space-xs);
     text-align: center;
-    font-weight: 600;
-    color: var(--muted);
-    font-size: 0.875rem;
-    font-family: var(--font-display);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-tertiary);
+    font-size: var(--fs-xs);
+    font-family: var(--font-family);
     text-transform: uppercase;
+    letter-spacing: 0.7px;
     letter-spacing: 0.05em;
   }
 
@@ -973,55 +1623,56 @@
     display: flex;
     flex-direction: column;
     min-height: 100%; /* fill the grid row height */
-    background: rgba(0, 200, 255, 0.02);
+    background: var(--bg-card);
     position: relative;
     overflow: hidden; /* Cut off overflowing events */
   }
 
   .calendar-day:hover {
-    background: rgba(0, 200, 255, 0.08);
-    box-shadow: inset 0 0 12px rgba(0, 200, 255, 0.1);
+    background: rgba(156, 202, 235, 0.1);
+    box-shadow: inset 0 0 12px rgba(156, 202, 235, 0.15);
   }
 
   .calendar-day.today {
-    background: rgba(0, 200, 255, 0.1);
-    box-shadow: inset 0 0 12px rgba(0, 200, 255, 0.15);
+    background: rgba(156, 202, 235, 0.15);
+    box-shadow: inset 0 0 12px rgba(156, 202, 235, 0.2);
   }
 
   .calendar-day.today .day-number {
-    background: var(--primary);
-    color: var(--bg);
+    background: var(--event-blue);
+    color: var(--white);
     border-radius: 50%;
     width: 1.5rem;
     height: 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-family: var(--font-display);
-    box-shadow: 0 0 8px rgba(0, 200, 255, 0.3);
+    font-weight: var(--font-weight-bold);
+    font-family: var(--font-family);
+    box-shadow: 0 0 8px rgba(156, 202, 235, 0.3);
   }
 
   .calendar-day.selected {
-    background: rgba(0, 200, 255, 0.15);
-    border: 2px solid var(--primary);
+    background: rgba(240, 138, 119, 0.2);
+    border: 2px solid var(--coral);
     box-shadow:
-      inset 0 0 12px rgba(0, 200, 255, 0.2),
-      0 0 12px rgba(0, 200, 255, 0.2);
+      inset 0 0 12px rgba(240, 138, 119, 0.3),
+      0 0 12px rgba(240, 138, 119, 0.3);
   }
 
   .calendar-day.other-month {
-    color: var(--muted);
-    background: rgba(102, 224, 255, 0.02);
+    color: var(--text-secondary);
+    background: var(--bg-card);
     opacity: 0.6;
   }
 
   .day-number {
-    font-weight: 500;
+    font-weight: var(--font-weight-normal);
     margin-bottom: var(--space-xs);
-    color: var(--text);
-    font-family: var(--font-display);
-    font-size: 0.75rem; /* Smaller to give more space */
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--fs-xl);
+    letter-spacing: 1.5px;
   }
 
   .day-events {
@@ -1066,20 +1717,20 @@
   }
 
   .event-label {
-    font-size: 0.625rem;
-    color: white;
-    font-weight: 600;
+    font-size: var(--fs-xs);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-bold);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
   .selected-date-events {
     padding: var(--space-md);
     border-top: 1px solid var(--glass-border);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--bg-tertiary);
     flex: 0 0 auto;
     max-height: 200px; /* Limit event list height */
     overflow-y: auto; /* Enable scrolling if needed */
@@ -1093,10 +1744,12 @@
 
   .selected-date-events h3 {
     margin: 0 0 var(--space-md) 0;
-    color: var(--primary);
+    color: var(--text-primary);
     font-size: 1rem;
-    font-family: var(--font-display);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     text-transform: uppercase;
+    letter-spacing: 1px;
     letter-spacing: 0.05em;
   }
 
@@ -1244,15 +1897,15 @@
     margin: 0;
     color: var(--navy-900);
     font-size: var(--fs-lg);
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-weight: 600;
   }
 
   .timeline-view {
     position: relative;
     height: 400px;
-    background: rgba(240, 138, 119, 0.05);
-    border: 1px solid rgba(240, 138, 119, 0.2);
+    background: var(--bg-card);
+    border: 1px solid rgba(15, 34, 48, 0.1);
     border-radius: var(--radius-md);
     overflow: hidden;
   }
@@ -1280,12 +1933,12 @@
     left: 0.25rem;
     top: -0.5rem;
     font-size: 0.625rem;
-    color: var(--muted);
-    background: rgba(0, 200, 255, 0.05);
+    color: var(--text-secondary);
+    background: var(--bg-card);
     padding: 0 0.125rem;
     font-weight: 500;
     line-height: 1;
-    font-family: var(--font-display);
+    font-family: var(--font-family);
   }
 
   .hour-line {
@@ -1365,7 +2018,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
   }
 
   .timeline-event-time {
@@ -1394,38 +2047,56 @@
   }
 
   .modal-content {
-    background: var(--card);
+    background: var(--bg-card);
     border: 1px solid rgba(15, 34, 48, 0.05);
     border-radius: var(--radius-lg);
-    padding: var(--space-lg);
+    padding: 0;
     width: 90%;
     max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
     box-shadow: var(--shadow-soft);
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-  }
-
-  .modal-content::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
+    margin: var(--space-lg) 0;
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-md);
-    padding-bottom: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
     border-bottom: 1px solid rgba(15, 34, 48, 0.08);
+    flex-shrink: 0;
+  }
+
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-md);
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+  }
+
+  .modal-body::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .modal-body::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: var(--radius-md);
+  }
+
+  .modal-body::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .modal-header h3 {
     margin: 0;
-    color: var(--navy-900);
-    font-family: var(--font-sans);
-    font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
     font-size: var(--fs-lg);
+    letter-spacing: 1px;
   }
 
   .close-button {
@@ -1451,57 +2122,569 @@
   }
 
   .form-group {
+    margin-bottom: var(--space-sm);
+  }
+
+  .sticky-title {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card);
+    z-index: 10;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid rgba(15, 34, 48, 0.1);
     margin-bottom: var(--space-md);
   }
 
   .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-  }
-
-  .form-group label {
-    display: block;
-    margin-bottom: var(--space-sm);
-    font-weight: 600;
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: var(--fs-sm);
-  }
-
-  .form-group input {
-    width: 100%;
-    padding: var(--space-sm);
-    border: 1px solid rgba(15, 34, 48, 0.1);
-    border-radius: 999px;
-    font-size: var(--fs-md);
-    background: var(--white);
-    color: var(--navy-700);
-    font-family: var(--font-sans);
-    transition: all 0.18s ease;
-  }
-
-  .form-group input:focus {
-    border-color: var(--coral);
-    outline: 2px solid rgba(240, 138, 119, 0.18);
-    outline-offset: 2px;
+    gap: var(--space-sm);
   }
 
   .form-actions {
     display: flex;
     gap: var(--space-sm);
+    justify-content: flex-end;
+    padding: var(--space-md) var(--space-lg);
+    border-top: 1px solid rgba(15, 34, 48, 0.08);
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+  }
+
+  .form-actions button {
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--coral);
+    background: transparent;
+    color: var(--coral);
+    font-weight: 600;
+    font-family: var(--font-family);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .form-actions button:first-child {
+    background: var(--coral);
+    color: white;
+  }
+
+  .form-actions button:hover {
+    background: var(--coral);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(240, 138, 119, 0.3);
+  }
+
+  /* Recurrence UI */
+  .recurrence-toggle {
+    border-top: 1px solid rgba(0, 200, 255, 0.1);
+    padding-top: var(--space-md);
     margin-top: var(--space-md);
+  }
+
+  .toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-switch input[type="checkbox"] {
+    position: relative;
+    appearance: none;
+    width: 44px;
+    height: 24px;
+    background: #e6eef4;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background 0.18s ease;
+  }
+
+  .toggle-switch input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    left: 3px;
+    top: 3px;
+    transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .toggle-switch input[type="checkbox"]:checked {
+    background: var(--primary);
+  }
+
+  .toggle-switch input[type="checkbox"]:checked::after {
+    transform: translateX(20px);
+  }
+
+  .toggle-label {
+    font-weight: 600;
+    font-size: var(--fs-sm);
+    color: var(--navy-700);
+  }
+
+  .recurrence-panel {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.03), rgba(240, 138, 119, 0.03));
+    border: 1px solid rgba(0, 200, 255, 0.15);
+    border-radius: var(--radius-sm);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .recurrence-field {
+    margin-bottom: var(--space-md);
+  }
+
+  .recurrence-field:last-child {
+    margin-bottom: 0;
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+    font-size: var(--fs-sm);
+    color: var(--navy-700);
+  }
+
+  .field-hint {
+    font-weight: normal;
+    color: var(--muted);
+    font-size: 0.9em;
+    margin-left: var(--space-xs);
+  }
+
+  .interval-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .interval-number {
+    width: 70px;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--navy-700);
+    font-size: var(--fs-md);
+    font-family: var(--font-family);
+    transition: border 0.18s ease;
+  }
+
+  .interval-number:focus {
+    border-color: var(--primary);
+    outline: none;
+  }
+
+  .unit-select {
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--navy-700);
+    font-size: var(--fs-md);
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .unit-select:hover {
+    border-color: var(--primary);
+  }
+
+  .unit-select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+  }
+
+  .unit-suffix {
+    font-size: var(--fs-md);
+    color: var(--navy-700);
+  }
+
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--space-xs);
+  }
+
+  .day-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px;
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-sm);
+    background: white;
+    cursor: pointer;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--navy-700);
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    user-select: none;
+  }
+
+  .day-pill input[type="checkbox"] {
+    display: none;
+  }
+
+  .day-pill:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 200, 255, 0.15);
+  }
+
+  .day-pill.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 200, 255, 0.3);
+  }
+
+  .monthly-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .option-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-sm);
+    background: white;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .option-card input[type="radio"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(15, 34, 48, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    position: relative;
+  }
+
+  .option-card input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .option-card:hover {
+    border-color: var(--primary);
+    background: rgba(0, 200, 255, 0.02);
+    transform: translateX(2px);
+  }
+
+  .option-card.selected {
+    border-color: var(--primary);
+    background: rgba(0, 200, 255, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 200, 255, 0.15);
+  }
+
+  .option-card.selected input[type="radio"] {
+    border-color: var(--primary);
+  }
+
+  .option-text {
+    font-size: var(--fs-md);
+    font-weight: 500;
+    color: var(--navy-700);
+  }
+
+  .yearly-info {
+    padding: var(--space-md);
+    background: rgba(0, 200, 255, 0.05);
+    border: 1px solid rgba(0, 200, 255, 0.2);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    font-size: var(--fs-md);
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .date-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--navy-700);
+    font-size: var(--fs-md);
+    font-family: var(--font-family);
+    transition: border 0.18s ease;
+  }
+
+  .date-input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 200, 255, 0.1);
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: 600;
+    color: var(--muted);
+    font-family: var(--font-family);
+    font-size: var(--fs-sm);
+  }
+
+  .event-recurrence {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+    font-size: var(--fs-xs);
+    color: var(--primary);
+  }
+
+  .recurrence-icon {
+    font-size: 0.875rem;
+  }
+
+  .recurrence-text {
+    font-style: italic;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: var(--space-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--fs-sm);
+    letter-spacing: 0.5px;
+  }
+
+  .colored-label {
+    color: var(--coral) !important;
+    font-weight: 700;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 2px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-md);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    transition: all 0.18s ease;
+  }
+
+  .form-group input:focus {
+    border-color: var(--coral);
+    background: rgba(240, 138, 119, 0.05);
+    outline: none;
+  }
+
+
+  /* Inline form fields */
+  .inline-field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+  }
+
+  .inline-field label {
+    font-size: var(--fs-sm);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    white-space: nowrap;
+    min-width: fit-content;
+  }
+
+  .inline-field input {
+    flex: 1;
+    min-width: 0;
+  }
+
+
+
+  /* Time Label Switches */
+  .time-label-switches {
+    display: flex;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+  }
+
+  .time-switch {
+    flex: 1;
+    padding: var(--space-sm) var(--space-xs);
+    border: 2px solid rgba(15, 34, 48, 0.1);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    transition: all 0.18s ease;
+    cursor: pointer;
+  }
+
+  .time-switch:hover {
+    border-color: var(--coral);
+    background: rgba(240, 138, 119, 0.05);
+  }
+
+  .time-switch.active {
+    background: var(--coral);
+    color: var(--white);
+    border-color: var(--coral);
+  }
+
+  /* Ensure 終日 button stays coral when active, not gray */
+  .time-switch.active:not(.grey) {
+    background: var(--coral) !important;
+    color: var(--white) !important;
+    border-color: var(--coral) !important;
+  }
+
+  .time-switch.grey {
+    background: #e5e7eb;
+    color: #6b7280;
+    border-color: #d1d5db;
+  }
+
+  .time-switch.grey.active {
+    background: #9ca3af;
+    color: var(--white);
+    border-color: #9ca3af;
+  }
+
+  /* Importance Star Buttons */
+  .importance-stars {
+    display: flex;
+    gap: 0;
+    margin-top: var(--space-sm);
+    margin-left: 0;
+    padding-left: 0;
+  }
+
+  .star-button {
+    flex: 1;
+    padding: var(--space-sm) var(--space-md);
+    border: 2px solid rgba(15, 34, 48, 0.1);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    font-size: var(--fs-lg);
+    font-weight: 500;
+    transition: all 0.18s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .star-button:first-child {
+    border-radius: var(--radius-md) 0 0 var(--radius-md);
+    border-right: 1px solid rgba(15, 34, 48, 0.1);
+  }
+
+  .star-button:last-child {
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    border-left: 1px solid rgba(15, 34, 48, 0.1);
+  }
+
+  .star-button:not(:first-child):not(:last-child) {
+    border-left: 1px solid rgba(15, 34, 48, 0.1);
+    border-right: 1px solid rgba(15, 34, 48, 0.1);
+  }
+
+  .star-button:hover {
+    border-color: var(--coral);
+    background: rgba(240, 138, 119, 0.05);
+  }
+
+  .star-button.active {
+    background: var(--coral);
+    color: var(--white);
+    border-color: var(--coral);
+  }
+
+  /* Event Display Styles */
+  .event-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-xs);
+  }
+
+  .importance-indicator {
+    font-size: var(--fs-xs);
+    margin-left: auto;
+  }
+
+  .event-time.all-day {
+    font-weight: 500;
+    color: var(--coral);
+  }
+
+  .event-time.some-timing {
+    font-weight: 500;
+    color: var(--navy-500);
+    font-style: italic;
+  }
+
+  .event-description {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    margin-top: var(--space-xs);
+    line-height: 1.4;
+  }
+
+  .event-address {
+    font-size: var(--fs-xs);
+    color: var(--muted);
+    margin-top: var(--space-xs);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
   }
 
   .form-actions button {
     padding: var(--space-sm) var(--space-md);
     border: 1px solid var(--coral);
     background: transparent;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: var(--fs-sm);
     color: var(--coral);
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-weight: 600;
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }
@@ -1533,6 +2716,38 @@
     
     .header-actions {
       gap: var(--space-xs);
+    }
+
+    .modal-content {
+      width: 95%;
+      max-height: calc(100vh - 80px);
+      margin: var(--space-lg) 0;
+    }
+
+    .modal-body {
+      padding: var(--space-md);
+    }
+
+    .form-actions {
+      padding: var(--space-sm) var(--space-md);
+    }
+
+    .recurrence-panel {
+      padding: var(--space-sm);
+    }
+
+    .day-grid {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .day-pill {
+      padding: 6px 2px;
+      font-size: 0.7rem;
+    }
+
+    .interval-row {
+      flex-wrap: wrap;
     }
     
     .timeline-view {
@@ -1589,3 +2804,4 @@
     }
   }
 </style>
+

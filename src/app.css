@@ -1,6 +1,29 @@
-/* Futuristic-Friendly Design System */
+/* Calendar Design System */
 :root {
-  /* Colors */
+  /* New Design System Colors - Dark Theme */
+  --bg-primary: #3A3A3A;           /* Main background (darker) */
+  --bg-secondary: rgba(66, 66, 66, 1);  /* Header background */
+  --bg-tertiary: rgba(74, 74, 74, 1);   /* Details background (lighter dark) */
+  --bg-legend: rgba(60, 60, 60, 1);     /* Legend background */
+  --bg-card: rgba(82, 82, 82, 1);       /* Card backgrounds (slightly lighter) */
+  
+  /* Text Colors */
+  --text-primary: rgba(255, 255, 255, 1);    /* Main text */
+  --text-secondary: rgba(255, 255, 255, .3); /* Muted text */
+  --text-tertiary: rgba(255, 255, 255, .5);  /* Day name text */
+  --text-today: rgba(156, 202, 235, 1);      /* Today highlight */
+  
+  /* Event Category Colors */
+  --event-blue: rgba(156, 202, 235, 1);   /* Blue events */
+  --event-orange: rgba(247, 167, 0, 1);   /* Orange events */
+  --event-green: rgba(153, 198, 109, 1);  /* Green events */
+  --event-yellow: rgba(249, 233, 0, 1);   /* Yellow events */
+  
+  /* UI Element Colors */
+  --ui-arrow: rgba(160, 159, 160, 1);     /* Navigation arrows */
+  --ui-empty: #eee;                       /* Empty state text */
+
+  /* Legacy Colors (Keep for compatibility) */
   --bg: #e6e6e6; /* overall page background (very light gray) */
   --card: #f8f9fb; /* light card surface */
   --navy-900: #0f2230; /* deep navy (primary dark surface) */
@@ -10,8 +33,6 @@
   --muted: #9aa6b2; /* secondary text */
   --white: #ffffff;
   --glass: rgba(255, 255, 255, 0.06);
-
-  /* Additional color variables for components */
   --primary: #00c8ff; /* bright cyan blue */
   --danger: #ff3b3b; /* red for delete actions */
   --text: #253447; /* dark text color */
@@ -19,22 +40,31 @@
   --glass-border: rgba(0, 200, 255, 0.2); /* subtle border */
   --glow: 0 0 20px rgba(0, 200, 255, 0.15); /* subtle glow effect */
 
-  /* Typography */
+  /* Typography - New Design System */
+  --font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  --font-weight-light: 100;    /* UltraLight weight */
+  --font-weight-normal: 400;   /* Normal weight */
+  --font-weight-bold: 600;     /* Bold weight */
+  
+  /* Font Sizes */
+  --fs-xs: 9px;        /* Day names, small labels */
+  --fs-sm: 13px;       /* Legend entries */
+  --fs-md: 16px;       /* Event text */
+  --fs-lg: 18px;       /* Header titles (smaller) */
+  --fs-xl: 16px;       /* Day numbers (smaller) */
+  
+  /* Legacy Typography (Keep for compatibility) */
   --font-sans:
     "Inter", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial;
   --font-display: var(--font-sans);
   --font-body: var(--font-sans);
   --fs-xxl: 22px;
-  --fs-xl: 18px;
-  --fs-lg: 16px;
-  --fs-md: 14px;
-  --fs-sm: 12px;
 
-  /* Radii & shadows */
-  --radius-lg: 28px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
+  /* Radii & shadows - Less rounded */
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 4px;
   --shadow-soft: 0 8px 24px rgba(8, 12, 20, 0.12);
   --shadow-subtle: 0 4px 14px rgba(8, 12, 20, 0.06);
 
@@ -52,9 +82,10 @@
 html,
 body {
   height: 100%;
-  background: var(--bg);
-  color: var(--navy-700);
-  font-family: var(--font-sans);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-light);
   font-size: var(--fs-md);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -166,19 +197,6 @@ small {
   box-shadow: var(--shadow-subtle);
 }
 
-.card-light {
-  background: var(--card);
-  color: var(--navy-700);
-  padding: var(--space-md);
-  border-radius: var(--radius-md);
-}
-
-.panel-dark {
-  background: linear-gradient(180deg, var(--navy-900), var(--navy-800));
-  color: #dbe9f2;
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-}
 
 /* Buttons */
 .btn {
@@ -186,7 +204,7 @@ small {
   align-items: center;
   gap: 10px;
   padding: 10px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -216,42 +234,11 @@ small {
   border-color: var(--coral);
 }
 
-/* Toggles */
-.toggle {
-  width: 44px;
-  height: 24px;
-  border-radius: 999px;
-  background: #e6eef4;
-  position: relative;
-  border: none;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-
-.toggle .knob {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  transition: transform 0.18s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.toggle--on {
-  background: var(--navy-800);
-}
-
-.toggle--on .knob {
-  transform: translateX(20px);
-}
 
 /* Inputs */
 .input {
   padding: 12px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: none;
   background: rgba(255, 255, 255, 0.04);
   color: var(--white);
@@ -259,70 +246,10 @@ small {
   transition: all 0.18s ease;
 }
 
-.input-light {
-  background: #fff;
-  border: 1px solid rgba(15, 34, 48, 0.05);
-  color: var(--navy-700);
-}
 
 .input:focus {
   outline: 2px solid rgba(240, 138, 119, 0.18);
   outline-offset: 2px;
 }
 
-/* Lists, Avatars & Messaging */
-.list-item {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 10px;
-  border-bottom: 1px solid rgba(8, 12, 20, 0.04);
-}
 
-.avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.badge {
-  background: var(--coral);
-  color: var(--white);
-  font-size: 12px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  font-weight: 600;
-}
-
-/* Charts & Data Visuals */
-.chart-bar {
-  border-radius: 6px;
-  fill: var(--coral);
-}
-
-.chart-line {
-  stroke: var(--coral);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-}
-
-.chart-grid {
-  stroke: rgba(255, 255, 255, 0.04);
-}
-
-/* Micro-interactions */
-.interactive {
-  transition:
-    transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
-    box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-}
-
-.interactive:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 36px rgba(8, 12, 20, 0.12);
-}
-
-.interactive:active {
-  transform: scale(0.995);
-}

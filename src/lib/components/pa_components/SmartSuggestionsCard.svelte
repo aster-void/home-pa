@@ -1,30 +1,21 @@
 <script lang="ts">
   import BaseCard from "./BaseCard.svelte";
-  import type { AppController } from "../../controllers/app.controller.svelte.ts";
   import type { Suggestion } from "../../types.js";
+  import { currentSuggestion, suggestionActions } from "../../stores/index.js";
 
-  let p: { controller: AppController } = $props();
-  const { controller } = p;
+  // Get current suggestion from store
+  let currentSuggestionValue = $state(null as Suggestion | null);
 
-  // Get current suggestion from controller
-  let currentSuggestion = $state(null as Suggestion | null);
-
-  // Subscribe to controller store changes
+  // Subscribe to store changes
   $effect(() => {
-    if (controller) {
-      const unsubscribe = controller.currentSuggestion.subscribe((value) => {
-        currentSuggestion = value;
-      });
-
-      return unsubscribe;
-    }
+    currentSuggestionValue = $currentSuggestion;
   });
 
   // Get status for the card
   const suggestionStatus = $derived(
-    currentSuggestion ? "Active" : "No suggestions",
+    currentSuggestionValue ? "Active" : "No suggestions",
   );
-  const statusType = $derived(currentSuggestion ? "active" : "inactive");
+  const statusType = $derived(currentSuggestionValue ? "active" : "inactive");
 </script>
 
 <BaseCard
@@ -33,38 +24,38 @@
   {statusType}
   class="suggestions-card"
 >
-  {#if currentSuggestion}
+  {#if currentSuggestionValue}
     <div class="current-suggestion">
       <div class="gap-info">
         <span class="gap-label">Available Time:</span>
-        <span class="gap-time">{currentSuggestion?.gapMin || 0} minutes</span>
+        <span class="gap-time">{currentSuggestionValue?.gapMin || 0} minutes</span>
       </div>
 
       <div class="suggestion-text">
-        {currentSuggestion?.template || ""}
+        {currentSuggestionValue?.template || ""}
       </div>
 
       <div class="reaction-buttons">
         <button
-          onclick={() => controller.reactToSuggestion("accepted")}
+          onclick={() => suggestionActions.reactToSuggestion("accepted")}
           class="accept-btn"
         >
           Accept
         </button>
         <button
-          onclick={() => controller.reactToSuggestion("rejected")}
+          onclick={() => suggestionActions.reactToSuggestion("rejected")}
           class="reject-btn"
         >
           Reject
         </button>
         <button
-          onclick={() => controller.reactToSuggestion("later")}
+          onclick={() => suggestionActions.reactToSuggestion("later")}
           class="later-btn"
         >
           Later
         </button>
         <button
-          onclick={() => controller.dismissSuggestion()}
+          onclick={() => suggestionActions.dismissSuggestion()}
           class="dismiss-btn"
         >
           Dismiss
@@ -105,9 +96,9 @@
   }
 
   .gap-time {
-    font-family: var(--font-sans);
-    font-weight: 600;
-    color: var(--navy-900);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
     font-size: var(--fs-lg);
   }
 
@@ -119,7 +110,7 @@
     color: var(--navy-700);
     font-weight: 500;
     text-align: center;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     line-height: 1.4;
   }
 
@@ -135,7 +126,7 @@
     border-radius: 999px;
     cursor: pointer;
     font-weight: 600;
-    font-family: var(--font-sans);
+    font-family: var(--font-family);
     font-size: var(--fs-sm);
     transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
   }

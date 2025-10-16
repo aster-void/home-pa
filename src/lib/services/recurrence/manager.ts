@@ -20,8 +20,8 @@
  * - Luxon: Timezone-aware date handling
  */
 
-import pkg from 'rrule';
-const { RRule, RRuleSet, rrulestr } = pkg;
+import * as rruleModule from 'rrule';
+const { RRule, RRuleSet, rrulestr } = rruleModule;
 import { DateTime } from 'luxon';
 
 // ============================================================================
@@ -55,6 +55,9 @@ export interface EventMaster {
   id: ID;
   title: string;
   description?: string;
+  address?: string;
+  importance?: "low" | "medium" | "high";
+  timeLabel?: "all-day" | "some-timing";
   startLocalISO: string;
   tzid: string;
   durationMs: number;
@@ -231,46 +234,104 @@ function generateRRuleOccurrences(
   const occurrences: Occurrence[] = [];
   
   try {
-    // Parse the RRULE string
-    const dtstart = localISOToUTC(event.startLocalISO, event.tzid);
-    if (!dtstart) {
-      return []; // Invalid start time
+    // Parse the RRULE string with timezone awareness
+    const localDt = DateTime.fromISO(event.startLocalISO, { zone: event.tzid });
+    if (!localDt.isValid) {
+      return [];
     }
+    
+    // For rrule.js to work correctly with BYDAY in local timezone,
+    // we need to use Date.UTC() with local time values
+    // This treats the local time components as if they were UTC
+    const dtstart = new Date(Date.UTC(
+      localDt.year,
+      localDt.month - 1,
+      localDt.day,
+      localDt.hour,
+      localDt.minute,
+      localDt.second
+    ));
 
     const rruleSet = new RRuleSet();
     const rrule = rrulestr(rule.rrule, { dtstart });
     rruleSet.rrule(rrule);
 
     // Generate occurrences with a safety limit
-    const instances = rruleSet.between(
-      windowStartUtc,
-      windowEndUtc,
+    // Use a very wide window to ensure we catch all instances
+    // We'll filter by the actual window later
+    const expandedStart = new Date(dtstart.getTime() - (365 * 24 * 60 * 60 * 1000)); // 1 year before
+    const expandedEnd = new Date(dtstart.getTime() + (2 * 365 * 24 * 60 * 60 * 1000)); // 2 years after
+
+    const rawInstances = rruleSet.between(
+      expandedStart,
+      expandedEnd,
       true, // inclusive
       (date, i) => i < MAX_OCCURRENCES_PER_QUERY
     );
 
-    // Check if we should validate time consistency (only for DAILY/WEEKLY)
+    console.log('[DEBUG manager] RRULE generation:', {
+      rrule: rule.rrule,
+      dtstart,
+      dtstartDay: dtstart.getDay(),
+      dtstartDate: dtstart.getDate(),
+      startLocalISO: event.startLocalISO,
+      tzid: event.tzid,
+      rawInstancesCount: rawInstances.length,
+      windowStartUtc,
+      windowEndUtc,
+      expandedStart,
+      expandedEnd
+    });
+
+    // Check if we should validate time consistency
     const shouldValidateTime = rule.frequency === 'DAILY' || rule.frequency === 'WEEKLY' ||
       rule.rrule.includes('FREQ=DAILY') || rule.rrule.includes('FREQ=WEEKLY');
 
-    for (const instanceUtc of instances) {
-      const localISO = utcToLocalISO(instanceUtc, event.tzid);
-      const localDt = DateTime.fromISO(localISO, { zone: event.tzid });
+    for (const instanceNaive of rawInstances) {
+      // instanceNaive contains UTC timestamps that represent local time values
+      // Extract the UTC components and interpret them as local time in the event's timezone
+      const localDt = DateTime.fromObject({
+        year: instanceNaive.getUTCFullYear(),
+        month: instanceNaive.getUTCMonth() + 1,
+        day: instanceNaive.getUTCDate(),
+        hour: instanceNaive.getUTCHours(),
+        minute: instanceNaive.getUTCMinutes(),
+        second: instanceNaive.getUTCSeconds()
+      }, { zone: event.tzid });
+      
+      const localISO = localDt.toISO({ suppressMilliseconds: true, includeOffset: false })!;
+      
+      // Convert to UTC for storage and window checking
+      const instanceUtc = localDt.toUTC().toJSDate();
+      
+      console.log('[DEBUG manager] Processing instance:', {
+        instanceNaive,
+        localISO,
+        instanceUtc,
+        localWeekday: localDt.weekday,
+        inWindow: instanceUtc >= windowStartUtc && instanceUtc <= windowEndUtc
+      });
+      
+      // Check if this occurrence is within the actual window (filter out buffer)
+      if (instanceUtc < windowStartUtc || instanceUtc > windowEndUtc) {
+        console.log('[DEBUG manager] Skipped: outside window');
+        continue;
+      }
       
       if (shouldValidateTime) {
         // For DAILY/WEEKLY: Check if the local time matches the expected hour/minute from the original event
-        // This catches DST-adjusted times (e.g., 2:30 AM becomes 3:30 AM during spring forward)
         const originalDt = DateTime.fromISO(event.startLocalISO, { zone: event.tzid });
         if (localDt.hour !== originalDt.hour || localDt.minute !== originalDt.minute || localDt.second !== originalDt.second) {
           // Time was adjusted due to DST, skip it
+          console.log('[DEBUG manager] Skipped: time mismatch (DST)');
           continue;
         }
       }
       
-      // Verify the local time is valid (additional DST check)
-      const verifyUtc = localISOToUTC(localISO, event.tzid);
-      if (!verifyUtc) {
-        continue; // Skip non-existent times
+      // Verify the local time is valid
+      if (!localDt.isValid) {
+        console.log('[DEBUG manager] Skipped: invalid local time');
+        continue;
       }
 
       occurrences.push({
@@ -487,8 +548,21 @@ export function createRecurrenceManager(): RecurrenceManager {
 
       // 2. Add RDATE occurrences (explicit additional dates)
       if (event.rdateUtc && event.rdateUtc.length > 0) {
+        console.log('[DEBUG manager] Processing RDATEs:', {
+          eventId: event.id,
+          rdateCount: event.rdateUtc.length,
+          rdates: event.rdateUtc
+        });
         for (const rdateUtc of event.rdateUtc) {
-          if (rdateUtc >= windowStartUtc && rdateUtc <= windowEndUtc) {
+          const inWindow = rdateUtc >= windowStartUtc && rdateUtc <= windowEndUtc;
+          console.log('[DEBUG manager] RDATE:', {
+            rdateUtc,
+            rdateDay: rdateUtc.getDay(),
+            inWindow,
+            windowStartUtc,
+            windowEndUtc
+          });
+          if (inWindow) {
             const localISO = utcToLocalISO(rdateUtc, event.tzid);
             eventOccurrences.push({
               eventId: event.id,
@@ -496,6 +570,7 @@ export function createRecurrenceManager(): RecurrenceManager {
               endUtc: new Date(rdateUtc.getTime() + event.durationMs),
               originalLocalISO: localISO
             });
+            console.log('[DEBUG manager] Added RDATE occurrence:', localISO);
           }
         }
       }

@@ -9,8 +9,9 @@
  * and reduce initial bundle size (~119KB deferred until needed).
  */
 
-import { writable } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { Event } from '../types.js';
+import { events, selectedDate } from './data.js';
 
 export interface RecurrenceOccurrence {
   id: string;
@@ -20,6 +21,9 @@ export interface RecurrenceOccurrence {
   originalLocalISO: string;
   title: string;
   description?: string;
+  address?: string;
+  importance?: "low" | "medium" | "high";
+  timeLabel?: "all-day" | "some-timing";
 }
 
 export interface RecurrenceState {
@@ -37,6 +41,47 @@ const initialState: RecurrenceState = {
 };
 
 export const recurrenceStore = writable<RecurrenceState>(initialState);
+
+/**
+ * Reactive occurrence store that automatically updates when events or selected date changes
+ * This replaces the need for manual loadOccurrences calls
+ */
+let lastLoadSignature: string | null = null;
+
+export const reactiveOccurrences = derived(
+  [events, selectedDate, recurrenceStore],
+  ([$events, $selectedDate, $recurrenceState], set) => {
+    // Only update if we have events and the store is not currently loading
+    if ($events.length === 0 || $recurrenceState.loading) {
+      return;
+    }
+
+    // Calculate date window based on selected date
+    const windowStart = new Date($selectedDate);
+    windowStart.setDate(windowStart.getDate() - 7); // 1 week before
+    windowStart.setHours(0, 0, 0, 0);
+
+    const windowEnd = new Date($selectedDate);
+    windowEnd.setDate(windowEnd.getDate() + 30); // 1 month after
+    windowEnd.setHours(23, 59, 59, 999);
+
+    // Avoid redundant loads with same window and events count (cheap signature)
+    const sig = `${$events.length}-${windowStart.getTime()}-${windowEnd.getTime()}`;
+    if (sig === lastLoadSignature && !$recurrenceState.error) {
+      return;
+    }
+    lastLoadSignature = sig;
+
+    // Load occurrences automatically
+    loadOccurrences($events, windowStart, windowEnd).then(() => {
+      // The recurrenceStore will be updated by loadOccurrences
+      // This derived store will automatically re-run when recurrenceStore changes
+    }).catch(error => {
+      console.error('Error loading reactive occurrences:', error);
+    });
+  },
+  get(recurrenceStore).occurrences
+);
 
 // Singleton manager instance (lazy loaded)
 let manager: any = null;
@@ -82,7 +127,8 @@ export async function loadOccurrences(
   try {
     // Dynamic import - only loads when needed
     const mgr = await getManager();
-    const { DateTime } = await import('luxon');
+    const luxonModule = await import('luxon');
+    const DateTime = luxonModule.DateTime;
     
     // Clear previous data
     await mgr.clearAll();
@@ -92,6 +138,13 @@ export async function loadOccurrences(
       event => event.recurrence && event.recurrence.type !== "NONE"
     );
     
+    console.log('[recurrence.store] loadOccurrences:', {
+      totalEvents: events.length,
+      recurringEvents: recurringEvents.length,
+      windowStart,
+      windowEnd
+    });
+    
     if (recurringEvents.length === 0) {
       // No recurring events, just clear occurrences
       recurrenceStore.update(s => ({
@@ -100,46 +153,126 @@ export async function loadOccurrences(
         loading: false,
         lastUpdated: new Date()
       }));
+      console.log('[recurrence.store] No recurring events found');
       return;
     }
+    
+    // Map to track manager event IDs -> original event IDs
+    const eventIdMap = new Map<string, string>();
     
     // Add each recurring event to the manager
     for (const event of recurringEvents) {
       const tzid = event.tzid || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const startLocalISO = DateTime.fromJSDate(event.start, { zone: tzid })
+      
+      // Extract local time components from the Date object
+      // event.start is a Date object that represents a local time
+      const localTime = {
+        year: event.start.getFullYear(),
+        month: event.start.getMonth() + 1,
+        day: event.start.getDate(),
+        hour: event.start.getHours(),
+        minute: event.start.getMinutes(),
+        second: event.start.getSeconds()
+      };
+      
+      // Create DateTime in the specified timezone with those local values
+      const startLocalISO = DateTime.fromObject(localTime, { zone: tzid })
         .toISO({ suppressMilliseconds: true, includeOffset: false })!;
       const durationMs = event.end.getTime() - event.start.getTime();
       
-      await mgr.createEvent({
+      console.log('[DEBUG] Event conversion:', {
+        originalDate: event.start,
+        localTime,
+        startLocalISO,
+        tzid,
+        weekday: event.start.getDay(),
+        rdateUtc: event.rdateUtc,
+        exdateUtc: event.exdateUtc
+      });
+      
+      // Convert rdateUtc if present (these are stored as local times but need to be UTC)
+      const rdateUtcConverted = event.rdateUtc?.map(rdate => {
+        const rdateLocal = {
+          year: rdate.getFullYear(),
+          month: rdate.getMonth() + 1,
+          day: rdate.getDate(),
+          hour: rdate.getHours(),
+          minute: rdate.getMinutes(),
+          second: rdate.getSeconds()
+        };
+        const utcDate = DateTime.fromObject(rdateLocal, { zone: tzid }).toUTC().toJSDate();
+        console.log('[DEBUG] RDATE conversion:', {
+          original: rdate,
+          rdateLocal,
+          utcDate,
+          utcDay: utcDate.getDay()
+        });
+        return utcDate;
+      });
+      
+      const createdEvent = await mgr.createEvent({
         title: event.title,
         description: event.description,
+        address: event.address,
+        importance: event.importance,
+        timeLabel: event.timeLabel,
         startLocalISO,
         tzid,
         durationMs,
         recurrence: event.recurrence,
-        rdateUtc: event.rdateUtc,
+        rdateUtc: rdateUtcConverted,
         exdateUtc: event.exdateUtc
       });
+      
+      console.log('[DEBUG] Created event in manager:', {
+        managerId: createdEvent.id,
+        originalId: event.id
+      });
+      
+      // Map manager ID to original event ID
+      eventIdMap.set(createdEvent.id, event.id);
     }
     
     // Generate occurrences for the window
     const rawOccurrences = await mgr.getOccurrencesWindow(windowStart, windowEnd);
     
+    console.log('[recurrence.store] Raw occurrences:', {
+      count: rawOccurrences.length,
+      eventIdMap: Array.from(eventIdMap.entries())
+    });
+    
     // Map to our interface and include event details
     const occurrences: RecurrenceOccurrence[] = rawOccurrences.map((occ: any) => {
-      const masterEvent = events.find(e => e.id === occ.eventId);
+      // Map manager ID back to original event ID
+      const originalEventId = eventIdMap.get(occ.eventId) || occ.eventId;
+      const masterEvent = events.find(e => e.id === originalEventId);
+      
+      console.log('[DEBUG] Generated occurrence:', {
+        managerEventId: occ.eventId,
+        originalEventId,
+        startUtc: occ.startUtc,
+        startUtcDay: occ.startUtc.getDay(), // 0=Sun, 6=Sat
+        startUtcDate: occ.startUtc.getDate(),
+        originalLocalISO: occ.originalLocalISO,
+        masterEventFound: !!masterEvent
+      });
+      
       return {
-        id: occ.id || `${occ.eventId}-${occ.startUtc.getTime()}`,
-        eventId: occ.eventId,
+        id: occ.id || `${originalEventId}-${occ.startUtc.getTime()}`,
+        eventId: originalEventId,
         startUtc: occ.startUtc,
         endUtc: occ.endUtc,
         originalLocalISO: occ.originalLocalISO,
         title: masterEvent?.title || 'Recurring Event',
-        description: masterEvent?.description
+        description: masterEvent?.description,
+        address: masterEvent?.address,
+        importance: masterEvent?.importance,
+        timeLabel: masterEvent?.timeLabel
       };
     });
     
     // Update store with success
+    console.log('[recurrence.store] Successfully loaded occurrences:', occurrences.length);
     recurrenceStore.update(s => ({
       ...s,
       occurrences,
@@ -180,6 +313,107 @@ export function getOccurrencesForDate(
     return occDate.toDateString() === targetDateString;
   });
 }
+
+/**
+ * Get all occurrences for the current selected date
+ * This is a derived store that automatically updates when selected date or occurrences change
+ */
+export const todaysOccurrences = derived(
+  [recurrenceStore, selectedDate],
+  ([$recurrenceState, $selectedDate]) => {
+    return getOccurrencesForDate($recurrenceState.occurrences, $selectedDate);
+  }
+);
+
+/**
+ * Get all display events (regular events + recurring occurrences) for a specific date
+ * This combines regular events with generated occurrences
+ */
+export const getDisplayEventsForDate = derived(
+  [events, recurrenceStore],
+  ([$events, $recurrenceState]) => {
+    return (date: Date) => {
+      // Get regular events for the date
+      const regularEvents = $events.filter(event => {
+        const eventDate = new Date(event.start);
+        return eventDate.toDateString() === date.toDateString();
+      });
+
+      // Get recurring occurrences for the date
+      const recurringOccurrences = getOccurrencesForDate($recurrenceState.occurrences, date);
+
+      // Convert occurrences to event format for display
+      const occurrenceEvents = recurringOccurrences.map(occ => ({
+        id: occ.id,
+        title: occ.title,
+        start: occ.startUtc,
+        end: occ.endUtc,
+        description: occ.description,
+        address: occ.address,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel,
+        isRecurring: true,
+        originalEventId: occ.eventId
+      }));
+
+      // Combine and sort by start time
+      return [...regularEvents, ...occurrenceEvents].sort(
+        (a, b) => a.start.getTime() - b.start.getTime()
+      );
+    };
+  }
+);
+
+/**
+ * Combined display events (regular + recurring occurrences), sorted by start
+ */
+export const displayEvents = derived(
+  [events, recurrenceStore],
+  ([$events, $recurrenceState]) => {
+    const recurringEventIds = new Set(
+      $events.filter(e => e.recurrence && e.recurrence.type !== "NONE").map(e => e.id)
+    );
+
+    const occurrenceEvents = $recurrenceState.occurrences
+      .filter(occ => recurringEventIds.has(occ.eventId))
+      .map(occ => ({
+        id: occ.id,
+        eventId: occ.eventId,
+        title: occ.title,
+        start: occ.startUtc,
+        end: occ.endUtc,
+        description: occ.description,
+        address: occ.address,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel
+      } as any));
+
+    const regularEvents = $events.filter(e => !e.recurrence || e.recurrence.type === "NONE");
+
+    return [...regularEvents, ...occurrenceEvents].sort(
+      (a, b) => a.start.getTime() - b.start.getTime()
+    );
+  }
+);
+
+/**
+ * Display events filtered to the currently selected date
+ */
+export const eventsForSelectedDate = derived(
+  [displayEvents, selectedDate],
+  ([$displayEvents, $selectedDate]) => {
+    const startOfDay = new Date($selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date($selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return $displayEvents.filter((event: any) => {
+      const eventStart = new Date(event.start);
+      const eventEnd = new Date(event.end);
+      return eventStart <= endOfDay && eventEnd >= startOfDay;
+    });
+  }
+);
 
 /**
  * Check if occurrences need refresh (older than 5 minutes)
