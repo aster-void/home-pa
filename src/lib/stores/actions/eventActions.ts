@@ -63,6 +63,7 @@ export const eventActions = {
         address: formData.address?.trim() || undefined,
         importance: formData.importance || "medium",
         timeLabel: formData.timeLabel || "all-day",
+        recurrence: formData.recurrence,
       });
 
       // Reset form and hide it
@@ -121,6 +122,7 @@ export const eventActions = {
         address: formData.address?.trim() || undefined,
         importance: formData.importance || "medium",
         timeLabel: formData.timeLabel || "all-day",
+        recurrence: formData.recurrence,
       });
 
       if (!updatedEvent) {

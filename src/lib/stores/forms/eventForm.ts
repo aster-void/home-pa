@@ -10,7 +10,7 @@
 
 import { writable, derived, get } from 'svelte/store';
 import { selectedDate } from '../data.js';
-import type { Event } from '../../types.js';
+import type { Event, Recurrence } from '../../types.js';
 import { utcToLocalDateTimeString, utcToLocalDateString } from '../../utils/date-utils.js';
 
 /**
@@ -26,6 +26,8 @@ export interface EventFormData {
   timeLabel: "all-day" | "some-timing" | "timed";
   isEditing: boolean;
   editingId: string | null;
+  // Recurrence fields
+  recurrence?: Recurrence;
 }
 
 /**

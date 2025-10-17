@@ -37,6 +37,12 @@ export interface Event {
   recurrence?: Recurrence;
   rdateUtc?: Date[]; // Additional occurrence dates
   exdateUtc?: Date[]; // Excluded occurrence dates
+  
+  // New sliding window fields
+  recurrenceGroupId?: string; // Links events across time windows
+  isDuplicate?: boolean; // True for auto-generated duplicates
+  originalEventId?: string; // Reference to original event for duplicates
+  isForever?: boolean; // True for events with no end date
 }
 
 export interface Memo {

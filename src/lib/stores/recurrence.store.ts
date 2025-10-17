@@ -24,6 +24,11 @@ export interface RecurrenceOccurrence {
   address?: string;
   importance?: "low" | "medium" | "high";
   timeLabel?: "all-day" | "some-timing";
+  // New sliding window fields
+  recurrenceGroupId?: string;
+  isForever?: boolean;
+  isDuplicate?: boolean;
+  originalEventId?: string;
 }
 
 export interface RecurrenceState {
@@ -43,44 +48,12 @@ const initialState: RecurrenceState = {
 export const recurrenceStore = writable<RecurrenceState>(initialState);
 
 /**
- * Reactive occurrence store that automatically updates when events or selected date changes
- * This replaces the need for manual loadOccurrences calls
+ * Simple derived store that just returns the current occurrences
+ * Manual loading is handled by CalendarView
  */
-let lastLoadSignature: string | null = null;
-
 export const reactiveOccurrences = derived(
-  [events, selectedDate, recurrenceStore],
-  ([$events, $selectedDate, $recurrenceState], set) => {
-    // Only update if we have events and the store is not currently loading
-    if ($events.length === 0 || $recurrenceState.loading) {
-      return;
-    }
-
-    // Calculate date window based on selected date
-    const windowStart = new Date($selectedDate);
-    windowStart.setDate(windowStart.getDate() - 7); // 1 week before
-    windowStart.setHours(0, 0, 0, 0);
-
-    const windowEnd = new Date($selectedDate);
-    windowEnd.setDate(windowEnd.getDate() + 30); // 1 month after
-    windowEnd.setHours(23, 59, 59, 999);
-
-    // Avoid redundant loads with same window and events count (cheap signature)
-    const sig = `${$events.length}-${windowStart.getTime()}-${windowEnd.getTime()}`;
-    if (sig === lastLoadSignature && !$recurrenceState.error) {
-      return;
-    }
-    lastLoadSignature = sig;
-
-    // Load occurrences automatically
-    loadOccurrences($events, windowStart, windowEnd).then(() => {
-      // The recurrenceStore will be updated by loadOccurrences
-      // This derived store will automatically re-run when recurrenceStore changes
-    }).catch(error => {
-      console.error('Error loading reactive occurrences:', error);
-    });
-  },
-  get(recurrenceStore).occurrences
+  recurrenceStore,
+  ($recurrenceState) => $recurrenceState.occurrences
 );
 
 // Singleton manager instance (lazy loaded)
@@ -144,6 +117,16 @@ export async function loadOccurrences(
       windowStart,
       windowEnd
     });
+    
+    // Debug: log all events to see their recurrence status (can be removed in production)
+    if (events.length > 0) {
+      console.log('[DEBUG] Events with recurrence:', events.map(e => ({
+        id: e.id,
+        title: e.title,
+        hasRecurrence: !!e.recurrence,
+        recurrenceType: e.recurrence?.type
+      })));
+    }
     
     if (recurringEvents.length === 0) {
       // No recurring events, just clear occurrences
@@ -257,6 +240,13 @@ export async function loadOccurrences(
         masterEventFound: !!masterEvent
       });
       
+      // Check if this is a forever recurring event
+      const isForever = masterEvent ? (
+        masterEvent.recurrence && masterEvent.recurrence.type !== "NONE" &&
+        ((masterEvent.recurrence.type === "RRULE" && !masterEvent.recurrence.until && !masterEvent.recurrence.count) ||
+         (masterEvent.recurrence.type === "WEEKLY_BITMASK" && !masterEvent.recurrence.until && !masterEvent.recurrence.count))
+      ) : false;
+      
       return {
         id: occ.id || `${originalEventId}-${occ.startUtc.getTime()}`,
         eventId: originalEventId,
@@ -267,7 +257,12 @@ export async function loadOccurrences(
         description: masterEvent?.description,
         address: masterEvent?.address,
         importance: masterEvent?.importance,
-        timeLabel: masterEvent?.timeLabel
+        timeLabel: masterEvent?.timeLabel,
+        // New sliding window fields
+        recurrenceGroupId: `group-${originalEventId}`,
+        isForever,
+        isDuplicate: false,
+        originalEventId
       };
     });
     
@@ -293,12 +288,6 @@ export async function loadOccurrences(
   }
 }
 
-/**
- * Clear all occurrences and reset state
- */
-export function clearOccurrences(): void {
-  recurrenceStore.set(initialState);
-}
 
 /**
  * Get occurrences for a specific date
@@ -416,11 +405,32 @@ export const eventsForSelectedDate = derived(
 );
 
 /**
- * Check if occurrences need refresh (older than 5 minutes)
+ * Check if an event is forever recurring (no end date)
  */
-export function needsRefresh(lastUpdated: Date | null): boolean {
-  if (!lastUpdated) return true;
-  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-  return lastUpdated.getTime() < fiveMinutesAgo;
+export function isForeverRecurring(event: Event): boolean {
+  if (!event.recurrence || event.recurrence.type === "NONE") {
+    return false;
+  }
+
+  if (event.recurrence.type === "RRULE") {
+    return !event.recurrence.until && !event.recurrence.count;
+  }
+
+  if (event.recurrence.type === "WEEKLY_BITMASK") {
+    return !event.recurrence.until && !event.recurrence.count;
+  }
+
+  return false;
 }
+
+/**
+ * Get forever recurring events from current occurrences
+ */
+export const foreverRecurringEvents = derived(
+  recurrenceStore,
+  ($recurrenceState) => {
+    return $recurrenceState.occurrences.filter(occ => occ.isForever);
+  }
+);
+
 

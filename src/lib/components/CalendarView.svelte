@@ -16,6 +16,8 @@
     recurrenceStore, 
     loadOccurrences, 
     getOccurrencesForDate,
+    isForeverRecurring,
+    foreverRecurringEvents,
     type RecurrenceOccurrence 
   } from "../stores/index.js";
   import { 
@@ -140,6 +142,12 @@
     eventFormActions.updateField('title', eventTitle);
   });
 
+  // Sync recurrence data to form store
+  $effect(() => {
+    const recurrence = buildRecurrenceObject();
+    eventFormActions.updateField('recurrence', recurrence);
+  });
+
   $effect(() => {
     eventFormActions.updateField('address', eventAddress);
   });
@@ -170,8 +178,8 @@
 
   // Load recurring event occurrences on mount
   onMount(() => {
-    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
+    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
     loadOccurrences($events, windowStart, windowEnd);
   });
 
@@ -179,8 +187,8 @@
   $effect(() => {
     // Access $events synchronously to ensure reactivity tracking
     const currentEvents = $events;
-    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
+    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
     
     // Debounce to avoid excessive reloads (200ms for better performance)
     const timeout = setTimeout(() => {
@@ -194,8 +202,8 @@
   $effect(() => {
     if (isEventEditing) {
       const currentForm = $eventForm;
-      const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-      const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
+      const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
+      const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
       
       // Create a temporary event object for preview
       if (currentForm.start && currentForm.end) {
@@ -243,8 +251,17 @@
         title: occ.title,
         start: occ.startUtc,
         end: occ.endUtc,
-        description: occ.description
-      } as Event & { eventId: string }));
+        description: occ.description,
+        address: occ.address,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel,
+        isRecurring: true,
+        originalEventId: occ.eventId,
+        // New sliding window fields
+        recurrenceGroupId: occ.recurrenceGroupId,
+        isForever: occ.isForever,
+        isDuplicate: occ.isDuplicate
+      } as Event & { eventId: string; isRecurring: boolean; originalEventId: string; recurrenceGroupId?: string; isForever?: boolean; isDuplicate?: boolean }));
     
     // Debug logging (can be disabled for production)
     if (false) { // Set to true for debugging
@@ -261,6 +278,14 @@
       a.start.getTime() - b.start.getTime()
     );
   });
+
+  // Get forever recurring events for special handling
+  let foreverEvents = $derived.by(() => {
+    return $foreverRecurringEvents;
+  });
+
+  // Debug info
+  let showDebugInfo = $state(false);
 
   // Calendar grid generation
   function getCalendarDays() {
@@ -420,43 +445,6 @@
     return recurrenceObj;
   }
 
-  // Helper function to check if start date should be included as RDATE
-  function shouldIncludeStartDateAsRDATE(startDate: Date, recurrence: Recurrence): boolean {
-    if (recurrence.type !== "RRULE") {
-      console.log('[DEBUG] shouldIncludeStartDateAsRDATE: not RRULE');
-      return false;
-    }
-    
-    // For WEEKLY recurrence with BYDAY, check if start date's weekday matches any selected day
-    if (recurrence.frequency === "WEEKLY" && recurrence.rrule.includes("BYDAY")) {
-      const startWeekday = startDate.getDay(); // 0=Sun, 6=Sat
-      const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-      const startDayCode = days[startWeekday];
-      
-      // Extract BYDAY value and check if start day is in the list
-      const bydayMatch = recurrence.rrule.match(/BYDAY=([^;]+)/);
-      const bydayList = bydayMatch ? bydayMatch[1].split(',') : [];
-      const includesStartDay = bydayList.includes(startDayCode);
-      const shouldAdd = !includesStartDay;
-      
-      console.log('[DEBUG] shouldIncludeStartDateAsRDATE check:', {
-        startDate,
-        startWeekday,
-        startDayCode,
-        rrule: recurrence.rrule,
-        bydayMatch: bydayMatch ? bydayMatch[1] : null,
-        bydayList,
-        includesStartDay,
-        shouldAdd
-      });
-      
-      // Check if start date's weekday is in the BYDAY list
-      return shouldAdd;
-    }
-    
-    console.log('[DEBUG] shouldIncludeStartDateAsRDATE: not WEEKLY or no BYDAY');
-    return false;
-  }
 
   function parseRecurrenceForEdit(event: Event) {
     if (!event.recurrence || event.recurrence.type === "NONE") {
@@ -558,6 +546,8 @@
       } else if (recurrence.until) {
         const date = new Date(recurrence.until);
         result += ` ${date.toLocaleDateString("ja-JP")}まで`;
+      } else {
+        result += " (永続)"; // Forever indicator
       }
 
       return result;
@@ -910,6 +900,13 @@
       </div>
 
       <div class="header-actions">
+        <button 
+          class="debug-toggle" 
+          onclick={() => showDebugInfo = !showDebugInfo}
+          title="Toggle debug information"
+        >
+          {showDebugInfo ? 'Hide' : 'Show'} Debug
+        </button>
         {#if $recurrenceStore.loading}
           <div class="recurrence-loading">
             <span class="loading-spinner"></span>
@@ -924,6 +921,48 @@
         <button class="add-event-button" onclick={createEvent}>+</button>
       </div>
     </div>
+
+    <!-- Debug Information -->
+    {#if showDebugInfo}
+      <div class="debug-info">
+        <h3>Sliding Window Debug Info</h3>
+        <div class="debug-stats">
+          <div class="debug-stat">
+            <strong>Window:</strong> 
+            {new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1).toLocaleDateString()} - 
+            {new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0).toLocaleDateString()}
+          </div>
+          <div class="debug-stat">
+            <strong>Total Events:</strong> {$events.length}
+          </div>
+          <div class="debug-stat">
+            <strong>Display Events:</strong> {allDisplayEvents.length}
+          </div>
+          <div class="debug-stat">
+            <strong>Forever Events:</strong> {foreverEvents.length}
+          </div>
+          <div class="debug-stat">
+            <strong>Recurrence Store:</strong> 
+            Loading: {$recurrenceStore.loading ? 'Yes' : 'No'}, 
+            Error: {$recurrenceStore.error || 'None'}
+          </div>
+        </div>
+        {#if foreverEvents.length > 0}
+          <div class="forever-events-list">
+            <h4>Forever Recurring Events:</h4>
+            <ul>
+              {#each foreverEvents as event}
+                <li>
+                  {event.title} 
+                  <span class="forever-indicator">∞</span>
+                  (Group: {event.recurrenceGroupId})
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <!-- Calendar Grid -->
     <div class="calendar-grid">
@@ -960,7 +999,15 @@
                   style="background-color: {getEventColor(truncatedEvent)}; top: {rowIndex * 18}px;"
                 >
                   {#if showLabel}
-                    <span class="event-label">{truncatedEvent.title}</span>
+                    <span class="event-label">
+                      {truncatedEvent.title}
+                      {#if (truncatedEvent as any).isForever}
+                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                      {/if}
+                      {#if (truncatedEvent as any).isDuplicate}
+                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                      {/if}
+                    </span>
                   {/if}
                 </div>
               {/each}
@@ -983,7 +1030,15 @@
                 {@const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id)!}
                 <div class="event-content">
                   <div class="event-header">
-                    <div class="event-title">{event.title}</div>
+                    <div class="event-title">
+                      {event.title}
+                      {#if (event as any).isForever}
+                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                      {/if}
+                      {#if (event as any).isDuplicate}
+                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                      {/if}
+                    </div>
                     {#if masterEvent.importance && masterEvent.importance !== 'medium'}
                       <div class="importance-indicator {masterEvent.importance}">
                         {masterEvent.importance === 'high' ? '🔴' : '🟡'}
@@ -1015,7 +1070,15 @@
               {:else}
                 <div class="event-content">
                   <div class="event-header">
-                    <div class="event-title">{event.title}</div>
+                    <div class="event-title">
+                      {event.title}
+                      {#if (event as any).isForever}
+                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                      {/if}
+                      {#if (event as any).isDuplicate}
+                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                      {/if}
+                    </div>
                     {#if event.importance && event.importance !== 'medium'}
                       <div class="importance-indicator {event.importance}">
                         {event.importance === 'high' ? '🔴' : '🟡'}
@@ -1879,7 +1942,93 @@
     font-weight: 500;
     color: var(--text);
     margin-bottom: var(--space-xs);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .forever-indicator {
+    color: #ff9800;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-left: 4px;
+  }
+
+  .duplicate-indicator {
+    color: #9c27b0;
+    font-weight: bold;
+    font-size: 0.9em;
+    margin-left: 4px;
+  }
+
+  .debug-toggle {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-right: 8px;
+  }
+
+  .debug-toggle:hover {
+    background: var(--glass-hover);
+  }
+
+  .debug-info {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+
+  .debug-info h3 {
+    margin: 0 0 12px 0;
+    color: var(--text);
     font-family: var(--font-display);
+  }
+
+  .debug-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .debug-stat {
+    background: var(--glass-bg);
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--glass-border);
+  }
+
+  .forever-events-list {
+    background: var(--glass-bg);
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid var(--glass-border);
+  }
+
+  .forever-events-list h4 {
+    margin: 0 0 8px 0;
+    color: var(--text);
+    font-family: var(--font-display);
+  }
+
+  .forever-events-list ul {
+    margin: 0;
+    padding-left: 16px;
+  }
+
+  .forever-events-list li {
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .event-time {

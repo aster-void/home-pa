@@ -38,8 +38,8 @@ export {
   eventsForSelectedDate,
   loadOccurrences,
   getOccurrencesForDate,
-  clearOccurrences,
-  needsRefresh,
+  isForeverRecurring,
+  foreverRecurringEvents,
   type RecurrenceOccurrence,
   type RecurrenceState
 } from './recurrence.store.js';
@@ -95,8 +95,6 @@ export { suggestionActions } from './actions/suggestionActions.js';
 // Timezone
 export { timezone, timezoneActions, timezoneLabel } from './timezone.js';
 
-// Recurrence form
-export { recurrenceForm, recurrenceFormActions, isRecurrenceEnabled } from './forms/recurrenceForm.js';
 
 // Devtools
 export { devtools, devtoolsEnabled } from './devtools.js';
