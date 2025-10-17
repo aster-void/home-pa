@@ -1,8 +1,8 @@
 # Recurrence Manager
 
-## ✅ Status: ENABLED and Working
+## ✅ Status: ENABLED and Working with Sliding Window
 
-The frontend-only recurrence manager is **successfully integrated** using lazy-loading strategy. Recurring events work smoothly without blocking or SSR issues.
+The frontend-only recurrence manager is **successfully integrated** using a sliding window approach with lazy-loading strategy. Recurring events work smoothly without blocking or SSR issues, and now efficiently handle forever recurring events with a 7-month sliding window.
 
 ## Quick Reference
 
@@ -14,7 +14,13 @@ src/lib/
   │   ├── manager.test.ts         - Test suite (25 tests, all passing)
   │   └── README.md               - Detailed API documentation
   ├── stores/
-  │   └── recurrence.store.ts     - Lazy-loading store integration
+  │   ├── recurrence.store.ts     - Sliding window store integration
+  │   ├── forms/
+  │   │   └── eventForm.ts        - Event form with recurrence support
+  │   └── actions/
+  │       └── eventActions.ts     - Event CRUD with recurrence handling
+  ├── components/
+  │   └── CalendarView.svelte     - Calendar with sliding window UI
   └── types.ts                    - Event types with recurrence fields
 ```
 
@@ -63,9 +69,13 @@ onMount() triggers loadOccurrences()
     ↓
 Dynamic import (rrule + luxon loaded)
     ↓
-Generate occurrences for 3-month window
+Generate occurrences for 7-month sliding window
+    ↓
+Mark forever recurring events (∞ indicator)
     ↓
 Display in calendar (non-blocking)
+    ↓
+Auto-shift window on navigation
 ```
 
 ## Key Features
@@ -84,6 +94,11 @@ Display in calendar (non-blocking)
 - **Bundle Optimization**: ~119KB lazy-loaded only when needed
 - **SSR-Safe**: No hydration issues
 - **Loading States**: Spinner and error messages in UI
+- **🆕 Sliding Window**: 7-month window (3 before + current + 3 after) for efficient memory usage
+- **🆕 Forever Events**: Special handling and visual indicators (∞) for events with no end date
+- **🆕 Recurrence Groups**: Connected events across time windows with shared IDs
+- **🆕 Debug Panel**: Real-time monitoring of window state and forever events
+- **🆕 Integrated Forms**: Recurrence settings built into event creation/editing
 
 ## Recurrence Types
 
@@ -180,15 +195,18 @@ eventOperations.create({
 - **Impact**: Minimal - loads in ~100-300ms on first use
 
 ### Computation Speed
-- **First load**: ~100-300ms for 3-month window
+- **First load**: ~100-300ms for 7-month sliding window
 - **Cached loads**: ~50-100ms (manager singleton reused)
-- **Window**: 3 months (prev month + current + next month)
-- **Auto-reload**: Debounced 300ms on month navigation
+- **Window**: 7 months (3 before + current + 3 after)
+- **Auto-reload**: Debounced 200ms on month navigation
+- **Window shifting**: Automatic when user navigates beyond current window
 
 ### Memory
 - Singleton manager instance (reused)
-- Occurrences regenerated on demand
+- Occurrences regenerated on demand for current window only
 - No persistent cache (intentionally simple)
+- **Memory efficient**: Only loads 7 months instead of years of data
+- **Forever events**: Special handling prevents infinite generation
 
 ## Testing
 
@@ -282,9 +300,60 @@ console.log(event.tzid); // Should be set
 - Example: Daily 1:30 AM event on Nov 2, 2025 → First 1:30 AM
 
 ### Occurrence Window
-- **Default**: 3 months (previous + current + next)
+- **Default**: 7 months (3 before + current + 3 after)
 - **Updates**: On month navigation or event changes
-- **Debounce**: 300ms to prevent excessive reloads
+- **Debounce**: 200ms to prevent excessive reloads
+- **Auto-shift**: Window automatically shifts when user navigates beyond current range
+- **Forever events**: Special handling with visual indicators (∞)
+
+## Sliding Window System
+
+### Overview
+The sliding window system efficiently manages recurring events by loading only a 7-month range at a time, preventing memory bloat while maintaining full functionality.
+
+### Window Configuration
+- **Size**: 7 months (3 before + current + 3 after)
+- **Auto-shift**: Automatically shifts when user navigates beyond current window
+- **Memory efficient**: Only loads necessary data instead of years of events
+
+### Forever Recurring Events
+Events with no end date are specially handled:
+
+```typescript
+// Forever event example
+{
+  title: "Daily Standup",
+  recurrence: {
+    type: "RRULE",
+    rrule: "FREQ=DAILY" // No COUNT or UNTIL = forever
+  },
+  isForever: true, // Automatically detected
+  recurrenceGroupId: "group-123" // Links across windows
+}
+```
+
+### Visual Indicators
+- **∞ symbol**: Forever recurring events
+- **↻ symbol**: Auto-generated duplicate events
+- **Debug panel**: Real-time window monitoring
+
+### Window Management
+```typescript
+// Automatic window calculation
+const windowStart = new Date(selectedDate);
+windowStart.setMonth(windowStart.getMonth() - 3);
+windowStart.setDate(1);
+
+const windowEnd = new Date(selectedDate);
+windowEnd.setMonth(windowEnd.getMonth() + 3);
+windowEnd.setDate(0); // Last day of month
+```
+
+### Benefits
+1. **Memory efficiency**: Only 7 months loaded at once
+2. **Performance**: Faster loading and rendering
+3. **Scalability**: Handles forever events without infinite generation
+4. **User experience**: Smooth navigation with automatic window shifting
 
 ## Future Enhancements
 

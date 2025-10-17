@@ -12,12 +12,15 @@ This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "inpu
   - **All-day events**: Can span multiple days, stored as date-only
   - **Some-timing events**: Single day events without specific times
   - **Timed events**: Events with specific start/end times
+  - **🆕 Recurring Events**: Create events that repeat with RRULE support
 - **Edit Events**: Modify existing events with form pre-population
 - **Delete Events**: Remove events with confirmation dialog
 - **View Modes**: Switch between day view (selected date) and list view (all events)
 - **Timeline View**: Visual timeline showing timed events and all-day events
 - **Date Navigation**: Navigate between different days with keyboard shortcuts
 - **Smart Validation**: Prevents creating events in the past or with invalid times
+- **🆕 Sliding Window**: Efficient 7-month window for recurring events
+- **🆕 Forever Events**: Special handling for events with no end date (∞ indicator)
 
 ### 📝 Memo Management
 
@@ -116,7 +119,11 @@ src/lib/
 ✅ **Form Validation**: Smart validation prevents invalid data  
 ✅ **Suggestion Triggers**: Auto-suggestions when returning to calendar  
 ✅ **Native Stores**: Uses Svelte stores for optimal performance  
-✅ **Type Safety**: Full TypeScript support throughout
+✅ **Type Safety**: Full TypeScript support throughout  
+✅ **🆕 Recurring Events**: RRULE support with sliding window system  
+✅ **🆕 Forever Events**: Special handling for events with no end date  
+✅ **🆕 Memory Efficiency**: 7-month sliding window prevents memory bloat  
+✅ **🆕 Visual Indicators**: ∞ symbol for forever events, debug panel
 
 ## Data Flow
 
@@ -242,7 +249,7 @@ export const todaysEvents = derived(
 - External API integrations (weather, transit)
 - Push notifications
 - Data persistence (database integration)
-- Advanced calendar features (recurring events, reminders)
+- ~~Advanced calendar features (recurring events, reminders)~~ ✅ **COMPLETED**
 - User authentication and multi-user support
 - Mobile app version
 - Offline support

@@ -117,6 +117,11 @@ interface RecurrenceOccurrence {
   address?: string;
   importance?: "low" | "medium" | "high";
   timeLabel: "all-day" | "some-timing" | "timed";
+  // New sliding window fields
+  recurrenceGroupId?: string;    // Links events across time windows
+  isForever?: boolean;           // True for events with no end date
+  isDuplicate?: boolean;         // True for auto-generated duplicates
+  originalEventId?: string;      // Reference to original event for duplicates
 }
 ```
 
@@ -519,6 +524,16 @@ export function localDateTimeToUTC(dateString: string, timeString: string): Date
 ```
 
 ## Recurrence System
+
+### Sliding Window Architecture
+
+The recurrence system now uses a **7-month sliding window** approach for efficient memory management and forever event handling:
+
+#### Window Configuration
+- **Size**: 7 months (3 before + current + 3 after)
+- **Auto-shift**: Automatically shifts when user navigates beyond current window
+- **Memory efficient**: Only loads necessary data instead of years of events
+- **Forever events**: Special handling with visual indicators (∞)
 
 ### Recurrence Manager Architecture
 

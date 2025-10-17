@@ -1,5 +1,25 @@
 # home-pa
 
+A personal assistant calendar application built with SvelteKit, featuring smart suggestions, recurring events with sliding window management, and efficient memory usage.
+
+## Features
+
+### 📅 Calendar Management
+- **Event Creation**: All-day, some-timing, and timed events
+- **🆕 Recurring Events**: RRULE support with 7-month sliding window
+- **🆕 Forever Events**: Special handling for events with no end date (∞ indicator)
+- **Memory Efficient**: Only loads 7 months of data at a time
+- **Visual Indicators**: ∞ for forever events, ↻ for duplicates
+
+### 💡 Smart Suggestions
+- Gap detection for free time
+- Productive activity suggestions
+- Reaction tracking and logging
+
+### 📝 Memo Management
+- Simple text-based memos
+- Full CRUD operations
+
 ## Quickstart
 
 ### Prerequisites
