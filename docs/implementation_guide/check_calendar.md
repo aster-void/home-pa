@@ -39,6 +39,28 @@ The calendar system follows a layered architecture with clear separation of conc
 
 ## Data Models and Types
 
+### Event Data Model
+
+The calendar system supports three distinct event types with different data storage patterns:
+
+#### **All-day Events** (`timeLabel: "all-day"`)
+- **Storage**: Date-only (start/end times are 00:00 UTC)
+- **Multi-day Support**: Can span multiple days
+- **Display**: Shows as "終日" with full height in timeline (00:00-23:59)
+- **Use Case**: Events that last the entire day(s) regardless of specific times
+
+#### **Some-timing Events** (`timeLabel: "some-timing"`)
+- **Storage**: Date-only (start/end times are 00:00 UTC)
+- **Single-day Only**: Start date must equal end date
+- **Display**: Shows as "どこかのタイミングで", excluded from timeline
+- **Use Case**: Events scheduled for a specific day but time is not yet decided
+
+#### **Timed Events** (`timeLabel: "timed"`)
+- **Storage**: Date + actual start/end times in UTC
+- **Multi-day Support**: Can span multiple days with specific times
+- **Display**: Shows actual times, positioned by time in timeline
+- **Use Case**: Events with specific start and end times
+
 ### Core Event Interface
 ```typescript
 interface Event {
@@ -49,7 +71,7 @@ interface Event {
   description?: string;          // Optional description
   address?: string;              // Optional location
   importance?: "low" | "medium" | "high";  // Priority level
-  timeLabel?: "all-day" | "some-timing";   // Display type
+  timeLabel: "all-day" | "some-timing" | "timed";   // Event timing type
   tzid?: string;                 // IANA timezone identifier
   recurrence?: Recurrence;       // Recurrence rules
   rdateUtc?: Date[];            // Additional occurrence dates (UTC)
@@ -94,7 +116,7 @@ interface RecurrenceOccurrence {
   description?: string;
   address?: string;
   importance?: "low" | "medium" | "high";
-  timeLabel?: "all-day" | "some-timing";
+  timeLabel: "all-day" | "some-timing" | "timed";
 }
 ```
 
@@ -256,12 +278,12 @@ let eventStartTime = $state("");
 let eventEndTime = $state("");
 let eventAddress = $state("");
 let eventImportance = $state<"low" | "medium" | "high">("medium");
-let eventTimeLabel = $state<"all-day" | "some-timing">("all-day");
+let eventTimeLabel = $state<"all-day" | "some-timing" | "timed">("all-day");
 let isEventEditing = $state(false);
 
 // Derived state for validation
 let hasTimeContent = $derived(
-  eventTimeLabel !== "all-day" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
+  eventTimeLabel === "timed" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
 );
 ```
 
@@ -295,14 +317,17 @@ $effect(() => {
         eventEndTime = "";
       }
       
-      // Override time fields based on time label
-      if (form.timeLabel === "all-day") {
-        eventStartTime = "00:00";
-        eventEndTime = "23:59";
-      } else if (form.timeLabel === "some-timing") {
-        eventStartTime = "";
-        eventEndTime = "";
-      }
+    // Override time fields based on time label
+    if (form.timeLabel === "all-day") {
+      eventStartTime = "00:00";
+      eventEndTime = "23:59";
+    } else if (form.timeLabel === "some-timing") {
+      eventStartTime = "";
+      eventEndTime = "";
+    } else if (form.timeLabel === "timed") {
+      // For timed events, keep the actual time values from the form
+      // Don't override them
+    }
       
       eventAddress = form.address || "";
       eventImportance = form.importance || "medium";
@@ -379,34 +404,37 @@ createEvent(): void {
       return;
     }
   } else {
-    // Use selected date for all-day or some-timing events
-    const currentSelectedDate = get(selectedDate);
-    const dateString = `${currentSelectedDate.getFullYear()}-${String(currentSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(currentSelectedDate.getDate()).padStart(2, '0')}`;
+    // For date-only events (all-day, some-timing)
+    let startDateStr: string;
+    let endDateStr: string;
+    
+    if (formData.start && formData.end) {
+      // Extract date parts (remove time if present)
+      startDateStr = formData.start.includes('T') ? formData.start.split('T')[0] : formData.start;
+      endDateStr = formData.end.includes('T') ? formData.end.split('T')[0] : formData.end;
+    } else {
+      // Use selected date as fallback
+      const currentSelectedDate = get(selectedDate);
+      const dateString = utcToLocalDateString(currentSelectedDate);
+      startDateStr = dateString;
+      endDateStr = dateString;
+    }
     
     if (formData.timeLabel === "some-timing") {
-      // For some-timing events, they don't have specific times
-      // Just set them to the same time (no duration) so they don't appear in timeline
-      const [year, month, day] = dateString.split('-').map(Number);
-      startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-      endDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+      // Some-timing events: start and end must be the same date (single day only)
+      const dateOnly = createDateOnlyUTC(startDateStr);
+      startDate = dateOnly;
+      endDate = dateOnly;
     } else {
-      // For all-day events, check if it spans multiple days
-      if (formData.start && formData.end) {
-        const startDateStr = formData.start.split('T')[0];
-        const endDateStr = formData.end.split('T')[0];
-        if (startDateStr === endDateStr) {
-          // Single day all-day event
-          const range = createAllDayUTCRange(startDateStr);
-          startDate = range.start;
-          endDate = range.end;
-        } else {
-          // Multi-day all-day event
-          const range = createMultiDayAllDayUTCRange(startDateStr, endDateStr);
-          startDate = range.start;
-          endDate = range.end;
-        }
+      // All-day events: can span multiple days
+      if (startDateStr === endDateStr) {
+        // Single day all-day event - start and end are the same (date at 00:00 UTC)
+        const dateOnly = createDateOnlyUTC(startDateStr);
+        startDate = dateOnly;
+        endDate = dateOnly;
       } else {
-        const range = createAllDayUTCRange(dateString);
+        // Multi-day all-day event - start is first day, end is last day (both at 00:00 UTC)
+        const range = createMultiDayAllDayUTCRange(startDateStr, endDateStr);
         startDate = range.start;
         endDate = range.end;
       }
@@ -526,7 +554,7 @@ export interface EventMaster {
   description?: string;
   address?: string;
   importance?: "low" | "medium" | "high";
-  timeLabel?: "all-day" | "some-timing";
+  timeLabel: "all-day" | "some-timing" | "timed";
   startLocalISO: string;         // Local time as ISO string
   tzid: string;                  // IANA timezone
   durationMs: number;            // Duration in milliseconds
@@ -928,11 +956,12 @@ function getEventsForDate(events: Event[], targetDate: Date): Event[] {
     });
 }
 
-// Helper function to get events for timeline (excludes some-timing events)
+// Helper function to get events for timeline (includes timed and all-day events)
 function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
   return getEventsForDate(events, targetDate).filter(event => {
-    // Exclude some-timing events from timeline
-    return event.timeLabel !== "some-timing";
+    // Include timed events (positioned by time) and all-day events (full height)
+    // Exclude some-timing events (they don't have specific times)
+    return event.timeLabel === "timed" || event.timeLabel === "all-day";
   });
 }
 ```
@@ -1353,21 +1382,25 @@ export const DisplayUtils = {
 };
 ```
 
-### 5. Event Type Simplification
+### 5. Event Type Implementation
 
-**Current State**: Complex timeLabel logic with multiple states
-**Simplification**: Simplified event types
+**Current State**: Three distinct event types with clear data storage patterns
+**Implementation**: Event types with proper data handling
 
 ```typescript
-type EventType = 'timed' | 'all-day' | 'date-only';
+type EventType = 'all-day' | 'some-timing' | 'timed';
 
-interface SimplifiedEvent {
+interface Event {
   id: string;
   title: string;
-  type: EventType;
-  start: Date;
-  end: Date;
-  // ... other properties
+  timeLabel: EventType;
+  start: Date;  // UTC - actual times for timed, 00:00 for date-only
+  end: Date;    // UTC - actual times for timed, 00:00 for date-only
+  description?: string;
+  address?: string;
+  importance?: "low" | "medium" | "high";
+  tzid?: string;
+  recurrence?: Recurrence;
 }
 ```
 
@@ -1390,7 +1423,10 @@ export const todaysEvents = derived(appState, $state =>
 );
 
 export const timelineEvents = derived(appState, $state =>
-  $state.events.filter(e => e.type === 'timed' && isSameDay(e.start, $state.selectedDate))
+  $state.events.filter(e => 
+    (e.timeLabel === 'timed' || e.timeLabel === 'all-day') && 
+    isSameDay(e.start, $state.selectedDate)
+  )
 );
 ```
 
@@ -1418,7 +1454,7 @@ let eventStartDate = $state("2024-01-15");
 let eventEndDate = $state("2024-01-15");
 let eventStartTime = $state(""); // Empty - time not decided
 let eventEndTime = $state("");   // Empty - time not decided
-let eventTimeLabel = $state<"all-day" | "some-timing">("some-timing");
+let eventTimeLabel = $state<"all-day" | "some-timing" | "timed">("some-timing");
 let isRecurring = $state(true);
 let recurrenceFrequency = $state<"WEEKLY">("WEEKLY");
 let weeklyDays = $state<boolean[]>([false, true, false, false, false, false, false]); // Monday only
@@ -1464,11 +1500,10 @@ createEvent(): void {
   const dateString = `${currentSelectedDate.getFullYear()}-${String(currentSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(currentSelectedDate.getDate()).padStart(2, '0')}`;
   
   if (formData.timeLabel === "some-timing") {
-    // For some-timing events, they don't have specific times
-    // Just set them to the same time (no duration) so they don't appear in timeline
-    const [year, month, day] = dateString.split('-').map(Number);
-    const startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0)); // Same time = zero duration
+    // For some-timing events, start and end must be the same date (single day only)
+    const dateOnly = createDateOnlyUTC(dateString);
+    const startDate = dateOnly;
+    const endDate = dateOnly; // Same time = zero duration
   }
   
   // Create the base event
@@ -1698,13 +1733,16 @@ $effect(() => {
 // CalendarView.svelte - Timeline rendering
 function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
   return getEventsForDate(events, targetDate).filter(event => {
-    // Exclude some-timing events from timeline
-    return event.timeLabel !== "some-timing";
+    // Include timed events (positioned by time) and all-day events (full height)
+    // Exclude some-timing events (they don't have specific times)
+    return event.timeLabel === "timed" || event.timeLabel === "all-day";
   });
 }
 
 // For our weekly team meeting, it won't appear in timeline because timeLabel is "some-timing"
 // But it will appear in the calendar grid view with "どこかのタイミングで" label
+// All-day events will appear in timeline with full height (00:00-23:59)
+// Timed events will appear in timeline positioned by their actual times
 
 // Calendar grid display
 {#each getEventsForDate(allDisplayEvents, day) as event (event.id)}

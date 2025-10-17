@@ -37,6 +37,7 @@ export function localDateTimeStringToUTC(dateTimeString: string): Date {
  * Used when displaying in UI
  */
 export function utcToLocalDateString(utcDate: Date): string {
+  // Convert UTC date to local timezone for display
   const year = utcDate.getFullYear();
   const month = String(utcDate.getMonth() + 1).padStart(2, '0');
   const day = String(utcDate.getDate()).padStart(2, '0');
@@ -48,6 +49,7 @@ export function utcToLocalDateString(utcDate: Date): string {
  * Used when displaying in UI
  */
 export function utcToLocalDateTimeString(utcDate: Date): string {
+  // Convert UTC date to local timezone for display
   const year = utcDate.getFullYear();
   const month = String(utcDate.getMonth() + 1).padStart(2, '0');
   const day = String(utcDate.getDate()).padStart(2, '0');
@@ -106,40 +108,66 @@ export function localDateTimeToUTC(dateString: string, timeString: string): Date
 }
 
 /**
- * Creates an all-day UTC Date range from a local date string
- * Used for all-day events
+ * Creates a date-only UTC Date for all-day and some-timing events
+ * For these events, start and end are the same (date at 00:00 UTC)
  */
-export function createAllDayUTCRange(dateString: string): { start: Date; end: Date } {
+export function createDateOnlyUTC(dateString: string): Date {
   if (!dateString) {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
-    return { start, end };
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   }
   
   const [year, month, day] = dateString.split('-').map(Number);
-  const start = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-  const end = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-  return { start, end };
+  // Create UTC date at 00:00 for date-only events
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/**
+ * Creates an all-day UTC Date range from a local date string
+ * Used for all-day events (legacy function - use createDateOnlyUTC instead)
+ */
+export function createAllDayUTCRange(dateString: string): { start: Date; end: Date } {
+  const dateOnly = createDateOnlyUTC(dateString);
+  return { start: dateOnly, end: dateOnly };
 }
 
 
 /**
  * Creates a multi-day all-day UTC Date range from start and end date strings
  * Used for all-day events that span multiple days
+ * For multi-day events, start is first day at 00:00 UTC, end is last day at 00:00 UTC
  */
 export function createMultiDayAllDayUTCRange(startDateString: string, endDateString: string): { start: Date; end: Date } {
   if (!startDateString || !endDateString) {
     const now = new Date();
-    const start = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
-    const end = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999));
-    return { start, end };
+    const dateOnly = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    return { start: dateOnly, end: dateOnly };
   }
   
   const [startYear, startMonth, startDay] = startDateString.split('-').map(Number);
   const [endYear, endMonth, endDay] = endDateString.split('-').map(Number);
   
-  const start = new Date(Date.UTC(startYear, startMonth - 1, startDay, 0, 0, 0));
-  const end = new Date(Date.UTC(endYear, endMonth - 1, endDay, 23, 59, 59, 999));
+  // Create UTC dates at 00:00 for multi-day date-only events
+  const start = new Date(Date.UTC(startYear, startMonth - 1, startDay));
+  const end = new Date(Date.UTC(endYear, endMonth - 1, endDay));
   return { start, end };
+}
+
+/**
+ * Helper function to determine if an event is date-only (all-day or some-timing)
+ */
+export function isDateOnlyEvent(event: { timeLabel?: string; start: Date; end: Date }): boolean {
+  if (event.timeLabel === "all-day" || event.timeLabel === "some-timing") {
+    return true;
+  }
+  
+  // Fallback: check if start and end are the same (date-only)
+  return event.start.getTime() === event.end.getTime();
+}
+
+/**
+ * Helper function to get the date string for date-only events
+ */
+export function getEventDateString(event: { start: Date; end: Date }): string {
+  return utcToLocalDateString(event.start);
 }

@@ -114,6 +114,7 @@ To add a new Personal Assistant feature:
 - **Responsiveness**: All components adapt to different screen sizes
 - **Accessibility**: Proper contrast, touch targets, and semantic HTML
 - **Performance**: Minimal re-renders with Svelte 5 runes
+- **Event Support**: Components work with all event types (all-day, some-timing, timed)
 
 ## Design System
 

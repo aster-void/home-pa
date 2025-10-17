@@ -11,7 +11,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { selectedDate } from '../data.js';
 import type { Event } from '../../types.js';
-import { utcToLocalDateTimeString } from '../../utils/date-utils.js';
+import { utcToLocalDateTimeString, utcToLocalDateString } from '../../utils/date-utils.js';
 
 /**
  * Event form data interface
@@ -23,7 +23,7 @@ export interface EventFormData {
   description?: string;
   address?: string;
   importance?: "low" | "medium" | "high";
-  timeLabel?: "all-day" | "some-timing";
+  timeLabel: "all-day" | "some-timing" | "timed";
   isEditing: boolean;
   editingId: string | null;
 }
@@ -89,12 +89,12 @@ export const hasFormContent = derived(
 );
 
 /**
- * Whether the form has time content (for some-timing events)
+ * Whether the form has time content (for timed events)
  */
 export const hasTimeContent = derived(
   eventForm,
   ($form) => {
-    return $form.timeLabel !== "all-day" && 
+    return $form.timeLabel === "timed" && 
            ($form.start.trim() !== "" || $form.end.trim() !== "");
   }
 );
@@ -168,18 +168,27 @@ export const eventFormActions = {
    * Set form data for editing an existing event
    */
   setFormForEditing(event: Event): void {
-    // Determine time label based on event duration
-    // All-day threshold: events lasting 24 hours minus 1 second (86399000ms)
-    // This accounts for events like "2024-01-01T00:00" to "2024-01-02T00:00" 
-    // which are technically 24 hours but represent a full day
-    const isAllDay = event.end.getTime() - event.start.getTime() >= 24 * 60 * 60 * 1000 - 1000;
-    const timeLabel = event.timeLabel || (isAllDay ? "all-day" : "some-timing");
+    // Use the event's timeLabel directly, defaulting to "all-day" if not set
+    const timeLabel = event.timeLabel || "all-day";
+
+    // For date-only events, show only the date
+    // For timed events, show the datetime
+    let startValue = "";
+    let endValue = "";
+    
+    if (timeLabel === "timed") {
+      startValue = utcToLocalDateTimeString(new Date(event.start));
+      endValue = utcToLocalDateTimeString(new Date(event.end));
+    } else {
+      // For all-day and some-timing events, show only the date
+      startValue = utcToLocalDateString(new Date(event.start));
+      endValue = utcToLocalDateString(new Date(event.end));
+    }
 
     eventForm.set({
       title: event.title,
-      // Use local datetime strings so editing shows the expected local time
-      start: utcToLocalDateTimeString(new Date(event.start)),
-      end: utcToLocalDateTimeString(new Date(event.end)),
+      start: startValue,
+      end: endValue,
       description: event.description || "",
       address: event.address || "",
       importance: event.importance || "medium",
@@ -210,25 +219,33 @@ export const eventFormActions = {
   },
 
   /**
-   * Switch between all-day and some-timing labels
+   * Switch between time labels
    */
-  switchTimeLabel(label: "all-day" | "some-timing"): void {
+  switchTimeLabel(label: "all-day" | "some-timing" | "timed"): void {
     eventForm.update(form => {
-      // If time fields have content, clear them when switching
-      if (form.start || form.end) {
+      if (label === "some-timing") {
+        // Some-timing events: start and end must be the same date
+        const currentStart = form.start ? form.start.split('T')[0] : "";
         return {
           ...form,
           timeLabel: label,
-          start: "",
-          end: "",
+          start: currentStart,
+          end: currentStart, // Force end date to match start date
+        };
+      } else if (label === "all-day") {
+        // All-day events: can span multiple days, preserve existing dates
+        return {
+          ...form,
+          timeLabel: label,
+          // Don't clear start/end dates - preserve user input
+        };
+      } else {
+        // Timed events: keep current values
+        return {
+          ...form,
+          timeLabel: label,
         };
       }
-      
-      // If time fields are empty, just switch the label
-      return {
-        ...form,
-        timeLabel: label,
-      };
     });
   },
 
@@ -291,8 +308,8 @@ export const eventFormActions = {
     eventForm.set({
       ...initialFormState,
       timeLabel: 'all-day',
-      start: `${dateStr}T00:00`,
-      end: `${dateStr}T23:59`,
+      start: dateStr, // Date-only for all-day events
+      end: dateStr,   // Date-only for all-day events
     });
   }
 };
@@ -314,22 +331,26 @@ export function validateEventFormData(formData: EventFormData): { isValid: boole
     errors.title = "タイトルを入力してください";
   }
 
-  if ((formData.start || formData.end) && (!formData.start || !formData.end)) {
-    errors.start = "開始時間と終了時間を入力してください";
-    errors.end = "開始時間と終了時間を入力してください";
-  }
+  // For timed events, validate start/end times
+  if (formData.timeLabel === "timed") {
+    if ((formData.start || formData.end) && (!formData.start || !formData.end)) {
+      errors.start = "開始時間と終了時間を入力してください";
+      errors.end = "開始時間と終了時間を入力してください";
+    }
 
-  if (formData.start && formData.end) {
-    const startDate = new Date(formData.start);
-    const endDate = new Date(formData.end);
-    if (startDate >= endDate) {
-      errors.end = "終了時間は開始時間より後にしてください";
-    }
-    const now = new Date();
-    if (startDate < now) {
-      errors.start = "過去の時間に予定を作成することはできません";
+    if (formData.start && formData.end) {
+      const startDate = new Date(formData.start);
+      const endDate = new Date(formData.end);
+      if (startDate >= endDate) {
+        errors.end = "終了時間は開始時間より後にしてください";
+      }
+      const now = new Date();
+      if (startDate < now) {
+        errors.start = "過去の時間に予定を作成することはできません";
+      }
     }
   }
+  // For date-only events (all-day, some-timing), no time validation needed
 
   return { isValid: Object.keys(errors).length === 0, errors };
 }

@@ -16,7 +16,9 @@ import { uiActions } from '../ui.js';
 import { toasts } from '../toast.js';
 import { 
   utcToLocalDateTimeString,
-  createAllDayUTCRange,
+  utcToLocalDateString,
+  localDateTimeStringToUTC,
+  createDateOnlyUTC,
   createMultiDayAllDayUTCRange,
   localDateTimeToUTC
 } from '../../utils/date-utils.js';
@@ -166,9 +168,8 @@ export const eventActions = {
    * Start editing an event
    */
   editEvent(event: Event): void {
-    // Determine time label based on event duration
-    const isAllDay = event.end.getTime() - event.start.getTime() >= 24 * 60 * 60 * 1000 - 1000;
-    const timeLabel = event.timeLabel || (isAllDay ? "all-day" : "some-timing");
+    // Use the event's timeLabel directly, defaulting to "all-day" if not set
+    const timeLabel = event.timeLabel || "all-day";
 
     // Set form data for editing
     eventFormActions.setFormForEditing({
@@ -258,47 +259,47 @@ function validateEventForm(formData: any): { isValid: boolean; errors: Record<st
  * Create UTC dates for event storage based on form data
  */
 function createEventDates(formData: any): { startDate: Date; endDate: Date } {
-  let startDate: Date;
-  let endDate: Date;
+  if (formData.timeLabel === "timed") {
+    // For timed events, use actual start/end times
+    if (!formData.start || !formData.end) {
+      throw new Error("Timed events require both start and end times");
+    }
+    
+    const startDate = localDateTimeStringToUTC(formData.start);
+    const endDate = localDateTimeStringToUTC(formData.end);
+    return { startDate, endDate };
+  }
+  
+  // For date-only events (all-day, some-timing)
+  let startDateStr: string;
+  let endDateStr: string;
   
   if (formData.start && formData.end) {
-    // Parse datetime-local format and convert to UTC
-    startDate = new Date(formData.start);
-    endDate = new Date(formData.end);
+    // Extract date parts (remove time if present)
+    startDateStr = formData.start.includes('T') ? formData.start.split('T')[0] : formData.start;
+    endDateStr = formData.end.includes('T') ? formData.end.split('T')[0] : formData.end;
   } else {
-    // Use selected date for all-day or some-timing events
+    // Use selected date as fallback
     const currentSelectedDate = get(selectedDate);
-    const dateString = `${currentSelectedDate.getFullYear()}-${String(currentSelectedDate.getMonth() + 1).padStart(2, '0')}-${String(currentSelectedDate.getDate()).padStart(2, '0')}`;
-    
-    if (formData.timeLabel === "some-timing") {
-      // For some-timing events, they don't have specific times
-      // Just set them to the same time (no duration) so they don't appear in timeline
-      const [year, month, day] = dateString.split('-').map(Number);
-      startDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-      endDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    const dateString = utcToLocalDateString(currentSelectedDate);
+    startDateStr = dateString;
+    endDateStr = dateString;
+  }
+  
+  if (formData.timeLabel === "some-timing") {
+    // Some-timing events: start and end must be the same date (single day only)
+    const dateOnly = createDateOnlyUTC(startDateStr);
+    return { startDate: dateOnly, endDate: dateOnly };
+  } else {
+    // All-day events: can span multiple days
+    if (startDateStr === endDateStr) {
+      // Single day all-day event - start and end are the same (date at 00:00 UTC)
+      const dateOnly = createDateOnlyUTC(startDateStr);
+      return { startDate: dateOnly, endDate: dateOnly };
     } else {
-      // For all-day events, check if it spans multiple days
-      if (formData.start && formData.end) {
-        const startDateStr = formData.start.split('T')[0];
-        const endDateStr = formData.end.split('T')[0];
-        if (startDateStr === endDateStr) {
-          // Single day all-day event
-          const range = createAllDayUTCRange(startDateStr);
-          startDate = range.start;
-          endDate = range.end;
-        } else {
-          // Multi-day all-day event
-          const range = createMultiDayAllDayUTCRange(startDateStr, endDateStr);
-          startDate = range.start;
-          endDate = range.end;
-        }
-      } else {
-        const range = createAllDayUTCRange(dateString);
-        startDate = range.start;
-        endDate = range.end;
-      }
+      // Multi-day all-day event - start is first day, end is last day (both at 00:00 UTC)
+      const range = createMultiDayAllDayUTCRange(startDateStr, endDateStr);
+      return { startDate: range.start, endDate: range.end };
     }
   }
-
-  return { startDate, endDate };
 }

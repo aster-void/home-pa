@@ -34,9 +34,9 @@ src/lib/stores/
 
 ### **Form State (`forms/`)**
 - **Purpose**: Manages form data and validation state
-- **Contains**: Form fields, validation errors, editing states
+- **Contains**: Form fields, validation errors, editing states, event timing types
 - **Usage**: Form components bind directly to these stores
-- **Example**: `eventForm`, `memoForm`
+- **Example**: `eventForm` (supports all-day, some-timing, timed events), `memoForm`
 
 ### **Business Logic (`actions/`)**
 - **Purpose**: Contains all business logic and operations
@@ -46,9 +46,9 @@ src/lib/stores/
 
 ### **Core Data (`data.ts`)**
 - **Purpose**: Core application data stores
-- **Contains**: Events, memos, suggestion logs, selected date
+- **Contains**: Events (with flexible timing), memos, suggestion logs, selected date
 - **Usage**: All components access these for data display
-- **Example**: `events`, `memos`, `selectedDate`
+- **Example**: `events` (all-day, some-timing, timed), `memos`, `selectedDate`
 
 ## 🔄 Data Flow
 

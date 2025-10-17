@@ -8,10 +8,14 @@ This is the M1 (MVP Core) implementation of home-pa, featuring the minimal "inpu
 
 ### 📅 Calendar Management
 
-- **Create Events**: Add new calendar events with title, start time, and end time
+- **Create Events**: Add new calendar events with flexible timing options
+  - **All-day events**: Can span multiple days, stored as date-only
+  - **Some-timing events**: Single day events without specific times
+  - **Timed events**: Events with specific start/end times
 - **Edit Events**: Modify existing events with form pre-population
 - **Delete Events**: Remove events with confirmation dialog
 - **View Modes**: Switch between day view (selected date) and list view (all events)
+- **Timeline View**: Visual timeline showing timed events and all-day events
 - **Date Navigation**: Navigate between different days with keyboard shortcuts
 - **Smart Validation**: Prevents creating events in the past or with invalid times
 
@@ -182,10 +186,14 @@ export const todaysEvents = derived(
 ### Creating Events
 
 1. Navigate to Calendar view
-2. Fill in event title, start time, and end time
-3. Click "作成" (Create) button
-4. Form automatically resets with new default times
-5. Event appears immediately in the list
+2. Fill in event title
+3. Choose event type:
+   - **終日 (All-day)**: Shows 00:00-23:59, can span multiple days
+   - **どこかのタイミングで (Some-timing)**: Single day, no specific time
+   - **Time fields**: Manually edit times to create timed events
+4. Set start/end dates as needed
+5. Click "作成" (Create) button
+6. Event appears immediately in the list and timeline
 
 ### Getting Suggestions
 

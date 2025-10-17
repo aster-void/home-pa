@@ -39,7 +39,7 @@
   let eventEndTime = $state("");
   let eventAddress = $state("");
   let eventImportance = $state<"low" | "medium" | "high">("medium");
-  let eventTimeLabel = $state<"all-day" | "some-timing">("all-day");
+  let eventTimeLabel = $state<"all-day" | "some-timing" | "timed">("all-day");
   // Tri-state for clarity: default (grey), all-day, some-timing
   type TimeMode = 'default' | 'all-day' | 'some-timing';
   let timeMode = $state<TimeMode>('default');
@@ -47,9 +47,14 @@
   let isEventEditing = $state(false);
   let isManualDateOrTimeEdit = $state(false);
   
-  // Check if time fields have content
+  // Check if time fields have content (for timed events)
   let hasTimeContent = $derived(
-    eventTimeLabel !== "all-day" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
+    eventTimeLabel === "timed" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
+  );
+
+  // Check if we're in timed mode (either explicitly timed or user has manually edited times)
+  let isTimedMode = $derived(
+    eventTimeLabel === "timed" || isManualDateOrTimeEdit
   );
   
   // Initialize dates when form opens
@@ -118,6 +123,9 @@
       } else if (form.timeLabel === "some-timing") {
         eventStartTime = "";
         eventEndTime = "";
+      } else if (form.timeLabel === "timed") {
+        // For timed events, keep the actual time values from the form
+        // Don't override them
       }
     }
     
@@ -379,7 +387,7 @@
     }
 
     if (recurrenceFrequency === "MONTHLY") {
-      const start = new Date(eventStartDate + "T" + (eventStartTime || "00:00"));
+      const start = localDateTimeToUTC(eventStartDate, eventStartTime || "00:00");
       if (monthlyType === "nthWeekday") {
         const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
         const dayOfWeek = days[start.getDay()];
@@ -606,7 +614,12 @@
     return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
   }
 
-  function getEventPositionScaled(startTime: Date): number {
+  function getEventPositionScaled(startTime: Date, timeLabel?: string): number {
+    // All-day events start at 00:00 (position 0)
+    if (timeLabel === "all-day") {
+      return 0;
+    }
+    
     const hours = startTime.getHours();
     const minutes = startTime.getMinutes();
     return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
@@ -621,6 +634,11 @@
   }
 
   function getEventHeightScaled(event: Event): number {
+    // All-day events span the full timeline height (00:00 to 23:59 = 24 hours)
+    if (event.timeLabel === "all-day") {
+      return 400; // Full height (24 hours * 400px / 1440 minutes)
+    }
+    
     const startTime = event.start;
     const endTime = event.end;
     const durationMs = endTime.getTime() - startTime.getTime();
@@ -712,11 +730,12 @@
       });
   }
 
-  // Helper function to get events for timeline (excludes some-timing events)
+  // Helper function to get events for timeline (includes timed and all-day events)
   function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
     return getEventsForDate(events, targetDate).filter(event => {
-      // Exclude some-timing events from timeline
-      return event.timeLabel !== "some-timing";
+      // Include timed events and all-day events in timeline
+      // Exclude only some-timing events (they don't belong in timeline)
+      return event.timeLabel === "timed" || event.timeLabel === "all-day";
     });
   }
 
@@ -793,10 +812,10 @@
   }
 
   // Helper to determine bar position in multi-day event
-  function getEventBarPosition(event: Event, targetDate: Date): 'start' | 'middle' | 'end' | 'single' {
-    const eventStartDate = new Date(event.start);
+  function getEventBarPosition(eventStart: Date, eventEnd: Date, targetDate: Date): 'start' | 'middle' | 'end' | 'single' {
+    const eventStartDate = new Date(eventStart);
     eventStartDate.setHours(0, 0, 0, 0);
-    const eventEndDate = new Date(event.end);
+    const eventEndDate = new Date(eventEnd);
     eventEndDate.setHours(0, 0, 0, 0);
     const targetDateOnly = new Date(targetDate);
     targetDateOnly.setHours(0, 0, 0, 0);
@@ -932,8 +951,9 @@
             <div class="day-number">{day.getDate()}</div>
             <div class="day-events">
               {#each getEventsForDate(allDisplayEvents, day) as truncatedEvent (truncatedEvent.id)}
-                {@const barPosition = getEventBarPosition(truncatedEvent, day)}
-                {@const showLabel = isFirstDayOfEvent(truncatedEvent, day)}
+                {@const originalEvent = allDisplayEvents.find(e => e.id === truncatedEvent.id) || truncatedEvent}
+                {@const barPosition = getEventBarPosition(originalEvent.start, originalEvent.end, day)}
+                {@const showLabel = isFirstDayOfEvent(originalEvent, day)}
                 {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
                 <div
                   class="event-bar {barPosition}"
@@ -972,6 +992,10 @@
                   </div>
                   {#if masterEvent.timeLabel === 'some-timing'}
                     <div class="event-time some-timing">どこかのタイミングで</div>
+                  {:else if masterEvent.timeLabel === 'timed'}
+                    <div class="event-time timed">
+                      {formatTime(event.start)} - {formatTime(event.end)}
+                    </div>
                   {:else}
                     <div class="event-time all-day">終日</div>
                   {/if}
@@ -1000,6 +1024,10 @@
                   </div>
                   {#if event.timeLabel === 'some-timing'}
                     <div class="event-time some-timing">どこかのタイミングで</div>
+                  {:else if event.timeLabel === 'timed'}
+                    <div class="event-time timed">
+                      {formatTime(event.start)} - {formatTime(event.end)}
+                    </div>
                   {:else}
                     <div class="event-time all-day">終日</div>
                   {/if}
@@ -1120,7 +1148,7 @@
                         role="button"
                         tabindex="0"
                         style="
-                          top: {getEventPositionScaled(event.start)}px;
+                          top: {getEventPositionScaled(event.start, event.timeLabel)}px;
                           height: {getEventHeightScaled(event)}px;
                           background-color: {getEventColor(event)};
                           color: white;
@@ -1128,7 +1156,11 @@
                       >
                         <div class="timeline-event-title">{event.title}</div>
                         <div class="timeline-event-time">
-                          {formatTime(event.start)} - {formatTime(event.end)}
+                          {#if event.timeLabel === 'all-day'}
+                            00:00 - 23:59
+                          {:else}
+                            {formatTime(event.start)} - {formatTime(event.end)}
+                          {/if}
                         </div>
                       </div>
                     {/each}
@@ -1216,7 +1248,7 @@
                   timeMode = 'all-day';
                   eventTimeLabel = 'all-day';
                   eventFormActions.switchTimeLabel('all-day');
-                  // Set time fields to show all-day times
+                  // Set time fields to show all-day times (but user can edit them)
                   eventStartTime = "00:00";
                   eventEndTime = "23:59";
                   isManualDateOrTimeEdit = false;
@@ -1251,8 +1283,22 @@
                 id="event-start-date"
                 type="date"
                 bind:value={eventStartDate}
-                onfocus={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; }}
-                oninput={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                onfocus={() => { 
+                  if (eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
+                oninput={() => { 
+                  if (eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
               />
             </div>
             <div class="inline-field">
@@ -1261,8 +1307,22 @@
                 id="event-end-date"
                 type="date"
                 bind:value={eventEndDate}
-                onfocus={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; }}
-                oninput={() => { if (eventTimeLabel === 'some-timing') timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                onfocus={() => { 
+                  if (eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
+                oninput={() => { 
+                  if (eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
               />
             </div>
           </div>
@@ -1275,8 +1335,22 @@
                 id="event-start-time"
                 type="time"
                 bind:value={eventStartTime}
-                onfocus={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
-                oninput={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                onfocus={() => { 
+                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
+                oninput={() => { 
+                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
               />
             </div>
             <div class="inline-field">
@@ -1285,8 +1359,22 @@
                 id="event-end-time"
                 type="time"
                 bind:value={eventEndTime}
-                onfocus={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
-                oninput={() => { timeMode = 'default'; isManualDateOrTimeEdit = true; }}
+                onfocus={() => { 
+                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
+                oninput={() => { 
+                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
+                    timeMode = 'default'; 
+                    isManualDateOrTimeEdit = true;
+                    eventTimeLabel = 'timed';
+                    eventFormActions.switchTimeLabel('timed');
+                  }
+                }}
               />
             </div>
           </div>
@@ -1615,22 +1703,26 @@
   }
 
   .calendar-day {
-    border-right: 1px solid var(--glass-border);
-    border-bottom: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border);
     padding: var(--space-sm);
     cursor: pointer;
-    transition: all 0.18s ease;
     display: flex;
     flex-direction: column;
     min-height: 100%; /* fill the grid row height */
     background: var(--bg-card);
     position: relative;
-    overflow: hidden; /* Cut off overflowing events */
+    overflow: visible; /* Allow event bars to extend beyond day boundaries */
+    outline: none; /* Remove browser default focus outline */
   }
 
   .calendar-day:hover {
-    background: rgba(156, 202, 235, 0.1);
-    box-shadow: inset 0 0 12px rgba(156, 202, 235, 0.15);
+    background: rgba(240, 138, 119, 0.15);
+    border: 1px solid var(--coral);
+  }
+
+  .calendar-day:focus,
+  .calendar-day:active {
+    outline: none;
   }
 
   .calendar-day.today {
@@ -1653,11 +1745,8 @@
   }
 
   .calendar-day.selected {
-    background: rgba(240, 138, 119, 0.2);
-    border: 2px solid var(--coral);
-    box-shadow:
-      inset 0 0 12px rgba(240, 138, 119, 0.3),
-      0 0 12px rgba(240, 138, 119, 0.3);
+    border: 1px solid var(--coral);
+    box-shadow: 0 0 0 1px var(--coral);
   }
 
   .calendar-day.other-month {
@@ -1699,6 +1788,7 @@
     border-bottom-right-radius: 0;
     margin-right: calc(-1 * var(--space-sm) - 1px);
     padding-right: calc(var(--space-sm) + 1px);
+    z-index: 2;
   }
 
   .event-bar.middle {
@@ -1707,6 +1797,7 @@
     margin-right: calc(-1 * var(--space-sm) - 1px);
     padding-left: calc(var(--space-sm) + 1px);
     padding-right: calc(var(--space-sm) + 1px);
+    z-index: 1;
   }
 
   .event-bar.end {
@@ -1714,6 +1805,7 @@
     border-bottom-left-radius: 0;
     margin-left: calc(-1 * var(--space-sm) - 1px);
     padding-left: calc(var(--space-sm) + 1px);
+    z-index: 2;
   }
 
   .event-label {
@@ -2652,6 +2744,12 @@
     font-weight: 500;
     color: var(--navy-500);
     font-style: italic;
+  }
+
+  .event-time.timed {
+    font-weight: 500;
+    color: var(--primary);
+    font-family: var(--font-mono, monospace);
   }
 
   .event-description {
