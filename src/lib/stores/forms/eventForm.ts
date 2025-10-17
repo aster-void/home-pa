@@ -8,7 +8,7 @@
  * @version 2.0.0
  */
 
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import { selectedDate } from '../data.js';
 import type { Event } from '../../types.js';
 import { utcToLocalDateTimeString } from '../../utils/date-utils.js';
@@ -169,6 +169,9 @@ export const eventFormActions = {
    */
   setFormForEditing(event: Event): void {
     // Determine time label based on event duration
+    // All-day threshold: events lasting 24 hours minus 1 second (86399000ms)
+    // This accounts for events like "2024-01-01T00:00" to "2024-01-02T00:00" 
+    // which are technically 24 hours but represent a full day
     const isAllDay = event.end.getTime() - event.start.getTime() >= 24 * 60 * 60 * 1000 - 1000;
     const timeLabel = event.timeLabel || (isAllDay ? "all-day" : "some-timing");
 
@@ -279,8 +282,7 @@ export const eventFormActions = {
    */
   initializeForNewEvent(): void {
     // Default to the currently selected date in UI
-    let sel = new Date();
-    selectedDate.subscribe(v => (sel = v))();
+    const sel = get(selectedDate);
     const yyyy = sel.getFullYear();
     const mm = String(sel.getMonth() + 1).padStart(2, '0');
     const dd = String(sel.getDate()).padStart(2, '0');
@@ -299,19 +301,7 @@ export const eventFormActions = {
  * Read current form value synchronously
  */
 function getCurrentForm(): EventFormData {
-  let value: EventFormData = {
-    title: "",
-    start: "",
-    end: "",
-    description: "",
-    address: "",
-    importance: "medium",
-    timeLabel: "all-day",
-    isEditing: false,
-    editingId: null
-  };
-  eventForm.subscribe(v => (value = v))();
-  return value;
+  return get(eventForm);
 }
 
 /**
