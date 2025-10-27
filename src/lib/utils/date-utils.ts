@@ -24,12 +24,11 @@ export function localDateStringToUTC(dateString: string): Date {
  */
 export function localDateTimeStringToUTC(dateTimeString: string): Date {
   if (!dateTimeString) return new Date();
-  
   const [datePart, timePart] = dateTimeString.split('T');
   const [year, month, day] = datePart.split('-').map(Number);
   const [hours, minutes] = timePart.split(':').map(Number);
-  
-  return new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  // Create Date in local timezone first, then it gets stored as UTC
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
 
 /**
@@ -95,16 +94,14 @@ export function formatDateTime(date: Date): string {
  */
 export function localDateTimeToUTC(dateString: string, timeString: string): Date {
   if (!dateString) return new Date();
-  
   const [year, month, day] = dateString.split('-').map(Number);
-  
   if (!timeString) {
-    // If no time, create date at start of day UTC
-    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    // If no time, create date at start of day in local timezone
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
   }
-  
   const [hours, minutes] = timeString.split(':').map(Number);
-  return new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  // Create Date in local timezone first, then it gets stored as UTC
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
 
 /**

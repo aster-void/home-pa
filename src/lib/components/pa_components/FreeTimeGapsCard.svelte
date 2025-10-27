@@ -47,112 +47,91 @@
   function formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-
-    if (hours === 0) {
-      return `${mins} minute${mins !== 1 ? "s" : ""}`;
-    } else if (mins === 0) {
-      return `${hours} hour${hours !== 1 ? "s" : ""}`;
-    } else {
-      return `${hours}h ${mins}m`;
-    }
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
+    return `${hours}h ${mins}m`;
   }
 
-  // Get current time in HH:mm format
-  function getCurrentTime(): string {
+  // Get gap status for styling
+  function getGapStatus(gap: { start: string; end: string }): "past" | "current" | "future" {
     const now = new Date();
-    return now.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  }
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const gapStartMinutes = parseInt(gap.start.split(":")[0]) * 60 + parseInt(gap.start.split(":")[1]);
+    const gapEndMinutes = parseInt(gap.end.split(":")[0]) * 60 + parseInt(gap.end.split(":")[1]);
 
-  // Determine gap status and color
-  function getGapStatus(gap: any): "past" | "current" | "future" {
-    const currentTime = getCurrentTime();
-    const currentMinutes = timeToMinutes(currentTime);
-    const gapStartMinutes = timeToMinutes(gap.start);
-    const gapEndMinutes = timeToMinutes(gap.end);
-
-    if (currentMinutes >= gapEndMinutes) {
-      return "past"; // Gap has ended
-    } else if (
-      currentMinutes >= gapStartMinutes &&
-      currentMinutes < gapEndMinutes
-    ) {
-      return "current"; // Current time is within this gap
-    } else {
-      return "future"; // Gap is in the future
-    }
-  }
-
-  // Convert time to minutes for comparison
-  function timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(":").map(Number);
-    return hours * 60 + minutes;
+    if (currentTime >= gapEndMinutes) return "past";
+    if (currentTime >= gapStartMinutes && currentTime < gapEndMinutes) return "current";
+    return "future";
   }
 </script>
 
 <BaseCard title="Free Time Gaps" class="gaps-card">
   <div class="header-info">
     <div class="day-boundaries">
-      <span class="boundary-label">Active Hours:</span>
-      <span class="boundary-time">
-        {formatTime($dayBoundaries.dayStart)} - {formatTime(
-          $dayBoundaries.dayEnd,
-        )}
-      </span>
-      <button class="edit-button" onclick={startEditingBoundaries}>
-        Edit
-      </button>
-    </div>
-  </div>
-
-  {#if editingBoundaries}
-    <div class="boundary-editor">
-      <div class="editor-row">
-        <label>
-          Day Start:
-          <input type="time" bind:value={tempDayStart} class="time-input" />
-        </label>
-        <label>
-          Day End:
-          <input type="time" bind:value={tempDayEnd} class="time-input" />
-        </label>
+      <div class="boundary-display">
+        <span class="label">Active Hours:</span>
+        <span class="time-range">
+          {formatTime($dayBoundaries.dayStart)} - {formatTime($dayBoundaries.dayEnd)}
+        </span>
       </div>
-      <div class="editor-actions">
-        <button class="save-button" onclick={saveBoundaries}> Save </button>
-        <button class="cancel-button" onclick={cancelEditingBoundaries}>
-          Cancel
-        </button>
-        <button class="reset-button" onclick={resetToDefaults}>
-          Reset to Defaults
-        </button>
-      </div>
-    </div>
-  {/if}
-
-  <!-- Gap Statistics -->
-  <div class="gap-stats">
-    <div class="stat-item">
-      <span class="stat-label">Total Free Time:</span>
-      <span class="stat-value">{formatDuration($gapStats.totalGapTime)}</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">Number of Gaps:</span>
-      <span class="stat-value">{$gapStats.gapCount}</span>
-    </div>
-    {#if $gapStats.gapCount > 0}
-      <div class="stat-item">
-        <span class="stat-label">Largest Gap:</span>
-        <span class="stat-value"
-          >{formatDuration($gapStats.largestGap.duration)}</span
+      
+      {#if !editingBoundaries}
+        <button 
+          class="edit-btn" 
+          onclick={startEditingBoundaries}
+          title="Edit day boundaries"
         >
+          ✏️
+        </button>
+      {:else}
+        <div class="edit-controls">
+          <div class="time-inputs">
+            <div class="input-group">
+              <label for="day-start-input">Start:</label>
+              <input 
+                id="day-start-input"
+                type="time" 
+                bind:value={tempDayStart}
+                class="time-input"
+              />
+            </div>
+            <div class="input-group">
+              <label for="day-end-input">End:</label>
+              <input 
+                id="day-end-input"
+                type="time" 
+                bind:value={tempDayEnd}
+                class="time-input"
+              />
+            </div>
+          </div>
+          <div class="button-group">
+            <button onclick={saveBoundaries} class="save-btn">Save</button>
+            <button onclick={cancelEditingBoundaries} class="cancel-btn">Cancel</button>
+            <button onclick={resetToDefaults} class="reset-btn">Reset</button>
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">Total Free Time:</span>
+        <span class="stat-value">{formatDuration($gapStats.totalGapTime)}</span>
       </div>
-    {/if}
+      <div class="stat-item">
+        <span class="stat-label">Gaps:</span>
+        <span class="stat-value">{$gapStats.gapCount}</span>
+      </div>
+      {#if $gapStats.largestGap.duration > 0}
+        <div class="stat-item">
+          <span class="stat-label">Largest Gap:</span>
+          <span class="stat-value">{formatDuration($gapStats.largestGap.duration)}</span>
+        </div>
+      {/if}
+    </div>
   </div>
 
-  <!-- Gap List -->
   <div class="gaps-list">
     {#if $gaps.length === 0}
       <div class="no-gaps">
@@ -160,22 +139,15 @@
         <p class="no-gaps-hint">Add some events to see your free time slots!</p>
       </div>
     {:else}
-      {#each $gaps as gap, index (index)}
+      {#each $gaps as gap}
         {@const status = getGapStatus(gap)}
-        <div
-          class="gap-item"
-          class:past={status === "past"}
-          class:current={status === "current"}
-          class:future={status === "future"}
-        >
+        <div class="gap-item" class:past={status === 'past'} class:current={status === 'current'} class:future={status === 'future'}>
           <div class="gap-time">
-            <span class="gap-start">{formatTime(gap.start)}</span>
-            <span class="gap-separator">→</span>
-            <span class="gap-end">{formatTime(gap.end)}</span>
+            <span class="start-time">{formatTime(gap.start)}</span>
+            <span class="gap-separator">–</span>
+            <span class="end-time">{formatTime(gap.end)}</span>
           </div>
-          <div class="gap-duration">
-            {formatDuration(gap.duration)}
-          </div>
+          <div class="gap-duration">{formatDuration(gap.duration)}</div>
         </div>
       {/each}
     {/if}
@@ -183,279 +155,251 @@
 </BaseCard>
 
 <style>
+
   .header-info {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .day-boundaries {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
+    gap: 0.5rem;
+    flex: 1;
   }
 
-  .boundary-label {
-    font-size: var(--fs-sm);
-    color: var(--muted);
-    font-weight: 600;
-  }
-
-  .boundary-time {
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-  }
-
-  .edit-button {
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--coral);
-    background: transparent;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--fs-sm);
-    color: var(--coral);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  }
-
-  .edit-button:hover {
-    background: var(--coral);
-    color: var(--white);
-    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
-    transform: translateY(-2px);
-  }
-
-  .boundary-editor {
-    background: rgba(240, 138, 119, 0.05);
-    border: 1px solid rgba(240, 138, 119, 0.2);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    margin-bottom: var(--space-lg);
-  }
-
-  .editor-row {
+  .boundary-display {
     display: flex;
-    gap: var(--space-md);
-    margin-bottom: var(--space-md);
+    align-items: center;
+    gap: 0.5rem;
   }
 
-  .editor-row label {
+  .label {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .time-range {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .edit-btn {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .edit-btn:hover {
+    background: var(--primary);
+    color: var(--bg);
+  }
+
+  .edit-controls {
     display: flex;
     flex-direction: column;
-    gap: var(--space-xs);
-    font-size: var(--fs-sm);
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .time-inputs {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .input-group label {
+    font-size: 0.75rem;
     color: var(--muted);
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .time-input {
-    padding: var(--space-sm);
-    border: 1px solid rgba(15, 34, 48, 0.1);
-    border-radius: var(--radius-md);
-    font-size: var(--fs-md);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-family: var(--font-family);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text);
   }
 
-  .time-input:focus {
-    border-color: var(--coral);
-    outline: 2px solid rgba(240, 138, 119, 0.18);
-    outline-offset: 2px;
-  }
-
-  .editor-actions {
+  .button-group {
     display: flex;
-    gap: var(--space-sm);
+    gap: 0.5rem;
   }
 
-  .save-button {
-    padding: var(--space-sm) var(--space-md);
-    background: var(--coral);
-    color: var(--white);
-    border: 1px solid var(--coral);
-    border-radius: var(--radius-md);
+  .save-btn, .cancel-btn, .reset-btn {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
     cursor: pointer;
-    font-size: var(--fs-sm);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    transition: all 0.2s ease;
   }
 
-  .save-button:hover {
-    box-shadow: 0 4px 14px rgba(240, 138, 119, 0.3);
-    transform: translateY(-2px);
+  .save-btn {
+    background: var(--primary);
+    color: var(--bg);
+    border: 1px solid var(--primary);
   }
 
-  .cancel-button {
-    padding: var(--space-sm) var(--space-md);
+  .save-btn:hover {
+    background: var(--primary-hover);
+  }
+
+  .cancel-btn {
     background: transparent;
     color: var(--muted);
-    border: 1px solid var(--muted);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--fs-sm);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  }
-
-  .cancel-button:hover {
-    background: var(--muted);
-    color: var(--white);
-    transform: translateY(-2px);
-  }
-
-  .reset-button {
-    padding: var(--space-sm) var(--space-md);
-    background: transparent;
-    color: #dc3545;
-    border: 1px solid #dc3545;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--fs-sm);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  }
-
-  .reset-button:hover {
-    background: #dc3545;
-    color: var(--white);
-    transform: translateY(-2px);
-  }
-
-  .gap-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
-    padding: var(--space-sm);
-    background: rgba(0, 200, 255, 0.05);
     border: 1px solid var(--glass-border);
-    border-radius: 6px;
+  }
+
+  .cancel-btn:hover {
+    background: var(--glass-bg);
+    color: var(--text);
+  }
+
+  .reset-btn {
+    background: transparent;
+    color: var(--warning);
+    border: 1px solid var(--warning);
+  }
+
+  .reset-btn:hover {
+    background: var(--warning);
+    color: var(--bg);
+  }
+
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: right;
   }
 
   .stat-item {
     display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
     align-items: center;
-    text-align: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
   }
 
   .stat-label {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-family: var(--font-display);
+    font-weight: 500;
   }
 
   .stat-value {
     font-family: var(--font-display);
-    font-size: 1.2rem;
-    line-height: 1;
-    color: var(--text);
-    text-shadow: 0 0 6px rgba(0, 200, 255, 0.12);
     font-weight: 600;
+    color: var(--text);
+    font-size: 0.875rem;
   }
 
   .gaps-list {
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .no-gaps {
-    text-align: center;
-    padding: 2rem;
-    color: var(--muted);
-  }
-
-  .no-gaps-hint {
-    font-size: 0.875rem;
-    margin-top: var(--space-sm);
-    color: rgba(230, 247, 255, 0.75);
+    gap: 0.75rem;
   }
 
   .gap-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-md);
-    background: rgba(0, 200, 255, 0.05);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: 8px;
-    border-left: 4px solid var(--primary);
-    transition: all 0.18s ease;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
   }
 
   .gap-item.past {
-    background: rgba(102, 224, 255, 0.03);
-    border-left-color: var(--muted);
-    color: var(--muted);
+    opacity: 0.6;
+    background: rgba(var(--muted-rgb), 0.05);
   }
 
   .gap-item.current {
-    background: rgba(0, 200, 255, 0.1);
-    border-left-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 12px rgba(255, 204, 0, 0.15);
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.2);
   }
 
   .gap-item.future {
-    background: rgba(0, 200, 255, 0.05);
-    border-left-color: var(--primary);
-    color: var(--text);
+    background: rgba(var(--success-rgb), 0.05);
+    border-color: rgba(var(--success-rgb), 0.3);
   }
 
   .gap-time {
     display: flex;
     align-items: center;
-    gap: var(--space-sm);
-    font-weight: 500;
-    color: var(--text);
+    gap: 0.5rem;
     font-family: var(--font-display);
+    font-weight: 600;
   }
 
   .gap-separator {
     color: var(--muted);
-    font-weight: normal;
+    font-weight: 400;
   }
 
   .gap-duration {
+    background: var(--primary);
+    color: var(--bg);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
     font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .no-gaps {
+    text-align: center;
+    padding: 2rem 1rem;
     color: var(--muted);
-    background: rgba(0, 200, 255, 0.1);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: 6px;
-    border: 1px solid var(--glass-border);
-    font-family: var(--font-display);
   }
 
-  /* Responsive adjustments */
+  .no-gaps-hint {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+  }
+
   @media (max-width: 768px) {
-    .editor-row {
+    .header-info {
       flex-direction: column;
+      align-items: stretch;
     }
 
-    .gap-stats {
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-xs);
-      padding: var(--space-xs);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .day-boundaries {
-      flex-wrap: wrap;
+    .stats {
+      text-align: left;
     }
 
-    .editor-actions {
+    .stat-item {
+      justify-content: flex-start;
+    }
+
+    .time-inputs {
       flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+
+    .button-group {
+      justify-content: flex-start;
     }
   }
 </style>

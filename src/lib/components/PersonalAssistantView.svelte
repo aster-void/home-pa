@@ -3,6 +3,7 @@
   import {
     FreeTimeGapsCard,
     SmartSuggestionsCard,
+    TransitCard,
   } from "./pa_components/index.js";
 
   // Local state for the adaptive layout
@@ -33,6 +34,11 @@
       <SmartSuggestionsCard />
     </div>
 
+    <!-- Transit Section -->
+    <div class="transit-section">
+      <TransitCard />
+    </div>
+
     <!-- Developer Logs Section (Collapsible) -->
     {#if showLogs}
       <div class="logs-section">
@@ -48,6 +54,23 @@
     margin: 0 auto;
     padding: var(--space-lg);
     min-height: calc(100vh - 120px);
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--coral) transparent;
+  }
+
+  .personal-assistant-view::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .personal-assistant-view::-webkit-scrollbar-thumb {
+    background: var(--coral);
+    border-radius: 4px;
+  }
+
+  .personal-assistant-view::-webkit-scrollbar-track {
+    background: transparent;
   }
 
   .assistant-header {

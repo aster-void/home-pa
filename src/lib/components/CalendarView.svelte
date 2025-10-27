@@ -11,6 +11,7 @@
     showTimelinePopup,
     eventForm,
     eventFormActions,
+    eventFormErrors,
     eventActions,
     uiActions,
     recurrenceStore, 
@@ -163,10 +164,10 @@
   // Sync date/time combinations to store
   $effect(() => {
     const startDateTime = eventStartDate && eventStartTime 
-      ? localDateTimeToUTC(eventStartDate, eventStartTime).toISOString().slice(0, 16)
+      ? `${eventStartDate}T${eventStartTime}`
       : "";
     const endDateTime = eventEndDate && eventEndTime 
-      ? localDateTimeToUTC(eventEndDate, eventEndTime).toISOString().slice(0, 16)
+      ? `${eventEndDate}T${eventEndTime}`
       : "";
     
     eventFormActions.updateFields({
@@ -1257,7 +1258,11 @@
                 type="text"
                 bind:value={eventTitle}
                 placeholder="予定のタイトルを入力"
+                class:error={$eventFormErrors.title}
               />
+              {#if $eventFormErrors.title}
+                <div class="field-error">{$eventFormErrors.title}</div>
+              {/if}
             </div>
           </div>
 
@@ -1398,6 +1403,7 @@
                 id="event-start-time"
                 type="time"
                 bind:value={eventStartTime}
+                class:error={$eventFormErrors.start}
                 onfocus={() => { 
                   if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
                     timeMode = 'default'; 
@@ -1415,6 +1421,9 @@
                   }
                 }}
               />
+              {#if $eventFormErrors.start}
+                <div class="field-error">{$eventFormErrors.start}</div>
+              {/if}
             </div>
             <div class="inline-field">
               <label for="event-end-time">終了時間</label>
@@ -1422,6 +1431,7 @@
                 id="event-end-time"
                 type="time"
                 bind:value={eventEndTime}
+                class:error={$eventFormErrors.end}
                 onfocus={() => { 
                   if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
                     timeMode = 'default'; 
@@ -1439,6 +1449,9 @@
                   }
                 }}
               />
+              {#if $eventFormErrors.end}
+                <div class="field-error">{$eventFormErrors.end}</div>
+              {/if}
             </div>
           </div>
 
@@ -1549,6 +1562,14 @@
             </div>
           {/if}
         </div>
+
+        <!-- General Error Display -->
+        {#if $eventFormErrors.general}
+          <div class="general-error">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message">{$eventFormErrors.general}</div>
+          </div>
+        {/if}
 
         <div class="form-actions">
           {#if isEventEditing}
@@ -1809,7 +1830,6 @@
 
   .calendar-day.selected {
     border: 1px solid var(--coral);
-    box-shadow: 0 0 0 1px var(--coral);
   }
 
   .calendar-day.other-month {
@@ -2417,6 +2437,46 @@
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(240, 138, 119, 0.3);
+  }
+
+  /* Error Styling */
+  .field-error {
+    color: var(--danger, #ff4444);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    font-weight: 500;
+  }
+
+  .general-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 1rem 0;
+  }
+
+  .error-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .error-message {
+    color: var(--danger, #ff4444);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  input.error {
+    border-color: var(--danger, #ff4444);
+    box-shadow: 0 0 0 1px rgba(255, 68, 68, 0.2);
+  }
+
+  input.error:focus {
+    border-color: var(--danger, #ff4444);
+    box-shadow: 0 0 0 2px rgba(255, 68, 68, 0.3);
   }
 
   /* Recurrence UI */

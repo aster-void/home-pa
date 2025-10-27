@@ -49,7 +49,7 @@ function convertCalendarEventToGapEvent(
   }
 
   // For events that cross midnight and end on the target date,
-  // we need to create a modified version that starts at midnight
+  // we need to create a modified version that starts at day boundary
   let startTime: string = "";
   let endTime: string = "";
 
@@ -66,7 +66,7 @@ function convertCalendarEventToGapEvent(
       hour12: false,
     });
   } else if (startsOnTarget && !endsOnTarget) {
-    // Event starts on target date but ends next day - truncate at midnight
+    // Event starts on target date but ends next day - truncate at end of day
     startTime = calendarEvent.start.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
@@ -74,8 +74,9 @@ function convertCalendarEventToGapEvent(
     });
     endTime = "23:59"; // Truncate at end of day
   } else if (!startsOnTarget && endsOnTarget) {
-    // Event ends on target date but started yesterday - start at midnight
-    startTime = "00:00";
+    // Event ends on target date but started yesterday - start at day boundary
+    // The gap finder will adjust this to the actual day start time
+    startTime = "00:00"; // This will be adjusted by the gap finder to day start
     endTime = calendarEvent.end.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",

@@ -54,6 +54,19 @@ export const eventActions = {
       // Create UTC dates for storage based on time label
       const { startDate, endDate } = createEventDates(formData);
 
+      // Debug: verify storage vs input
+      console.debug('[eventActions.create] form inputs', {
+        startInput: formData.start,
+        endInput: formData.end,
+        timeLabel: formData.timeLabel,
+      });
+      console.debug('[eventActions.create] computed UTC dates', {
+        startISO: startDate.toISOString(),
+        endISO: endDate.toISOString(),
+        startMs: startDate.getTime(),
+        endMs: endDate.getTime(),
+      });
+
       // Create the event
       const newEvent = eventOperations.create({
         title: formData.title.trim(),

@@ -9,7 +9,6 @@
     aria-current={$currentView === "calendar" ? "page" : undefined}
     aria-label="Open calendar view"
   >
-    <div class="nav-icon" aria-hidden="true">📅</div>
     <span class="nav-label">Calendar</span>
   </button>
 
@@ -19,7 +18,6 @@
     aria-current={$currentView === "personal-assistant" ? "page" : undefined}
     aria-label="Open assistant view"
   >
-    <div class="nav-icon" aria-hidden="true">🤖</div>
     <span class="nav-label">Assistant</span>
   </button>
 </nav>
@@ -39,17 +37,17 @@
     border-top: 1px solid rgba(15, 34, 48, 0.08);
     box-shadow: 0 -6px 20px rgba(8, 12, 20, 0.08);
     z-index: 1000;
-    height: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    height: calc(var(--bottom-nav-height, 48px) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   .nav-item {
     flex: 1 1 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    padding: var(--space-sm) var(--space-xs);
+    padding: 8px var(--space-sm);
     border: none;
     background: transparent;
     cursor: pointer;
@@ -75,34 +73,23 @@
     box-shadow: inset 0 2px 0 var(--coral);
   }
 
-  .nav-icon {
-    font-size: 1.25rem;
-    margin-bottom: var(--space-xs);
-  }
-
-  .nav-item.active .nav-icon {
-    transform: scale(1.1);
-  }
+  /* nav-icon removed for now */
 
   .nav-label {
-    font-size: var(--fs-xs);
+    font-size: 0.85rem;
     font-weight: var(--font-weight-bold);
     text-align: center;
     line-height: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
   }
 
   @media (max-width: 640px) {
     .nav-item {
-      padding: var(--space-xs) var(--space-xs);
-    }
-
-    .nav-icon {
-      font-size: 1.1rem;
+      padding: 6px var(--space-sm);
     }
 
     .nav-label {
-      font-size: 0.6rem;
+      font-size: 0.8rem;
     }
   }
 </style>

@@ -92,10 +92,18 @@ export class GapFinder {
   }
 
   /**
-   * Process events that cross midnight
+   * Process events that cross midnight or start before day boundaries
    */
   private processMidnightEvents(events: Event[]): Event[] {
     return events.map((event) => {
+      // Handle events that start before day boundaries (e.g., from previous day)
+      if (this.timeToMinutes(event.start) < this.timeToMinutes(this.dayBoundaries.dayStart)) {
+        return {
+          ...event,
+          start: this.dayBoundaries.dayStart, // Adjust start to day boundary
+        };
+      }
+      
       if (this.timeToMinutes(event.start) > this.timeToMinutes(event.end)) {
         // Event crosses midnight
         return {
