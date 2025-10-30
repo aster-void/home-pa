@@ -19,9 +19,9 @@ import { suggestionService } from '../../services/suggestion.js';
  */
 export const uiActions = {
   /**
-   * Switch between calendar and personal assistant views
+   * Switch between calendar, personal assistant, and utilities views
    */
-  setView(view: "calendar" | "personal-assistant"): void {
+  setView(view: "calendar" | "personal-assistant" | "utilities"): void {
     uiStateActions.setView(view);
 
     // Check for suggestions when returning to calendar

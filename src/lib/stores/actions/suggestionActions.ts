@@ -13,6 +13,7 @@ import { suggestionLogOperations, suggestionLogs, selectedDate } from '../data.j
 import { uiActions, currentSuggestion } from '../ui.js';
 import { gaps } from '../gaps.js';
 import { suggestionService } from '../../services/suggestion.js';
+import type { Gap } from '../../types.js';
 
 /**
  * Suggestion Actions
@@ -28,6 +29,22 @@ export const suggestionActions = {
     }
 
     const suggestion = suggestionService.checkForSuggestion();
+    uiActions.setCurrentSuggestion(suggestion);
+  },
+
+  /**
+   * Generate suggestion for a specific gap
+   */
+  generateSuggestionForGap(gap: Gap): void {
+    const suggestion = suggestionService.generateSuggestionForGap(gap);
+    uiActions.setCurrentSuggestion(suggestion);
+  },
+
+  /**
+   * Generate a new suggestion for the current context
+   */
+  generateNewSuggestion(): void {
+    const suggestion = suggestionService.generateNewSuggestion();
     uiActions.setCurrentSuggestion(suggestion);
   },
 

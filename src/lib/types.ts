@@ -65,5 +65,12 @@ export interface Suggestion {
   eventId?: string;
 }
 
+// Gap interface representing free time slots
+export interface Gap {
+  start: string; // HH:mm format
+  end: string; // HH:mm format
+  duration: number; // in minutes
+}
+
 export type ViewMode = "day" | "list";
 export type ReactionType = "accepted" | "rejected" | "later";

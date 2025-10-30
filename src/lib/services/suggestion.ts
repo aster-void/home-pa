@@ -1,5 +1,5 @@
 // Suggestion service for gap time detection and proposal
-import type { Suggestion, SuggestionLog } from "../types.js";
+import type { Suggestion, SuggestionLog, Gap } from "../types.js";
 import { get } from "svelte/store";
 import {
   events,
@@ -8,14 +8,77 @@ import {
 } from "../stores/data.js";
 
 export class SuggestionService {
-  private readonly GAP_THRESHOLD_MINUTES = 30; // Minimum gap to show suggestion
+  private readonly GAP_THRESHOLD_MINUTES = 15; // Minimum gap to show suggestion
   private readonly suggestionTemplates = [
     "空き時間にメモを整理しませんか？",
     "次の予定の準備をしましょう",
     "少し休憩を取ってリフレッシュしましょう",
     "この時間でタスクを整理しましょう",
     "次の予定の資料を確認しましょう",
+    "短時間でできる軽い運動をしましょう",
+    "メールの整理をしましょう",
+    "次の会議の準備をしましょう",
+    "デスク周りを整理しましょう",
+    "深呼吸してリラックスしましょう",
   ];
+
+  // Duration-specific suggestion templates
+  private readonly durationSpecificTemplates = {
+    short: [ // 15-30 minutes
+      "短時間でできる軽い運動をしましょう",
+      "メールの整理をしましょう",
+      "深呼吸してリラックスしましょう",
+      "デスク周りを整理しましょう",
+    ],
+    medium: [ // 30-60 minutes
+      "空き時間にメモを整理しませんか？",
+      "次の予定の準備をしましょう",
+      "この時間でタスクを整理しましょう",
+      "次の会議の準備をしましょう",
+    ],
+    long: [ // 60+ minutes
+      "少し休憩を取ってリフレッシュしましょう",
+      "次の予定の資料を確認しましょう",
+      "集中して重要なタスクに取り組みましょう",
+      "この時間を有効活用して学習しましょう",
+    ]
+  };
+
+  /**
+   * Generate suggestion for a specific gap
+   */
+  generateSuggestionForGap(gap: Gap): Suggestion | null {
+    if (gap.duration < this.GAP_THRESHOLD_MINUTES) {
+      return null; // Gap too small
+    }
+
+    // Select appropriate templates based on duration
+    let templates: string[];
+    if (gap.duration < 30) {
+      templates = this.durationSpecificTemplates.short;
+    } else if (gap.duration < 60) {
+      templates = this.durationSpecificTemplates.medium;
+    } else {
+      templates = this.durationSpecificTemplates.long;
+    }
+
+    // Generate suggestion
+    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+
+    return {
+      id: crypto.randomUUID(),
+      template: randomTemplate,
+      gapMin: gap.duration,
+      eventId: undefined, // Gap-specific suggestions don't have event context
+    };
+  }
+
+  /**
+   * Generate a new suggestion for the current context
+   */
+  generateNewSuggestion(): Suggestion | null {
+    return this.checkForSuggestion();
+  }
 
   /**
    * Check for gap time and generate suggestion if applicable
@@ -87,7 +150,7 @@ export class SuggestionService {
   /**
    * Check if there's already a recent suggestion to avoid spam
    */
-  hasRecentSuggestion(minutesAgo: number = 10): boolean {
+  hasRecentSuggestion(minutesAgo: number = 5): boolean {
     const recent = new Date(Date.now() - minutesAgo * 60 * 1000);
     const currentLogs = get(suggestionLogs);
     const recentLogs = currentLogs.filter((log) => log.at >= recent);

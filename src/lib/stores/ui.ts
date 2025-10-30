@@ -13,9 +13,9 @@ import type { ViewMode } from '../types.js';
 
 /**
  * Current application view
- * Controls which main view is displayed (calendar or personal assistant)
+ * Controls which main view is displayed (calendar, personal assistant, or utilities)
  */
-export const currentView = writable<"calendar" | "personal-assistant">("calendar");
+export const currentView = writable<"calendar" | "personal-assistant" | "utilities">("calendar");
 
 /**
  * Current view mode for the calendar
@@ -67,7 +67,7 @@ export const uiActions = {
   /**
    * Switch between calendar and personal assistant views
    */
-  setView(view: "calendar" | "personal-assistant"): void {
+  setView(view: "calendar" | "personal-assistant" | "utilities"): void {
     currentView.set(view);
   },
 

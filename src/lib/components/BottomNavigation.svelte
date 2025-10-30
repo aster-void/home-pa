@@ -20,6 +20,15 @@
   >
     <span class="nav-label">Assistant</span>
   </button>
+
+  <button
+    class="nav-item {$currentView === 'utilities' ? 'active' : ''}"
+    onclick={() => uiActions.setView("utilities")}
+    aria-current={$currentView === "utilities" ? "page" : undefined}
+    aria-label="Open utilities view"
+  >
+    <span class="nav-label">Utilities</span>
+  </button>
 </nav>
 
 <style>
