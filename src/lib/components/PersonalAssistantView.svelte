@@ -78,12 +78,10 @@
 
   <!-- Main Content -->
   <main class="pa-main">
-    <!-- Timeline Section - Left side circle -->
+    <!-- Timeline Section - Centered full circle -->
     <section class="timeline-section">
       <div class="timeline-container">
         <CircularTimeline
-          side="left"
-          arcDegrees={120}
           externalGaps={computedGaps}
           on:eventSelected={(e) => (selectedEvent = e.detail)}
           on:gapSelected={(e) => (selectedGap = e.detail)}
@@ -204,19 +202,21 @@
 
   /* Timeline Section - Left side circle */
   .timeline-section {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 50vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 10;
   }
 
   .timeline-container {
     width: 100%;
     height: 100%;
+    max-width: 90vh;
+    max-height: 90vh;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* Content Section 
