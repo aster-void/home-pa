@@ -26,12 +26,24 @@
       })();
     })();
     // Map to GapFinder.Event (HH:mm strings)
-    const mapped = todaysEvents.map((e) => ({
-      id: e.id,
-      title: e.title,
-      start: new Date(e.start).toTimeString().slice(0, 5),
-      end: new Date(e.end).toTimeString().slice(0, 5),
-    }));
+    const mapped = todaysEvents.map((e) => {
+      // Handle all-day events specially: span full day (00:00 to 23:59)
+      if (e.timeLabel === "all-day") {
+        return {
+          id: e.id,
+          title: e.title,
+          start: "00:00",
+          end: "23:59",
+        };
+      }
+      // For timed events, use actual times
+      return {
+        id: e.id,
+        title: e.title,
+        start: new Date(e.start).toTimeString().slice(0, 5),
+        end: new Date(e.end).toTimeString().slice(0, 5),
+      };
+    });
     computedGaps = gf.findGaps(mapped);
   }
 

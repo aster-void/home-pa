@@ -48,6 +48,17 @@ function convertCalendarEventToGapEvent(
     return null;
   }
 
+  // Handle all-day events specially: they span the full day (00:00 to 23:59)
+  if (calendarEvent.timeLabel === "all-day") {
+    return {
+      id: calendarEvent.id,
+      title: calendarEvent.title,
+      start: "00:00",
+      end: "23:59",
+      crossesMidnight: false,
+    };
+  }
+
   // For events that cross midnight and end on the target date,
   // we need to create a modified version that starts at day boundary
   let startTime: string = "";

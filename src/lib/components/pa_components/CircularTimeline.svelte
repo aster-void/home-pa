@@ -101,6 +101,14 @@
         return s <= de && e >= ds;
       })
       .map((ev) => {
+        // Handle all-day events specially: span full day (00:00 to 23:59)
+        if (ev.timeLabel === "all-day") {
+          const startStr = "00:00";
+          const endStr = "23:59";
+          return { ref: ev, startA: timeStringToAngle(startStr), endA: timeStringToAngle(endStr) };
+        }
+        
+        // For timed events, truncate at day boundaries
         let s = new Date(ev.start);
         let e = new Date(ev.end);
         if (s.getTime() < ds) s = new Date(ds);
