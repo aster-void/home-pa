@@ -32,7 +32,7 @@
   });
 
   // center/radius をリアクティブに計算
-  $: radius = Math.min(containerHeight * 0.4, containerWidth * 0.4);
+  $: radius = Math.min(containerHeight * 0.7, containerWidth * 0.7);
   $: centerY = containerHeight / 2;
   $: centerX = (side === "left"
     ? -radius * Math.cos(Math.PI / 3)
@@ -120,9 +120,12 @@
       .sort((a, b) => a.startA - b.startA);
 
     // Simple lane packing by non-overlap in angle space
+    // All-day events that create new lanes go to inner lanes (higher indices)
     const laneEnds: number[] = []; // end angle per lane
     const placed: { startA: number; endA: number; lane: number; ref: MyEvent }[] = [];
     const arcRadians = (arcDegrees * Math.PI) / 180;
+    
+    // First pass: pack all events normally, but track which events are all-day
     for (const ev of truncated) {
       let placedLane = 0;
       // handle wrap for comparison by ensuring endA >= startA
@@ -134,7 +137,28 @@
       if (placedLane === laneEnds.length) laneEnds.push(endAdj); else laneEnds[placedLane] = Math.max(laneEnds[placedLane], endAdj);
       placed.push({ startA: ev.startA, endA: endAdj, lane: placedLane, ref: ev.ref });
     }
-    return placed;
+    
+    // Second pass: find max lane used by non-all-day events, remap all-day events to inner lanes
+    const maxNonAllDayLane = Math.max(
+      ...placed.filter(p => p.ref.timeLabel !== "all-day").map(p => p.lane),
+      -1
+    );
+    
+    // Remap: keep non-all-day events in original lanes, put all-day events in inner lanes
+    // Sort all-day events by their original lane to assign sequential inner lanes
+    const allDayEvents = placed.filter(p => p.ref.timeLabel === "all-day");
+    allDayEvents.sort((a, b) => a.lane - b.lane);
+    
+    return placed.map((ev) => {
+      if (ev.ref.timeLabel === "all-day") {
+        // All-day events go to inner lanes starting from maxNonAllDayLane + 1
+        const allDayIndex = allDayEvents.findIndex(e => e.ref.id === ev.ref.id);
+        const innerLane = maxNonAllDayLane + 1 + allDayIndex;
+        return { ...ev, lane: innerLane };
+      }
+      // Non-all-day events keep their original lane
+      return ev;
+    });
   }
 
   // IMPORTANT: do not run normalization/rendering until we have container measurements
@@ -220,43 +244,35 @@
          stroke-width={2}
          opacity={opacity}
       />
-
-      <!-- lane guide rings using same packing as event lanes -->
-      {@const lanesCount = Math.max(0, ...renderedEvents.map(e => e.lane)) + 1}
-      {#each Array.from({ length: lanesCount }, (_, laneIndex) => laneIndex) as laneIndex}
-        {@const laneStep = 0.06}
-        {@const ringR = radius * (0.95 - laneIndex * laneStep)}
-        {@const lsx = centerX + ringR * Math.cos(startAngle)}
-        {@const lsy = centerY + ringR * Math.sin(startAngle)}
-        {@const lex = centerX + ringR * Math.cos(endAngle)}
-        {@const ley = centerY + ringR * Math.sin(endAngle)}
-        <path
-          d={`M ${lsx} ${lsy} A ${ringR} ${ringR} 0 ${largeArcFlag} 1 ${lex} ${ley}`}
-          fill="none"
-          stroke="#00c2ff"
-          stroke-width="1.5"
-          stroke-dasharray="4 4"
-          opacity="0.6"
-        />
-        <!-- lane label near mid of arc -->
-        {@const midA = 0}
-        {@const lx = centerX + ringR * Math.cos(midA)}
-        {@const ly = centerY + ringR * Math.sin(midA)}
-        <text x={lx + 8} y={ly - 8} font-family="var(--font-family)" font-size="11" fill="#00c2ff" opacity="0.8">
-          lane {laneIndex}
-        </text>
-      {/each}
     {/if}
 
     <!-- event arcs -->
     {#if containerWidth > 0 && containerHeight > 0 && radius > 0}
+      {@const maxLane = Math.max(...renderedEvents.map(e => e.lane), 0)}
       {#each renderedEvents as ev (ev.ref.id)}
         {@const pathData = eventToArcPathWithLane(ev.startA, ev.endA, ev.lane)}
+        {@const isInnerMost = ev.lane === maxLane}
+        {@const arcRadians = (arcDegrees * Math.PI) / 180}
+        {@const endAdj = ev.endA < ev.startA ? ev.endA + arcRadians : ev.endA}
+        {@const toX = (a: number) => centerX + pathData.ringRadius * Math.cos(a - arcRadians / 2)}
+        {@const toY = (a: number) => centerY + pathData.ringRadius * Math.sin(a - arcRadians / 2)}
+        {@const sx = toX(ev.startA)}
+        {@const sy = toY(ev.startA)}
+        {@const ex = toX(endAdj)}
+        {@const ey = toY(endAdj)}
+        {@const delta = endAdj - ev.startA}
+        {@const largeArcFlag = delta > Math.PI ? 1 : 0}
+        {@const sweepFlag = side === "left" ? 1 : 0}
+        {@const isAllDayInnermost = isInnerMost && ev.ref.timeLabel === "all-day"}
+        {@const sectorPath = isAllDayInnermost
+          ? `M ${centerX} ${centerY} L ${sx} ${sy} A ${pathData.ringRadius} ${pathData.ringRadius} 0 ${largeArcFlag} ${sweepFlag} ${ex} ${ey} Z`
+          : pathData.d}
         <path
-          d={pathData.d}
-          fill="none"
-           stroke={'red'}
-           stroke-width={4}
+          d={sectorPath}
+          fill={isAllDayInnermost ? 'red' : 'none'}
+          fill-opacity={isAllDayInnermost ? 1 : 0}
+          stroke={'red'}
+          stroke-width={10}
           class={`event-arc ${hoveredEvent?.id === ev.ref.id ? 'hovered' : ''}`}
           role="button"
           tabindex="0"
@@ -266,13 +282,6 @@
           on:click={() => onEventClick(ev.ref)}
           on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onEventClick(ev.ref); } }}
         />
-        {@const arcRadians = (arcDegrees * Math.PI) / 180}
-        {@const sx = centerX + pathData.ringRadius * Math.cos(ev.startA - arcRadians / 2)}
-        {@const sy = centerY + pathData.ringRadius * Math.sin(ev.startA - arcRadians / 2)}
-        {@const ex = centerX + pathData.ringRadius * Math.cos(ev.endA - arcRadians / 2)}
-        {@const ey = centerY + pathData.ringRadius * Math.sin(ev.endA - arcRadians / 2)}
-        <circle cx={sx} cy={sy} r="3.5" fill="#00ff88" />
-        <circle cx={ex} cy={ey} r="3.5" fill="#ff8800" />
         <!-- event label -->
         <text x={sx} y={sy - 8} font-size="10" fill="#ff00ff" opacity="0.8">
           {Math.round(ev.startA * 100) / 100}→{Math.round(ev.endA * 100) / 100}
@@ -280,29 +289,37 @@
       {/each}
     {/if}
 
-    <!-- gap indicators as midpoint dots along the circle -->
+    <!-- gap arcs: use same exact calculation pattern as base arc -->
     {#if containerWidth > 0 && containerHeight > 0 && radius > 0}
       {@const arcRadians = (arcDegrees * Math.PI) / 180}
+      {@const startAngle = -arcRadians / 2}
+      {@const endAngle = arcRadians / 2}
       {#each gaps as gap (gap.start + gap.end)}
         {@const startA = gap.startAngle}
         {@const endA = gap.endAngle}
-        {@const midA = (startA + endA) / 2}
-        {@const ringR = radius * 1.02}
-        {@const gx = centerX + ringR * Math.cos(midA - arcRadians / 2)}
-        {@const gy = centerY + ringR * Math.sin(midA - arcRadians / 2)}
-        <g transform={`translate(${gx}, ${gy})`}>
-          <circle
-            r={hoveredGap?.start === gap.start && hoveredGap?.end === gap.end ? 6 : 4}
-            class={`gap-indicator ${hoveredGap?.start === gap.start && hoveredGap?.end === gap.end ? 'hovered' : ''}`}
-            role="button"
-            tabindex="0"
-            aria-label={`Free time from ${gap.start} to ${gap.end}, ${gap.duration} minutes available`}
-            on:mouseenter={() => (hoveredGap = { start: gap.start, end: gap.end, duration: gap.duration })}
-            on:mouseleave={() => (hoveredGap = null)}
-            on:click={() => onGapClick({ start: gap.start, end: gap.end, duration: gap.duration })}
-            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGapClick({ start: gap.start, end: gap.end, duration: gap.duration }); } }}
-          />
-        </g>
+        {@const endAdj = endA < startA ? endA + arcRadians : endA}
+        {@const gapRingRadius = radius}
+        {@const startX = centerX + gapRingRadius * Math.cos(startA - arcRadians / 2)}
+        {@const startY = centerY + gapRingRadius * Math.sin(startA - arcRadians / 2)}
+        {@const endX = centerX + gapRingRadius * Math.cos(endAdj - arcRadians / 2)}
+        {@const endY = centerY + gapRingRadius * Math.sin(endAdj - arcRadians / 2)}
+        {@const delta = normalizedAngleDelta(startA, endAdj)}
+        {@const largeArcFlag = delta > Math.PI ? 1 : 0}
+        {@const sweepFlag = side === "left" ? 1 : 0}
+        <path
+          d="M {startX} {startY} A {gapRingRadius} {gapRingRadius} 0 {largeArcFlag} {sweepFlag} {endX} {endY}"
+          fill="none"
+          stroke={'var(--coral)'}
+          stroke-width={2}
+          class={`gap-arc ${hoveredGap?.start === gap.start && hoveredGap?.end === gap.end ? 'hovered' : ''}`}
+          role="button"
+          tabindex="0"
+          aria-label={`Free time from ${gap.start} to ${gap.end}, ${gap.duration} minutes available`}
+          on:mouseenter={() => (hoveredGap = { start: gap.start, end: gap.end, duration: gap.duration })}
+          on:mouseleave={() => (hoveredGap = null)}
+          on:click={() => onGapClick({ start: gap.start, end: gap.end, duration: gap.duration })}
+          on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGapClick({ start: gap.start, end: gap.end, duration: gap.duration }); } }}
+        />
       {/each}
     {/if}
 
@@ -322,6 +339,29 @@
           </text>
         {/if}
       {/each}
+    {/if}
+
+    <!-- Inner circular sector mask: smaller radius, filled with background to cut off sectors -->
+    {#if containerWidth > 0 && containerHeight > 0 && radius > 0}
+      {@const arcRadians = (arcDegrees * Math.PI) / 180}
+      {@const startAngle = -arcRadians / 2}
+      {@const endAngle = arcRadians / 2}
+      {@const defaultInnerRadius = radius * 0.6}
+      {@const laneStep = 0.06}
+      {@const maxLane = Math.max(...renderedEvents.map(e => e.lane), 0)}
+      {@const innermostEventRadius = radius * (0.95 - maxLane * laneStep)}
+      {@const innerRadius = innermostEventRadius < defaultInnerRadius ? innermostEventRadius : defaultInnerRadius}
+      {@const innerStartX = centerX + innerRadius * Math.cos(startAngle)}
+      {@const innerStartY = centerY + innerRadius * Math.sin(startAngle)}
+      {@const innerEndX = centerX + innerRadius * Math.cos(endAngle)}
+      {@const innerEndY = centerY + innerRadius * Math.sin(endAngle)}
+      {@const largeArcFlag = arcDegrees > 180 ? 1 : 0}
+      {@const sweepFlag = side === "left" ? 1 : 0}
+      <path
+        d="M {centerX} {centerY} L {innerStartX} {innerStartY} A {innerRadius} {innerRadius} 0 {largeArcFlag} {sweepFlag} {innerEndX} {innerEndY} Z"
+        fill="var(--bg-card)"
+        stroke="none"
+      />
     {/if}
   </svg>
 
@@ -382,8 +422,8 @@
   .circular-timeline-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
   .event-arc { cursor: pointer; transition: filter 0.15s, stroke-width 0.15s; opacity: 0.9; }
   .event-arc.hovered { stroke-width: 8 !important; filter: drop-shadow(0 0 8px currentColor); }
-  .gap-indicator { fill: var(--coral); cursor: pointer; transform-origin: center; transition: filter 0.12s ease; }
-  .gap-indicator:hover, .gap-indicator.hovered { filter: drop-shadow(0 0 6px var(--coral)); }
+  .gap-arc { cursor: pointer; transition: filter 0.15s, stroke-width 0.15s; opacity: 0.9; }
+  .gap-arc.hovered { stroke-width: 4 !important; filter: drop-shadow(0 0 8px var(--coral)); }
   /* tooltip styles ...（既存のスタイルを使用） */
   .debug-overlay { position: absolute; left: 8px; bottom: 100px; background: rgba(0,0,0,0.6); color: white; font-size: 12px; padding: 6px 8px; border-radius: 6px; display: grid; gap: 2px; pointer-events: none; }
 </style>

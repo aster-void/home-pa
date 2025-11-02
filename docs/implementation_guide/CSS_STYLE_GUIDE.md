@@ -1,358 +1,367 @@
-# CSS Style Guide
+# 🎨 HomePA Design System
 
-## Design System Overview
+## Design Philosophy
 
-This style guide defines the visual design system for the Personal Assistant calendar application, focusing on colors, typography, and consistent styling patterns.
+**Clean, Intelligent, Minimalist**
+- White background with black text for maximum readability
+- Purposeful use of color for hierarchy and interaction
+- Generous whitespace for visual breathing room
+- Subtle, meaningful animations only
 
-## Color Palette
+---
 
-### Primary Colors
-```css
-/* Background Colors - Dark Theme */
---bg-primary: #3A3A3A;           /* Main background (darker) */
---bg-secondary: rgba(66, 66, 66, 1);  /* Header background */
---bg-tertiary: rgba(74, 74, 74, 1);   /* Details background (lighter dark) */
---bg-legend: rgba(60, 60, 60, 1);     /* Legend background */
---bg-card: rgba(82, 82, 82, 1);       /* Card backgrounds (slightly lighter) */
+## 1. Color System
 
-/* Text Colors */
---text-primary: rgba(255, 255, 255, 1);    /* Main text */
---text-secondary: rgba(255, 255, 255, .3); /* Muted text */
---text-tertiary: rgba(255, 255, 255, .5);  /* Day name text */
---text-today: rgba(156, 202, 235, 1);      /* Today highlight */
+**Purpose:** Maintain clarity, hierarchy, and calm neutrality with a white-on-black foundation.
 
-/* Event Category Colors */
---event-blue: rgba(156, 202, 235, 1);   /* Blue events */
---event-orange: rgba(247, 167, 0, 1);   /* Orange events */
---event-green: rgba(153, 198, 109, 1);  /* Green events */
---event-yellow: rgba(249, 233, 0, 1);   /* Yellow events */
+### Core Colors
 
-/* UI Element Colors */
---ui-arrow: rgba(160, 159, 160, 1);     /* Navigation arrows */
---ui-empty: #eee;                       /* Empty state text */
-```
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--bg-primary** | `#FFFFFF` | Main background |
+| **--bg-secondary** | `#F8F9FA` | Secondary surfaces (cards, panels) |
+| **--bg-tertiary** | `#F1F3F5` | Elevated surfaces, sections |
+| **--bg-card** | `#FFFFFF` | Card backgrounds |
 
-### Legacy Colors (Keep for compatibility)
-```css
---white: #ffffff;
---navy-700: #1e293b;
---coral: #f08a77;
---primary: #00c8ff;
---muted: #64748b;
---glass-border: rgba(255, 255, 255, 0.1);
-```
+### Text Colors
 
-## Typography
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--text-primary** | `#000000` or `#1A1A1A` | Main readable text |
+| **--text-secondary** | `#6C757D` | Supporting text, muted content |
+| **--text-tertiary** | `#ADB5BD` | Placeholder text, less important |
+| **--text-today** | `#0066CC` | Today/current date highlight |
+
+### Accent Colors
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--accent-primary** | `#F08A77` (Coral) | Primary actions, highlights |
+| **--accent-secondary** | `#9CA3AF` | Secondary actions |
+| **--accent-hover** | `#E87862` | Hover state for accent |
+
+### Event Category Colors
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--event-blue** | `#4A9EFF` | Blue category events |
+| **--event-orange** | `#F7A700` | Orange category events |
+| **--event-green** | `#99C66D` | Green category events |
+| **--event-yellow** | `#F9E900` | Yellow category events |
+
+### UI Element Colors
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--ui-arrow** | `#9CA3AF` | Navigation arrows |
+| **--ui-border** | `#E5E7EB` | Borders, dividers |
+| **--ui-empty** | `#F1F3F5` | Empty states |
+| **--danger** | `#EF4444` | Error states, delete actions |
+
+### Rules
+
+- **Contrast:** Maintain ≥4.5:1 contrast ratio for text (WCAG AA)
+- **Color Usage:** Use accent colors sparingly—only for actions and highlights
+- **Background:** Never use pure white (#FFFFFF) for large surfaces—use #F8F9FA or #FEFEFE for subtle differentiation
+- **Text:** Default to black (#000000 or #1A1A1A) for maximum readability
+
+---
+
+## 2. Typography System
+
+**Goal:** Refined hierarchy, spacious rhythm, clear communication.
 
 ### Font Family
+
 ```css
---font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+--font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 
+               'Helvetica Neue', Arial, Helvetica, sans-serif;
+--font-sans: "Inter", "Poppins", system-ui, -apple-system, 
+             "Segoe UI", Roboto, "Helvetica Neue", Arial;
 ```
+
+- **Primary:** Helvetica Neue (UltraLight/Regular/Bold)
+- **Fallback:** System fonts (Inter, Poppins, system-ui)
+- **Limit to 2 font families maximum**
 
 ### Font Weights
-```css
---font-weight-light: 100;    /* UltraLight weight */
---font-weight-normal: 400;   /* Normal weight */
---font-weight-bold: 600;     /* Bold weight */
-```
+
+| Weight | Value | Usage |
+|--------|-------|-------|
+| **Light** | `100` | Display text, large headings |
+| **Normal** | `400` | Body text, default |
+| **Bold** | `600` | Headings, emphasis |
 
 ### Font Sizes
-```css
---fs-xs: 9px;        /* Day names, small labels */
---fs-sm: 13px;       /* Legend entries */
---fs-md: 16px;       /* Event text */
---fs-lg: 18px;       /* Header titles (smaller) */
---fs-xl: 16px;       /* Day numbers (smaller) */
-```
 
-### Letter Spacing
-```css
---letter-spacing-sm: 0.5px;   /* Event text */
---letter-spacing-md: 0.7px;   /* Day names */
---letter-spacing-lg: 1px;     /* Header titles */
---letter-spacing-xl: 1.5px;   /* Day numbers */
-```
+| Variable | Size | Usage |
+|----------|------|-------|
+| **--fs-xs** | `9px` | Day names, small labels |
+| **--fs-sm** | `13px` | Captions, metadata |
+| **--fs-md** | `16px` | Body text, events |
+| **--fs-lg** | `18px` | Subheadings, headers |
+| **--fs-xl** | `20px` | Page titles |
+| **--fs-xxl** | `22px` | Hero text (rare) |
 
-### Border Radius
-```css
-/* Less rounded corners */
---radius-lg: 12px;    /* Large radius */
---radius-md: 8px;     /* Medium radius */
---radius-sm: 4px;     /* Small radius */
-```
+### Typography Rules
 
-## Layout & Spacing
+- **Line Height:** 1.5 for body text, 1.3 for headings
+- **Letter Spacing:** Normal for body, -0.02em for headings
+- **Text Color:** Always use `--text-primary` for headings, `--text-secondary` for supporting text
+- **Minimum Size:** Never below 14px for body text (accessibility)
 
-### Box Model
-```css
-*, *:before, *:after {
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
-}
-```
+---
+
+## 3. Spacing & Scale
+
+**Purpose:** Visual rhythm through consistent spacing units.
+
+### Base Unit
+- **Base:** `8px` (all spacing is a multiple of 8px)
 
 ### Spacing Scale
-```css
---space-xs: 3px;     /* Minimal spacing */
---space-sm: 5px;     /* Small spacing */
---space-md: 7px;     /* Medium spacing */
---space-lg: 10px;    /* Large spacing */
---space-xl: 16px;    /* Extra large spacing */
-```
 
-### Component Dimensions
-```css
---calendar-width: 420px;
---calendar-height: 570px;
---header-height: 50px;
---day-width: 60px;
---legend-height: 30px;
---details-height: 75px;
-```
+| Variable | Value | Usage |
+|---------|-------|-------|
+| **--space-xs** | `6px` (0.75×) | Tight spacing, icons |
+| **--space-sm** | `12px` (1.5×) | Component padding |
+| **--space-md** | `20px` (2.5×) | Section spacing |
+| **--space-lg** | `32px` (4×) | Large gaps, margins |
 
-## Form Elements
+### Spacing Rules
 
-### Input Fields
-```css
-.form-group input {
-  width: 100%;
-  padding: var(--space-sm);
-  border: 2px solid rgba(15, 34, 48, 0.1);
-  border-radius: 999px;
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  background: var(--white);
-  color: var(--navy-700);
-  font-family: var(--font-family);
-  transition: all 0.18s ease;
-}
+- **Vertical Rhythm:** Headings have 2× base unit above, 1× below
+- **Component Padding:** Use `--space-sm` to `--space-md` consistently
+- **Whitespace:** Err toward generous empty space—reduces cognitive load
+- **Consistency:** Use variables, never magic numbers
 
-.form-group input:focus {
-  border-color: var(--coral);
-  background: rgba(240, 138, 119, 0.05);
-  outline: none;
-}
-```
+---
+
+## 4. Components
 
 ### Buttons
-```css
-.time-switch {
-  flex: 1;
-  padding: var(--space-sm) var(--space-xs);
-  border: 2px solid rgba(15, 34, 48, 0.1);
-  border-radius: 999px;
-  background: var(--white);
-  color: var(--navy-700);
-  font-family: var(--font-family);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  transition: all 0.18s ease;
-  cursor: pointer;
-}
 
-.time-switch.active {
-  background: var(--coral);
-  color: var(--white);
-  border-color: var(--coral);
+**Primary Button**
+```css
+background: var(--accent-primary);
+color: var(--white);
+padding: 10px 18px;
+border-radius: var(--radius-md);
+font-weight: 600;
+```
+
+**Secondary/Ghost Button**
+```css
+background: transparent;
+border: 1px solid var(--ui-border);
+color: var(--text-primary);
+```
+
+**Hover State**
+- Subtle brightness shift or slight lift (`translateY(-2px)`)
+- Smooth transition (≤300ms, `ease-in-out`)
+
+**Rules:**
+- Horizontal padding > vertical (visual balance)
+- Minimum touch target: 44px height
+- Rounded corners: `--radius-md` (8px)
+
+### Links
+
+- Default: `--text-primary` color
+- Hover: Underline animation or color shift to accent
+- No decorative icons unless functionally necessary
+- Focus state: Clear outline (accessibility)
+
+### Cards / Surfaces
+
+```css
+background: var(--bg-card);
+border: 1px solid var(--ui-border);
+border-radius: var(--radius-md);
+box-shadow: var(--shadow-subtle);
+padding: var(--space-md);
+```
+
+**Rules:**
+- Border: 1px solid light gray OR soft shadow (`rgba(0,0,0,0.05)`)
+- Radius: `--radius-md` (8px) for consistency
+- Clear margin around content
+
+### Navigation Elements
+
+- Consistent height across pages (`--bottom-nav-height: 80px`)
+- Text alignment balanced with icons
+- Clear contrast with background
+- Interaction feedback on hover/active (underline or highlight)
+
+---
+
+## 5. Motion & Interaction
+
+**Principles:** Minimal, purposeful, smooth.
+
+| Type | Description |
+|------|-------------|
+| **Hover animations** | Opacity (0.7 → 1), color shift, or scale (max 1.02×) |
+| **State transitions** | `ease-in-out`, duration ≤300ms |
+| **Feedback** | Subtle highlight on button/toggle activation |
+
+**Rules:**
+- Motion serves clarity, not decoration
+- Avoid multiple competing animations
+- Respect `prefers-reduced-motion` (disable animations)
+- Default easing: `cubic-bezier(0.4, 0, 0.2, 1)`
+
+---
+
+## 6. Iconography
+
+- Simple, geometric line icons (1.5–2px stroke)
+- Color matches text color (`--text-primary` or `--text-secondary`)
+- Consistent corner radius and line weight
+- Optically align with nearby text
+- Adequate padding around icons (minimum `--space-sm`)
+
+---
+
+## 7. Shadows & Depth
+
+**Purpose:** Subtle elevation hierarchy without heavy shadows.
+
+| Level | Shadow | Usage |
+|-------|--------|-------|
+| **Base** | `none` | Default elements |
+| **Elevated** | `0 2px 4px rgba(0,0,0,0.05)` | Cards on hover |
+| **Floating** | `0 4px 12px rgba(0,0,0,0.08)` | Modals, dropdowns |
+| **High** | `0 8px 24px rgba(0,0,0,0.12)` | Overlays, modals |
+
+**Rules:**
+- Prioritize flat design with mild elevation
+- Blur radius > offset for softness
+- Shadows never compete with color contrast
+
+---
+
+## 8. Borders & Corners
+
+### Border Radius
+
+| Variable | Value | Usage |
+|----------|-------|-------|
+| **--radius-sm** | `4px` | Small elements, inputs |
+| **--radius-md** | `8px` | Cards, buttons (default) |
+| **--radius-lg** | `12px` | Large cards, modals |
+
+### Borders
+
+- **Thickness:** 1px for dividers, 2px for inputs on focus
+- **Color:** `--ui-border` (#E5E7EB) for neutral borders
+- **Style:** Solid, neutral gray, low opacity to blend naturally
+
+**Rules:**
+- Consistent corner radius across components
+- Use radius variables, never magic numbers
+
+---
+
+## 9. Accessibility & Readability
+
+### Contrast Requirements
+
+- **Text contrast:** ≥4.5:1 (WCAG AA)
+- **Large text:** ≥3:1 (WCAG AA)
+- **Interactive elements:** Clear focus states
+
+### Touch Targets
+
+- **Minimum height:** 44px for interactive elements
+- **Adequate spacing:** At least 8px between touch targets
+
+### Focus States
+
+```css
+:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 ```
 
-### Inline Form Fields
+**Rules:**
+- Never convey meaning by color alone (use icons/text)
+- Focus state always visible
+- Font size never below 14px
+- Provide text alternatives for icons
+
+---
+
+## 10. Transitions & States
+
+### Default Timing
+
+- **Duration:** 200–300ms
+- **Easing:** `cubic-bezier(0.4, 0, 0.2, 1)` or `ease-in-out`
+
+### State Hierarchy
+
+| State | Description |
+|-------|-------------|
+| **Default** | Base appearance |
+| **Hover** | Subtle brightness/color shift |
+| **Active** | Pressed state (darker/lighter) |
+| **Focus** | Keyboard navigation highlight |
+| **Disabled** | Reduced opacity (0.5), no interaction |
+
+**Rules:**
+- States clearly distinct by tone and opacity
+- Never rely solely on hover for essential information (support touch)
+- Disabled elements: `opacity: 0.5`, `cursor: not-allowed`
+
+---
+
+## 11. Implementation Checklist
+
+When creating new components:
+
+- [ ] Use CSS variables from design system
+- [ ] Follow spacing scale (multiples of 8px)
+- [ ] Ensure ≥4.5:1 text contrast
+- [ ] Minimum 44px touch targets
+- [ ] Include focus states
+- [ ] Add hover transitions (≤300ms)
+- [ ] Use consistent border radius
+- [ ] Test with `prefers-reduced-motion`
+- [ ] Validate with accessibility tools
+
+---
+
+## 12. Color Usage Examples
+
+### Text Hierarchy
 ```css
-.inline-field {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-
-.inline-field label {
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  color: var(--navy-700);
-  white-space: nowrap;
-  min-width: fit-content;
-}
-
-.inline-field input {
-  flex: 1;
-  min-width: 0;
-}
+.heading { color: var(--text-primary); }        /* #000000 */
+.body { color: var(--text-primary); }            /* #000000 */
+.caption { color: var(--text-secondary); }      /* #6C757D */
+.meta { color: var(--text-tertiary); }          /* #ADB5BD */
 ```
 
-## Calendar Components
-
-### Day Cells
+### Backgrounds
 ```css
-.day {
-  display: inline-block;
-  width: 60px;
-  padding: 10px;
-  text-align: center;
-  vertical-align: top;
-  cursor: pointer;
-  background: var(--bg-primary);
-  position: relative;
-  z-index: 100;
-}
-
-.day-number {
-  font-size: 24px;
-  letter-spacing: 1.5px;
-}
-
-.day-name {
-  font-size: 9px;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-  color: var(--text-tertiary);
-  letter-spacing: .7px;
-}
+.page { background: var(--bg-primary); }         /* #FFFFFF */
+.card { background: var(--bg-card); }            /* #FFFFFF */
+.section { background: var(--bg-secondary); }    /* #F8F9FA */
 ```
 
-### Event Indicators
+### Interactive Elements
 ```css
-.day .day-events span {
-  vertical-align: top;
-  display: inline-block;
-  padding: 0;
-  margin: 0;
-  width: 5px;
-  height: 5px;
-  line-height: 5px;
-  margin: 0 1px;
+.button-primary { 
+  background: var(--accent-primary); 
+  color: var(--white); 
 }
-
-.blue { background: var(--event-blue); }
-.orange { background: var(--event-orange); }
-.green { background: var(--event-green); }
-.yellow { background: var(--event-yellow); }
+.link { color: var(--accent-primary); }
+.focus-ring { outline-color: var(--accent-primary); }
 ```
 
-### Event Details
-```css
-.details {
-  position: relative;
-  width: 420px;
-  height: 75px;
-  background: var(--bg-tertiary);
-  margin-top: 5px;
-  border-radius: 4px;
-}
+---
 
-.event {
-  font-size: 16px;
-  line-height: 22px;
-  letter-spacing: .5px;
-  padding: 2px 16px;
-  vertical-align: top;
-}
-```
-
-## Animations
-
-### Keyframe Animations
-```css
-@keyframes fadeIn {
-  from { opacity: 0; }
-}
-
-@keyframes moveFromTopFade {
-  from { 
-    opacity: .3; 
-    height: 0px; 
-    margin-top: 0px; 
-    transform: translateY(-100%); 
-  }
-}
-
-@keyframes moveToTopFade {
-  to { 
-    opacity: .3; 
-    height: 0px; 
-    margin-top: 0px; 
-    transform: translateY(-100%); 
-  }
-}
-```
-
-### Animation Classes
-```css
-.month.new {
-  animation: fadeIn 1s ease-out;
-  opacity: 1;
-}
-
-.details.in {
-  animation: moveFromTopFade .5s ease both;
-}
-
-.events.in {
-  animation: fadeIn .3s ease both;
-  animation-delay: .3s;
-}
-```
-
-## Responsive Design
-
-### Touch Interactions
-```css
-body {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-```
-
-### Hardware Acceleration
-```css
-#calendar {
-  -webkit-transform: translate3d(0, 0, 0);
-  -moz-transform: translate3d(0, 0, 0);
-  transform: translate3d(0, 0, 0);
-}
-```
-
-## Naming Conventions
-
-### CSS Classes
-- Use kebab-case for class names: `.time-switch`, `.inline-field`
-- Use descriptive names: `.event-details`, `.day-events`
-- Prefix component-specific styles: `.calendar-*`, `.event-*`
-
-### CSS Variables
-- Use descriptive names with prefixes: `--bg-primary`, `--text-secondary`
-- Group related variables: `--event-*`, `--space-*`, `--fs-*`
-
-### Component Structure
-```css
-/* Component Container */
-.component-name {
-  /* Layout properties */
-  /* Background and borders */
-  /* Typography */
-  /* Spacing */
-}
-
-/* Component States */
-.component-name:hover { }
-.component-name.active { }
-.component-name.disabled { }
-
-/* Component Children */
-.component-name .child-element { }
-.component-name .child-element:hover { }
-```
-
-## Best Practices
-
-1. **Consistency**: Use the defined color palette and typography scale
-2. **Performance**: Use hardware acceleration for animations
-3. **Accessibility**: Ensure sufficient color contrast
-4. **Maintainability**: Use CSS variables for reusable values
-5. **Responsive**: Design for touch interactions and mobile-first
-6. **Animations**: Keep animations smooth and purposeful
+*Last updated: [Current Date]*
