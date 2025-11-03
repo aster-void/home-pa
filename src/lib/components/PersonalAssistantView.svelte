@@ -1,4 +1,5 @@
 <script lang="ts">
+  // LogsView removed from header; settings panel is minimal
   import LogsView from "./LogsView.svelte";
   import { CircularTimeline } from "./pa_components/index.js";
   import { events, selectedDate } from "../stores/data.js";
@@ -6,7 +7,8 @@
   import { GapFinder } from "../services/gap-finder.js";
 
   // Local state
-  let showLogs = $state(false);
+  // Settings panel toggle (replaces top header controls)
+  let showSettings = $state(false);
   let selectedGap = $state<Gap | null>(null);
   let selectedEvent = $state<Event | null>(null);
 
@@ -56,25 +58,8 @@
 </script>
 
 <div class="personal-assistant-view">
-  <!-- Header -->
-  <header class="pa-header">
-    <h1>Personal Assistant</h1>
-    <div class="header-controls">
-      <label class="active-hours">
-        <span>Active:</span>
-        <input type="time" bind:value={activeStart} onchange={recomputeGaps} />
-        <span>–</span>
-        <input type="time" bind:value={activeEnd} onchange={recomputeGaps} />
-      </label>
-      <button
-        class="control-btn"
-        class:active={showLogs}
-        onclick={() => (showLogs = !showLogs)}
-      >
-        {showLogs ? "Hide" : "Show"} Logs
-      </button>
-    </div>
-  </header>
+  <!-- Minimal bottom-left Settings trigger -->
+  <button class="settings-trigger" onclick={() => (showSettings = true)}>settings</button>
 
   <!-- Main Content -->
   <main class="pa-main">
@@ -120,82 +105,58 @@
     </section>-->
   </main>
 
-  <!-- Developer Logs -->
-  {#if showLogs}
-    <section class="logs-section">
-      <LogsView />
+  <!-- Settings Panel (bottom sheet) -->
+  {#if showSettings}
+    <section class="settings-section">
+      <div class="settings-header">
+        <span>Settings</span>
+        <button class="settings-close" onclick={() => (showSettings = false)}>close</button>
+      </div>
+      <div class="settings-content">
+        <div class="settings-row">
+          <span class="label">Active hours</span>
+          <div class="inputs">
+            <input type="time" bind:value={activeStart} onchange={recomputeGaps} />
+            <span>–</span>
+            <input type="time" bind:value={activeEnd} onchange={recomputeGaps} />
+          </div>
+        </div>
+        <div class="settings-logs">
+          <LogsView />
+        </div>
+      </div>
     </section>
   {/if}
 </div>
 
 <style>
   .personal-assistant-view {
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     margin: 0;
     padding: 0;
     overflow: hidden;
   }
 
-  /* Header */
-  .pa-header {
+  /* Settings trigger (minimal, bottom-left) */
+  .settings-trigger {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-md) var(--space-md);
-    background: var(--white);
-    border-bottom: 2px solid var(--navy-100);
-    box-shadow: 0 2px 10px rgba(15, 34, 48, 0.1);
-  }
-
-  .pa-header h1 {
-    margin: 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--navy-900);
-  }
-
-  .header-controls {
-    display: flex;
-    gap: var(--space-sm);
-  }
-
-  .control-btn {
-    padding: var(--space-sm) var(--space-md);
-    border: 2px solid var(--coral);
+    left: 8px;
+    top: 8px;
+    z-index: 250;
     background: transparent;
-    border-radius: var(--radius-md);
+    border: none;
+    padding: 2px 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
     cursor: pointer;
-    font-size: var(--fs-sm);
-    color: var(--coral);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.2s ease;
-  }
-
-  .control-btn:hover {
-    background: var(--coral);
-    color: var(--white);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
-  }
-
-  .control-btn.active {
-    background: var(--coral);
-    color: var(--white);
   }
 
   /* Main Layout */
   .pa-main {
     position: relative;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
   }
@@ -214,7 +175,7 @@
     width: 100%;
     height: 100%;
     max-width: 90vh;
-    max-height: 90vh;
+    max-height: 95vh;
     position: relative;
     overflow: visible;
   }
@@ -339,28 +300,70 @@
     background: var(--red-200);
     transform: translateY(-2px);
   }*/
-  /* Logs Section */
-  .logs-section {
+  /* Settings Panel (bottom sheet) */
+  .settings-section {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: 50vh;
     background: var(--white);
-    border-top: 2px solid var(--navy-100);
-    padding: var(--space-lg);
-    box-shadow: 0 -4px 20px rgba(15, 34, 48, 0.1);
-    z-index: 200;
+    border-top: 1px solid var(--ui-border);
+    padding: var(--space-md);
+    box-shadow: 0 -4px 20px rgba(15, 34, 48, 0.08);
+    z-index: 220;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .settings-close {
+    background: transparent;
+    border: none;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .settings-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .settings-row .inputs {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .settings-logs {
+    margin-top: var(--space-sm);
   }
 
   /* Responsive Design */
   @media (max-width: 768px) {
     .timeline-section {
-      width: 100vw;
+      width: 100%;
       height: 50vh;
     }
-
     /*.content-section {
       width: 100vw;
       height: 50vh;
@@ -368,12 +371,6 @@
       padding: var(--space-sm);
     }*/
 
-    .pa-header {
-      padding: var(--space-sm) var(--space-sm);
-    }
-
-    .pa-header h1 {
-      font-size: var(--fs-lg);
-    }
+    /* (header removed in mobile) */
   }
 </style>

@@ -82,8 +82,9 @@
 
   .memo-tab {
     position: fixed;
-    top: var(--space-lg);
+    top: 50%;
     right: 0;
+    transform: translateY(-50%);
     z-index: 1001;
     display: flex;
     align-items: center;
@@ -96,33 +97,33 @@
     box-shadow: -2px 2px 12px rgba(240, 138, 119, 0.4);
     transition: all 0.3s cubic-bezier(0.2, 0.9, 0.2, 1);
     font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    font-size: var(--fs-md);
+    font-weight: var(--font-weight-normal);
+    font-size: 12px;
     writing-mode: vertical-rl;
     text-orientation: mixed;
   }
 
   .memo-tab.open {
-    left: 0;
-    right: auto;
-    border-radius: 0 8px 8px 0;
     box-shadow: 2px 2px 12px rgba(240, 138, 119, 0.4);
-    writing-mode: vertical-lr;
   }
 
   .memo-tab:hover {
-    box-shadow: -4px 4px 16px rgba(240, 138, 119, 0.5);
-    padding-right: var(--space-md);
+    box-shadow: 0 4px 16px rgba(240, 138, 119, 0.5);
   }
 
   .memo-tab.open:hover {
     box-shadow: 4px 4px 16px rgba(240, 138, 119, 0.5);
-    padding-left: var(--space-md);
-    padding-right: var(--space-sm);
   }
 
-  .memo-tab-label {
-    letter-spacing: 0.1em;
+  .memo-tab-label { letter-spacing: 0.06em; }
+
+  /* Extra-small size on narrow phones */
+  @media (max-width: 380px) {
+    .memo-tab {
+      padding: 6px 4px;
+      font-size: 10px;
+      border-radius: 6px 0 0 6px;
+    }
   }
 
   .calendar-layout {

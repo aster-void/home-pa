@@ -2137,7 +2137,7 @@
     background: var(--card);
     border: 1px solid rgba(15, 34, 48, 0.05);
     border-radius: var(--radius-lg);
-    padding: var(--space-lg);
+    padding: var(--space-md);
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
@@ -2152,7 +2152,7 @@
   }
 
   .timeline-container {
-    height: 400px;
+    height: 70vh;
     overflow: hidden;
     position: relative;
   }
@@ -2161,8 +2161,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
     border-bottom: 1px solid rgba(15, 34, 48, 0.08);
   }
 
@@ -2176,7 +2176,7 @@
 
   .timeline-view {
     position: relative;
-    height: 400px;
+    height: 70vh;
     background: var(--bg-card);
     border: 1px solid rgba(15, 34, 48, 0.1);
     border-radius: var(--radius-md);

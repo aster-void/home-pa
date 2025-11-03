@@ -36,7 +36,13 @@
   const fullCircleRadians = (fullCircleDegrees * Math.PI) / 180;
   
   // center/radius calculation - centered in container
-  let radius = $derived(Math.min(containerHeight * 0.4, containerWidth * 0.4)); // Smaller to leave room for labels
+  // On mobile (width < 768px), use 80% of width for diameter (radius = 40% of width), constrained by height
+  // Otherwise use 40% of smaller dimension
+  let radius = $derived(
+    containerWidth < 768 
+      ? Math.min(containerWidth * 0.4, containerHeight * 0.45) // 80% of width diameter, ensure it fits height with some margin
+      : Math.min(containerHeight * 0.4, containerWidth * 0.4)
+  );
   let centerY = $derived(containerHeight / 2);
   let centerX = $derived(containerWidth / 2);
 
