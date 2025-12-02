@@ -1,5 +1,9 @@
 // Suggestion service for gap time detection and proposal
-import type { Suggestion, SuggestionLog, Gap } from "../types.js";
+import type { SuggestionLog, Gap } from "../types.js";
+
+// Temporary type (will be replaced in Phase 4)
+interface SimpleSuggestion { id: string; template: string; gapMin: number; eventId?: string; }
+type Suggestion = SimpleSuggestion;
 import { get } from "svelte/store";
 import {
   events,

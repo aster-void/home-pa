@@ -1,5 +1,6 @@
 // Personal Assistant Components
 export { default as CircularTimeline } from "./CircularTimeline.svelte";
+export { default as SchedulePanel } from "./SchedulePanel.svelte";
 
 // Future components can be added here:
 // export { default as TaskManagerCard } from './TaskManagerCard.svelte';

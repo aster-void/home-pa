@@ -47,6 +47,26 @@ export {
 export { toasts } from './toast.js';
 export { formatDate, formatDateTime } from '../utils/date-utils.js';
 
+// Schedule store (suggestion engine output)
+export {
+  scheduleResult,
+  isScheduleLoading,
+  scheduleError,
+  lastPipelineSummary,
+  lastScheduleTime,
+  scheduledBlocks,
+  droppedSuggestions,
+  droppedMandatory,
+  nextScheduledBlock,
+  hasScheduledTasks,
+  totalScheduledMinutes,
+  hasMandatoryDropped,
+  scheduleActions,
+  findBlockByMemoId,
+  isMemoScheduled,
+  getBlocksForGap,
+} from './schedule.js';
+
 // UI state stores
 export {
   currentView,
@@ -59,8 +79,11 @@ export {
   errorMessage,
   isCalendarView,
   isPersonalAssistantView,
-  uiActions as uiStateActions
+  isTasksView,
+  uiActions as uiStateActions,
 } from './ui.js';
+
+export type { AppView } from './ui.js';
 
 // Form stores
 export {
@@ -91,6 +114,21 @@ export { eventActions } from './actions/eventActions.js';
 export { memoActions } from './actions/memoActions.js';
 export { uiActions } from './actions/uiActions.js';
 export { suggestionActions } from './actions/suggestionActions.js';
+export { taskActions, tasks } from './actions/taskActions.js';
+
+// Task form
+export {
+  taskForm,
+  taskFormErrors,
+  isTaskFormSubmitting,
+  isTaskFormOpen,
+  isTaskFormValid,
+  showDeadlineField,
+  showRecurrenceFields,
+  taskFormActions,
+} from './forms/taskForm.js';
+
+export type { TaskFormData, TaskFormErrors } from './forms/taskForm.js';
 
 // Timezone
 export { timezone, timezoneActions, timezoneLabel } from './timezone.js';

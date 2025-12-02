@@ -10,7 +10,7 @@
 
 import { get } from 'svelte/store';
 import { selectedDate } from '../data.js';
-import { uiActions as uiStateActions, currentSuggestion } from '../ui.js';
+import { uiActions as uiStateActions, currentSuggestion, type AppView } from '../ui.js';
 import { suggestionService } from '../../services/suggestion.js';
 
 /**
@@ -19,9 +19,9 @@ import { suggestionService } from '../../services/suggestion.js';
  */
 export const uiActions = {
   /**
-   * Switch between calendar, personal assistant, and utilities views
+   * Switch between calendar, personal assistant, tasks, and utilities views
    */
-  setView(view: "calendar" | "personal-assistant" | "utilities"): void {
+  setView(view: AppView): void {
     uiStateActions.setView(view);
 
     // Check for suggestions when returning to calendar

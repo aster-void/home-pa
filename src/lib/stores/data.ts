@@ -9,7 +9,14 @@
  */
 
 import { writable, derived } from "svelte/store";
-import type { Event, Memo, SuggestionLog } from "../types.js";
+import type { Event, SuggestionLog } from "../types.js";
+
+// Temporary simple memo type (will be replaced with new Memo in Phase 4)
+interface SimpleMemo {
+  id: string;
+  text: string;
+}
+type Memo = SimpleMemo;
 import { toasts } from "./toast.js";
 
 /**

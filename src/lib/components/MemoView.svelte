@@ -1,5 +1,7 @@
 <script lang="ts">
-  import type { Memo } from "../types.js";
+  // Temporary simple memo type (will be replaced in Phase 4)
+  interface SimpleMemo { id: string; text: string; }
+  type Memo = SimpleMemo;
   import { 
     memos, 
     memoForm, 

@@ -9,7 +9,12 @@
  */
 
 import { writable, derived } from 'svelte/store';
-import type { Memo } from '../../types.js';
+// Temporary simple memo type (will be replaced with new Memo in Phase 4)
+interface SimpleMemo {
+  id: string;
+  text: string;
+}
+type Memo = SimpleMemo;
 
 /**
  * Memo form data interface

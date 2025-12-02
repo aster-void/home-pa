@@ -15,6 +15,7 @@ import { GapFinder } from "../services/gap-finder.js";
 import { selectedDate } from "./data.js";
 import { eventsForSelectedDate } from './recurrence.store.js';
 import type { Event as CalendarEvent } from "../types.js";
+import { enrichGapsWithLocation, type EnrichableEvent } from "../services/suggestions/index.js";
 
 /**
  * User-configurable day boundaries for gap calculation
@@ -132,6 +133,31 @@ export const gapFinder = derived(
  */
 export const gaps = derived([events, gapFinder], ([eventList, finder]) => {
   return finder.findGaps(eventList);
+});
+
+/**
+ * Convert gap-finder events to enrichable events for location derivation
+ * Currently events don't have locationLabel, so this just converts the format
+ * When events get location data, this will pass it through
+ */
+function toEnrichableEvents(gapEvents: Event[]): EnrichableEvent[] {
+  return gapEvents.map((event) => ({
+    id: event.id,
+    title: event.title,
+    start: event.start,
+    end: event.end,
+    // locationLabel will be undefined for now
+    // When CalendarEvent gets locationLabel, we'll pass it through here
+  }));
+}
+
+/**
+ * Enriched gaps with location labels derived from surrounding events
+ * Uses the gap enrichment module to add locationLabel to each gap
+ */
+export const enrichedGaps = derived([gaps, events], ([$gaps, $events]) => {
+  const enrichableEvents = toEnrichableEvents($events);
+  return enrichGapsWithLocation($gaps, enrichableEvents);
 });
 
 /**

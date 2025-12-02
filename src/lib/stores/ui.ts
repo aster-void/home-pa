@@ -12,10 +12,15 @@ import { writable } from 'svelte/store';
 import type { ViewMode } from '../types.js';
 
 /**
- * Current application view
- * Controls which main view is displayed (calendar, personal assistant, or utilities)
+ * Application view type
  */
-export const currentView = writable<"calendar" | "personal-assistant" | "utilities">("calendar");
+export type AppView = "calendar" | "personal-assistant" | "tasks" | "utilities";
+
+/**
+ * Current application view
+ * Controls which main view is displayed
+ */
+export const currentView = writable<AppView>("calendar");
 
 /**
  * Current view mode for the calendar
@@ -65,9 +70,9 @@ export const errorMessage = writable<string | null>(null);
  */
 export const uiActions = {
   /**
-   * Switch between calendar and personal assistant views
+   * Switch between application views
    */
-  setView(view: "calendar" | "personal-assistant" | "utilities"): void {
+  setView(view: AppView): void {
     currentView.set(view);
   },
 
@@ -178,8 +183,14 @@ export const isCalendarView = writable<boolean>(true);
  */
 export const isPersonalAssistantView = writable<boolean>(false);
 
+/**
+ * Whether the tasks view is currently active
+ */
+export const isTasksView = writable<boolean>(false);
+
 // Update derived states when currentView changes
 currentView.subscribe(view => {
   isCalendarView.set(view === "calendar");
   isPersonalAssistantView.set(view === "personal-assistant");
+  isTasksView.set(view === "tasks");
 });

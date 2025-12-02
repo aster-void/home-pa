@@ -22,6 +22,15 @@
   </button>
 
   <button
+    class="nav-item {$currentView === 'tasks' ? 'active' : ''}"
+    onclick={() => uiActions.setView("tasks")}
+    aria-current={$currentView === "tasks" ? "page" : undefined}
+    aria-label="Open tasks view"
+  >
+    <span class="nav-label">Tasks</span>
+  </button>
+
+  <button
     class="nav-item {$currentView === 'utilities' ? 'active' : ''}"
     onclick={() => uiActions.setView("utilities")}
     aria-current={$currentView === "utilities" ? "page" : undefined}

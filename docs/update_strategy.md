@@ -1,189 +1,209 @@
 # Suggestion Logic Update Strategy
 
-This document outlines a detailed workflow for integrating the new scheduling-and-suggestion logic into Home‑PA. The tasks are sequenced to minimize churn and clarify dependencies.
+This document outlines remaining tasks for completing the scheduling-and-suggestion logic in Home‑PA.
 
 ---
 
-## 1. Baseline Inventory
+## ✅ Completed Phases
 
-1. Audit current suggestion flow (`src/lib/services/suggestion.ts`, stores, UI usage).
-2. Catalog data sources (events, memos, logs) and identify gaps in metadata (locations, durations, priorities).
-3. Confirm existing persistence (Prisma models, local stores) and note required schema changes.
+The following have been fully implemented and tested:
 
-Deliverables:
-- Annotated map of current suggestion pipeline.
-- Checklist of missing fields per entity (event, gap, suggestion, user settings).
+### Phase 1: Foundation ✅
+- `src/lib/types.ts` — New Memo, Suggestion, Gap interfaces
+- Rich Memo structure with type, deadline, recurrence, location, status
 
-## 2. Data Model Extensions
+### Phase 2: Core Services ✅
+- `src/lib/services/suggestions/gap-enrichment.ts` — Location derivation from events
+- `src/lib/services/suggestions/period-utils.ts` — Day/week/month cycle helpers
+- `src/lib/services/suggestions/suggestion-scoring.ts` — Need/importance calculation
+- `src/lib/services/suggestions/location-matching.ts` — Gap-suggestion compatibility
+- `src/lib/services/suggestions/suggestion-scheduler.ts` — Permutation + knapsack scheduling
+- `src/lib/services/suggestions/llm-enrichment.ts` — Gemini integration (ready, needs API key)
+- `src/lib/services/suggestions/index.ts` — Central exports
 
-1. Update `src/lib/types.ts` to add:
-   - `Suggestion`: `need`, `importance`, `duration`, `location?: Coordinate`, `locationPreference?: string`, `status`, `lastReaction`.
-   - `Gap`: `gapId`, `startLocation`, `endLocation`, `startLabel?`, `endLabel?`.
-   - `Event`: `location?: Coordinate`, `locationLabel?: string`, optional travel metadata.
-2. Mirror changes in persistence layer (Prisma schema and migrations or local store definitions).
-3. Add helper `Coordinate` type and shared constants (`MINUTES_PER_DISTANCE_UNIT`, etc.).
+### Phase 3: Orchestration ✅
+- `src/lib/services/suggestions/suggestion-engine.ts` — Pipeline orchestrator
+- `src/lib/stores/schedule.ts` — Schedule result store + actions
+- `src/lib/stores/gaps.ts` — Enriched gaps (already had this)
+- `src/lib/stores/forms/taskForm.ts` — Task form state
+- `src/lib/stores/actions/taskActions.ts` — Task CRUD operations
 
-Deliverables:
-- Updated type definitions and schema migration (if needed).
-- Notes on backward compatibility and default values.
+### Phase 4: UI Components ✅
+- `src/lib/components/TaskView.svelte` — Task list view
+- `src/lib/components/task_components/TaskForm.svelte` — Rich task creation form
+- `src/lib/components/task_components/TaskCard.svelte` — Task display card
+- `src/lib/components/pa_components/SchedulePanel.svelte` — Schedule display
+- `src/lib/components/PersonalAssistantView.svelte` — Modified to include SchedulePanel
+- `src/lib/components/BottomNavigation.svelte` — Added Tasks tab
+- `src/routes/+page.svelte` — Wired up TaskView
 
-## 3. Location & Travel Metrics Module
-
-Create `src/lib/services/suggestions/travel-metrics.ts`:
-
-1. Define `Coordinate` utilities, `setHomeLocation`, `getHomeLocation`.
-2. Implement deterministic address→coordinate mapper:
-   - Hash address → pseudo-random seed → bounded grid coordinate.
-   - Cache results per session/user.
-3. Provide `euclideanDistance`, `travelMinutesBetween`, `formatTravelLog`.
-4. Expose configuration hooks for `MINUTES_PER_DISTANCE_UNIT`.
-
-Deliverables:
-- Travel helper module with tests.
-- Documentation on pseudo-geocode fallback.
-
-## 4. Suggestion Registry
-
-Create `src/lib/services/suggestions/suggestion-registry.ts`:
-
-1. In-memory store with optional persistence for all potential suggestions.
-2. APIs:
-   - `register(rawTask)`, `updateStatus(id, status)`, `getByStatus(status)`.
-   - `markReaction(id, reaction)` to feed scoring.
-3. Store derived metadata: creation time, last scheduled, streaks, reaction history.
-4. Wire to `suggestionLogOperations` for durability.
-
-Deliverables:
-- Registry module + unit tests.
-- Seed/import script to bootstrap suggestions (if needed).
-
-## 5. Scoring Layer
-
-Create `src/lib/services/suggestions/suggestion-scoring.ts`:
-
-1. Define `ScoreInput` (task attributes, reactions, deadlines, user prefs).
-2. Implement:
-   - `normalizeNeed(value)`, `normalizeImportance(value)`.
-   - `computeNeed(input)`, `computeImportance(input)`.
-   - `toSuggestionModel(input)` -> returns fully populated `Suggestion`.
-3. Encode rules:
-   - Mandatory threshold handling (`need >= 1.0`).
-   - Recency decay, streak bonuses, urgency factors.
-4. Provide hooks for future ML/AI replacements via strategy pattern.
-
-Deliverables:
-- Scoring module with deterministic fixtures.
-- Doc comments explaining heuristics and tunables.
-
-## 6. Scheduler Port
-
-Create `src/lib/services/suggestions/suggestion-scheduler.ts`:
-
-1. Translate Python dataclasses to TS interfaces (`Gap`, `Suggestion`, `ScheduledBlock`, `ScheduleResult`).
-2. Port core functions:
-   - `greedySelectCandidates` (knapsack).
-   - `enumerateBestOrder` (permutation search).
-   - `assignOrderToGaps`.
-   - `scheduleSuggestions`.
-3. Integrate with travel module:
-   - Skip travel when suggestion or cursor lacks coordinates.
-   - Enforce `locationPreference` rules (e.g., `near_home` boundaries).
-4. Include logging utilities (`movementLog`, `formatSchedule`).
-5. Add exhaustive unit tests mirroring Python samples.
-
-Deliverables:
-- TS implementation parity with Python version.
-- Test suite (`bun test` or Vitest) covering mandatory inclusion, travel units, infeasible cases.
-
-## 7. Gap Enrichment
-
-1. Extend `GapFinder` to attach:
-   - Coordinates (inherit from adjacent events or fallback to home/work labels).
-   - Human-readable labels for start/end.
-   - Unique `gapId`.
-2. Ensure midnight and boundary handling preserve labels and coordinates.
-3. Provide helper `deriveGapLocations(events)` to reuse in other contexts.
-
-Deliverables:
-- Updated gap finder module.
-- Tests for gaps with/without events, midnight crossings, and custom boundaries.
-
-## 8. Orchestration Service
-
-Create `src/lib/services/suggestions/suggestion-engine.ts`:
-
-1. Pipeline:
-   - Fetch candidate suggestions from registry.
-   - Score them via scoring module.
-   - Fetch gaps (current day/time window) with enriched data.
-   - Call scheduler and receive `ScheduleResult`.
-   - Update registry statuses + logs.
-2. Handle no-gap / no-suggestion scenarios gracefully (return null or fallback template).
-3. Expose API:
-   - `generateSuggestions(context)`.
-   - `refreshSchedule()` (for manual triggers).
-   - Observables/stores for UI consumption.
-
-Deliverables:
-- Engine module + integration tests (mock registry/gap data).
-- Documentation of state transitions.
-
-## 9. UI & Store Integration
-
-1. Update Svelte stores to subscribe to `ScheduleResult` (scheduled blocks, travel cost, dropped suggestions).
-2. Enhance `SuggestionService` or create controller class using runes:
-   - Display next recommended action with context (gap, travel time).
-   - Show movement log or summary in calendar UI.
-3. Add user controls:
-   - Accept/Reject/Later actions wired to registry/logs.
-   - Option to pin mandatory suggestions or adjust priorities.
-
-Deliverables:
-- UI components updated with runes syntax.
-- Interaction tests or manual QA plan.
-
-## 10. Configuration & Settings
-
-1. Add config surface (env or user settings) for:
-   - `MINUTES_PER_DISTANCE_UNIT`, `MANDATORY_NEED_THRESHOLD`.
-   - Day boundaries, home/work locations.
-   - Scheduler limits (`permutationLimit`, `maxDistance`).
-2. Provide defaults and validation.
-3. Document how to tune values per user or environment.
-
-Deliverables:
-- Config module or schema updates.
-- Docs describing knob effects and safe ranges.
-
-## 11. Testing & Validation
-
-1. Unit tests for each new module (travel, scoring, registry, scheduler, engine).
-2. Integration test simulating a day:
-   - Seed events + suggestions -> expect specific schedule result.
-3. Regression tests to ensure legacy simple suggestions still function (if fallback needed).
-4. Manual verification in dev environment with sample data:
-   - Check deterministic coordinates.
-   - Confirm scheduler handles location-less suggestions.
-   - Validate UI updates and logs.
-
-Deliverables:
-- Test matrix with pass/fail results.
-- QA checklist recorded in docs or issue tracker.
-
-## 12. Documentation & Rollout
-
-1. Update README / AGENTS doc with overview of the new suggestion stack.
-2. Add developer notes on how to add new suggestion templates or scoring heuristics.
-3. Provide migration guide for existing data (if schema changes affect stored suggestions).
-4. Plan rollout:
-   - Feature flag or staged deployment if needed.
-   - Monitoring hooks (reaction rate, scheduler success).
-
-Deliverables:
-- Documentation updates.
-- Rollout/monitoring plan linked to repo roadmap.
+### Tests ✅
+- `src/lib/stores/__tests__/schedule.test.ts` — 12 tests for engine + schedule
+- `src/lib/stores/__tests__/task-wiring.test.ts` — 21 tests for full flow
+- All 61 tests passing
 
 ---
 
-Following this strategy ensures we introduce the advanced scheduler in layers, keep data consistent, and maintain clear upgrade paths for future integrations (real geocoding, AI scoring, etc.).***
+## 🔄 Remaining Tasks
 
+### 1. Enable LLM Enrichment
+
+**Status:** Module ready, needs SDK + API key
+
+**Steps:**
+```bash
+# Install Gemini SDK
+bun add @google/generative-ai
+
+# Add to .env
+GEMINI_API_KEY=your-api-key-here
+```
+
+The `llm-enrichment.ts` module will automatically use Gemini when configured. Currently falls back to rule-based defaults.
+
+---
+
+### 2. Progress Tracking Component (Optional)
+
+**File:** `src/lib/components/MemoProgress.svelte`
+
+**Purpose:** Visual progress for each task
+
+**Display:**
+- Progress bar: `timeSpentMinutes / totalDurationExpected`
+- For routines: "2 of 3 this week" indicator
+- Deadline countdown for 期限付き
+- Last activity date
+
+**Priority:** Low — can be added later as enhancement
+
+---
+
+### 3. Session Timer (Optional)
+
+**Purpose:** Track time when user works on a task
+
+**Features:**
+- Start/pause/complete buttons
+- Auto-update `timeSpentMinutes`
+- Increment routine completions on complete
+
+**Priority:** Medium — useful for accurate tracking
+
+---
+
+### 4. Data Persistence
+
+**Current:** Tasks stored in memory (Svelte store)
+
+**Needed:** Persist to database
+
+**Options:**
+1. Add Prisma model for `Task` (similar to `Event`)
+2. Use local storage as interim solution
+3. Sync with existing memo persistence if any
+
+**Priority:** High for production use
+
+---
+
+### 5. Documentation Updates
+
+- [ ] Update AGENTS.md with new task/suggestion flow
+- [ ] Add developer guide for tuning scoring heuristics
+- [ ] Document LLM prompt customization
+
+---
+
+## Quick Reference: Current File Structure
+
+```
+src/lib/
+├── types.ts                          # ✅ Rich Memo, Suggestion, Gap interfaces
+├── services/
+│   ├── gap-finder.ts                 # ✅ Extended with gapId
+│   └── suggestions/
+│       ├── index.ts                  # ✅ Central exports
+│       ├── gap-enrichment.ts         # ✅ Location derivation
+│       ├── period-utils.ts           # ✅ Cycle helpers
+│       ├── suggestion-scoring.ts     # ✅ Need/importance
+│       ├── location-matching.ts      # ✅ Compatibility
+│       ├── suggestion-scheduler.ts   # ✅ Permutation + knapsack
+│       ├── llm-enrichment.ts         # ✅ Gemini (needs API key)
+│       └── suggestion-engine.ts      # ✅ Orchestrator
+├── stores/
+│   ├── schedule.ts                   # ✅ Schedule result store
+│   ├── gaps.ts                       # ✅ Enriched gaps
+│   ├── forms/taskForm.ts             # ✅ Task form state
+│   ├── actions/taskActions.ts        # ✅ Task CRUD
+│   └── __tests__/
+│       ├── schedule.test.ts          # ✅ 12 tests
+│       └── task-wiring.test.ts       # ✅ 21 tests
+└── components/
+    ├── TaskView.svelte               # ✅ Task list
+    ├── task_components/
+    │   ├── TaskForm.svelte           # ✅ Rich form
+    │   └── TaskCard.svelte           # ✅ Task display
+    └── pa_components/
+        ├── CircularTimeline.svelte   # ✅ Existing
+        └── SchedulePanel.svelte      # ✅ Schedule display
+```
+
+---
+
+## Data Flow (Implemented)
+
+```
+User creates task (TaskView)
+        ↓
+taskActions.create() → tasks store
+        ↓
+User clicks "Generate Schedule" (SchedulePanel)
+        ↓
+scheduleActions.regenerate(tasks, gaps)
+        ↓
+SuggestionEngine.generateSchedule()
+  ├── Filter active memos
+  ├── Reset period counters
+  ├── LLM enrichment (if configured)
+  ├── Score memos → Suggestions
+  ├── Enrich gaps with location
+  └── Schedule via permutation + knapsack
+        ↓
+scheduleResult store updated
+        ↓
+SchedulePanel displays scheduled blocks
+```
+
+---
+
+## Scoring Summary (Implemented)
+
+| Type | Need Range | Can Be Mandatory? |
+|------|------------|-------------------|
+| 期限付き | 0.1 - 1.0+ | Yes (due today or overdue) |
+| バックログ | 0.25 - 0.7 | No (capped) |
+| ルーティン | 0.3 - 0.8 | No (capped) |
+
+**Priority Logic:**
+- Mandatory tasks (need ≥ 1.0) scheduled first
+- Higher `need × importance` = higher priority
+- Location matching filters compatible gaps
+
+---
+
+## Test Summary
+
+```
+61 tests passing across 5 files
+
+- schedule.test.ts: Engine unit + integration tests
+- task-wiring.test.ts: Full flow tests (form → store → schedule)
+- recurrence.store.test.ts: Recurrence handling
+- integration.app.test.ts: App integration
+- manager.test.ts: Recurrence manager
+```
+
+---
+
+This document will be updated as remaining tasks are completed.

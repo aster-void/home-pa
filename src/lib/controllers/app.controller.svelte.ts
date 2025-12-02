@@ -1,5 +1,11 @@
 // Main application controller using Svelte stores
-import type { Event, Memo, ViewMode, Suggestion } from "../types.js";
+import type { Event, ViewMode } from "../types.js";
+
+// Temporary types (will be replaced in Phase 4)
+interface SimpleMemo { id: string; text: string; }
+interface SimpleSuggestion { id: string; template: string; gapMin: number; eventId?: string; }
+type Memo = SimpleMemo;
+type Suggestion = SimpleSuggestion;
 import { writable, type Writable, get } from "svelte/store";
 import {
   eventOperations,

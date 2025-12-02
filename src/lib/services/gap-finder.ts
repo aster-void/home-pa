@@ -8,6 +8,10 @@
  * @version 1.0.0
  */
 
+// Import Gap from types.ts for consistency
+import type { Gap, LocationLabel } from "../types.js";
+export type { Gap };
+
 /**
  * Time slot interface for gap calculations
  */
@@ -26,15 +30,6 @@ export interface Event {
   start: string; // HH:mm format
   end: string; // HH:mm format
   crossesMidnight?: boolean;
-}
-
-/**
- * Gap interface representing free time slots
- */
-export interface Gap {
-  start: string;
-  end: string;
-  duration: number; // in minutes
 }
 
 /**
@@ -58,6 +53,7 @@ export interface DayBoundaries {
  */
 export class GapFinder {
   private dayBoundaries: DayBoundaries;
+  private gapCounter: number = 0;
 
   constructor(
     dayBoundaries: DayBoundaries = { dayStart: "08:00", dayEnd: "23:00" },
@@ -69,6 +65,9 @@ export class GapFinder {
    * Find gaps in a day given a list of events
    */
   findGaps(events: Event[]): Gap[] {
+    // Reset gap counter for each findGaps call
+    this.gapCounter = 0;
+    
     if (events.length === 0) {
       // No events = one big gap from day start to day end
       return [
@@ -208,17 +207,22 @@ export class GapFinder {
   }
 
   /**
-   * Create a gap object with duration calculation
+   * Create a gap object with duration calculation and unique ID
    */
   private createGap(start: string, end: string): Gap {
     const startMinutes = this.timeToMinutes(start);
     const endMinutes = this.timeToMinutes(end);
     const duration = endMinutes - startMinutes;
+    
+    // Generate unique gap ID: gap-{start time}-{counter}
+    const gapId = `gap-${start.replace(":", "")}-${this.gapCounter++}`;
 
     return {
+      gapId,
       start,
       end,
       duration: Math.max(0, duration), // Ensure non-negative duration
+      // locationLabel will be set in Phase 2 (Gap Enrichment)
     };
   }
 

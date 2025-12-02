@@ -1,7 +1,7 @@
 <script lang="ts">
   // LogsView removed from header; settings panel is minimal
   import LogsView from "./LogsView.svelte";
-  import { CircularTimeline } from "./pa_components/index.js";
+  import { CircularTimeline, SchedulePanel } from "./pa_components/index.js";
   import { events, selectedDate } from "../stores/data.js";
   import type { Event, Gap } from "../types.js";
   import { GapFinder } from "../services/gap-finder.js";
@@ -63,7 +63,7 @@
 
   <!-- Main Content -->
   <main class="pa-main">
-    <!-- Timeline Section - Centered full circle -->
+    <!-- Timeline Section - Takes majority of space -->
     <section class="timeline-section">
       <div class="timeline-container">
         <CircularTimeline
@@ -74,7 +74,12 @@
       </div>
     </section>
 
-    <!-- Content Section
+    <!-- Schedule Section - Shows scheduled tasks -->
+    <section class="schedule-section">
+      <SchedulePanel />
+    </section>
+
+    <!-- Content Section (legacy, commented out)
     <section class="content-section">
      
       {#if selectedGap}
@@ -152,18 +157,20 @@
     cursor: pointer;
   }
 
-  /* Main Layout */
+  /* Main Layout - Side by side on desktop */
   .pa-main {
     position: relative;
     width: 100%;
     height: 100%;
     display: flex;
-    align-items: center;
+    flex-direction: row;
+    align-items: stretch;
   }
 
-  /* Timeline Section - Left side circle */
+  /* Timeline Section - Takes ~60% on desktop */
   .timeline-section {
-    width: 100%;
+    flex: 1 1 60%;
+    min-width: 0; /* Allow shrinking */
     height: 100%;
     display: flex;
     align-items: center;
@@ -178,6 +185,14 @@
     max-height: 95vh;
     position: relative;
     overflow: visible;
+  }
+
+  /* Schedule Section - Takes ~40% on desktop */
+  .schedule-section {
+    flex: 0 0 320px;
+    max-width: 400px;
+    height: 100%;
+    z-index: 5;
   }
 
   /* Content Section 
@@ -360,17 +375,25 @@
 
   /* Responsive Design */
   @media (max-width: 768px) {
-    .timeline-section {
-      width: 100%;
-      height: 50vh;
+    .pa-main {
+      flex-direction: column;
     }
-    /*.content-section {
-      width: 100vw;
-      height: 50vh;
-      top: 50vh;
-      padding: var(--space-sm);
-    }*/
 
-    /* (header removed in mobile) */
+    .timeline-section {
+      flex: 1 1 55%;
+      width: 100%;
+      min-height: 0;
+    }
+
+    .schedule-section {
+      flex: 1 1 45%;
+      max-width: none;
+      width: 100%;
+    }
+
+    .timeline-container {
+      max-width: none;
+      max-height: none;
+    }
   }
 </style>
