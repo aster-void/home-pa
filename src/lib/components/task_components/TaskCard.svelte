@@ -1,12 +1,15 @@
 <script lang="ts">
   import type { Memo } from "../../types.js";
-  import { taskActions } from "../../stores/actions/taskActions.js";
+  import { taskActions, enrichingTaskIds } from "../../stores/actions/taskActions.js";
 
   interface Props {
     task: Memo;
   }
 
   let { task }: Props = $props();
+
+  // Check if this task is being enriched
+  let isEnriching = $derived($enrichingTaskIds.has(task.id));
 
   // Computed values
   let typeLabel = $derived(
@@ -80,7 +83,13 @@
   }
 </script>
 
-<div class="task-card {typeClass}" class:completed={task.status.completionState === "completed"}>
+<div class="task-card {typeClass}" class:completed={task.status.completionState === "completed"} class:enriching={isEnriching}>
+  {#if isEnriching}
+    <div class="enriching-overlay">
+      <div class="enriching-spinner"></div>
+      <span class="enriching-text">AI analyzing...</span>
+    </div>
+  {/if}
   <div class="task-header">
     <div class="task-title-row">
       <h3 class="task-title">{task.title}</h3>
@@ -169,6 +178,47 @@
 
   .task-card.completed .task-title {
     text-decoration: line-through;
+  }
+
+  /* Enriching state */
+  .task-card.enriching {
+    position: relative;
+  }
+
+  .enriching-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--bg-rgb, 0, 0, 0), 0.7);
+    backdrop-filter: blur(2px);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+    z-index: 10;
+  }
+
+  .enriching-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--glass-border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .enriching-text {
+    font-size: 0.75rem;
+    color: var(--primary);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   /* Type-specific left border */

@@ -239,10 +239,21 @@ export function parseResponse(responseText: string): EnrichmentResult | null {
 // ============================================================================
 
 /**
+ * Safely get environment variable (works in both Node.js and browser)
+ * In browser, process.env doesn't exist, so we return undefined
+ */
+function getEnvVar(name: string): string | undefined {
+  if (typeof process !== "undefined" && process.env) {
+    return process.env[name];
+  }
+  return undefined;
+}
+
+/**
  * Check if Gemini API is configured
  */
 export function isGeminiConfigured(config: LLMEnrichmentConfig): boolean {
-  const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
+  const apiKey = config.apiKey || getEnvVar("GEMINI_API_KEY");
   return !!apiKey && apiKey.length > 0;
 }
 
@@ -254,23 +265,30 @@ async function callGemini(
   memo: Memo,
   config: Required<LLMEnrichmentConfig>,
 ): Promise<EnrichmentResult | null> {
-  const apiKey = config.apiKey || process.env.GEMINI_API_KEY;
+  const apiKey = config.apiKey || getEnvVar("GEMINI_API_KEY");
 
   if (!apiKey) {
+    console.log("[LLM Enrichment] No API key found");
     return null;
   }
 
   try {
     // Dynamic import to avoid crash if SDK not installed
+    console.log("[LLM Enrichment] Loading @google/generative-ai SDK...");
     const { GoogleGenerativeAI } = await import("@google/generative-ai");
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: config.model });
+    console.log(`[LLM Enrichment] Using model: ${config.model}`);
 
     const prompt = buildPrompt(memo);
+    console.log("[LLM Enrichment] Sending prompt to Gemini...");
+    
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
+    
+    console.log("[LLM Enrichment] Raw response:", text);
 
     return parseResponse(text);
   } catch (error) {
@@ -308,27 +326,42 @@ async function callGemini(
 export async function enrichMemo(memo: Memo, config: Partial<LLMEnrichmentConfig> = {}): Promise<Memo> {
   const fullConfig: Required<LLMEnrichmentConfig> = { ...DEFAULT_CONFIG, ...config };
 
+  console.log(`[LLM Enrichment] Processing memo: "${memo.title}" (${memo.id})`);
+
   // Check cache first
   if (fullConfig.enableCache && enrichmentCache.has(memo.id)) {
     const cached = enrichmentCache.get(memo.id)!;
+    console.log(`[LLM Enrichment] ✓ Cache hit`, cached);
     return applyEnrichment(memo, cached);
   }
 
   // Try LLM if configured
   let enrichment: EnrichmentResult | null = null;
+  let source: "llm" | "fallback" = "fallback";
 
   if (isGeminiConfigured(fullConfig)) {
+    console.log(`[LLM Enrichment] Calling Gemini API...`);
     enrichment = await callGemini(memo, fullConfig);
+    if (enrichment) {
+      source = "llm";
+      console.log(`[LLM Enrichment] ✓ Gemini response:`, enrichment);
+    } else {
+      console.log(`[LLM Enrichment] ✗ Gemini failed, using fallback`);
+    }
+  } else {
+    console.log(`[LLM Enrichment] Gemini not configured (no API key), using fallback`);
   }
 
   // Use fallback if LLM failed or unavailable
   if (!enrichment) {
     enrichment = getFallbackEnrichment(memo);
+    console.log(`[LLM Enrichment] Fallback result:`, enrichment);
   }
 
   // Cache the result
   if (fullConfig.enableCache) {
     enrichmentCache.set(memo.id, enrichment);
+    console.log(`[LLM Enrichment] Cached (source: ${source})`);
   }
 
   return applyEnrichment(memo, enrichment);
@@ -361,12 +394,17 @@ export async function enrichMemos(
   const fullConfig: Required<LLMEnrichmentConfig> = { ...DEFAULT_CONFIG, ...config };
   const results: Memo[] = [];
 
+  console.log(`[LLM Enrichment] === Batch enrichment started: ${memos.length} memos ===`);
+  console.log(`[LLM Enrichment] Gemini configured: ${isGeminiConfigured(fullConfig)}`);
+
   for (let i = 0; i < memos.length; i++) {
     const memo = memos[i];
+    console.log(`[LLM Enrichment] Processing ${i + 1}/${memos.length}...`);
 
     // Check if cached (no delay needed)
     if (fullConfig.enableCache && enrichmentCache.has(memo.id)) {
       const cached = enrichmentCache.get(memo.id)!;
+      console.log(`[LLM Enrichment] ✓ Cache hit for "${memo.title}"`);
       results.push(applyEnrichment(memo, cached));
       continue;
     }
@@ -377,10 +415,12 @@ export async function enrichMemos(
 
     // Add delay between API calls (not after last one)
     if (i < memos.length - 1 && isGeminiConfigured(fullConfig)) {
+      console.log(`[LLM Enrichment] Waiting ${fullConfig.requestDelayMs}ms before next request...`);
       await sleep(fullConfig.requestDelayMs);
     }
   }
 
+  console.log(`[LLM Enrichment] === Batch enrichment complete ===`);
   return results;
 }
 

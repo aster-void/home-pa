@@ -73,22 +73,23 @@
         </div>
 
         <!-- Type -->
-        <div class="form-group">
-          <label>Type</label>
-          <div class="type-options">
+        <fieldset class="form-group fieldset-group">
+          <legend>Type</legend>
+          <div class="type-options" role="radiogroup" aria-label="Task type">
             {#each typeOptions as option}
               <button
                 type="button"
                 class="type-btn"
                 class:selected={$taskForm.type === option.value}
                 onclick={() => handleTypeChange(option.value)}
+                aria-pressed={$taskForm.type === option.value}
               >
                 <span class="type-label">{option.label}</span>
                 <span class="type-desc">{option.description}</span>
               </button>
             {/each}
           </div>
-        </div>
+        </fieldset>
 
         <!-- Deadline (for 期限付き) -->
         {#if $showDeadlineField}
@@ -108,18 +109,20 @@
 
         <!-- Recurrence (for ルーティン) -->
         {#if $showRecurrenceFields}
-          <div class="form-group">
-            <label>Goal</label>
+          <fieldset class="form-group fieldset-group">
+            <legend>Goal</legend>
             <div class="recurrence-row">
               <input
+                id="recurrence-count"
                 type="number"
                 min="1"
                 max="100"
                 bind:value={$taskForm.recurrenceCount}
                 class="recurrence-count"
+                aria-label="Number of times"
               />
               <span class="recurrence-text">times per</span>
-              <select bind:value={$taskForm.recurrencePeriod} class="recurrence-period">
+              <select id="recurrence-period" bind:value={$taskForm.recurrencePeriod} class="recurrence-period" aria-label="Period">
                 {#each periodOptions as option}
                   <option value={option.value}>{option.label}</option>
                 {/each}
@@ -128,12 +131,12 @@
             {#if $taskFormErrors.recurrence}
               <span class="error-text">{$taskFormErrors.recurrence}</span>
             {/if}
-          </div>
+          </fieldset>
         {/if}
 
         <!-- Location -->
-        <div class="form-group">
-          <label>Location</label>
+        <fieldset class="form-group fieldset-group">
+          <legend>Location</legend>
           <div class="location-options">
             {#each locationOptions as option}
               <label class="radio-option">
@@ -148,7 +151,7 @@
               </label>
             {/each}
           </div>
-        </div>
+        </fieldset>
 
         <!-- General Error -->
         {#if $taskFormErrors.general}
@@ -263,6 +266,21 @@
     font-weight: 500;
     color: var(--text-secondary);
     margin-bottom: var(--space-xs);
+  }
+
+  .fieldset-group {
+    border: none;
+    padding: 0;
+    margin: 0 0 var(--space-md) 0;
+  }
+
+  .fieldset-group legend {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xs);
+    padding: 0;
   }
 
   input[type="text"],

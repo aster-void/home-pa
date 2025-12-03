@@ -5,7 +5,7 @@
  * These memos have type, deadline, recurrence, location, etc.
  */
 
-import { writable, get } from "svelte/store";
+import { writable, derived, get } from "svelte/store";
 import type { Memo, MemoType, LocationPreference, ImportanceLevel, RecurrenceGoal, MemoStatus } from "../../types.js";
 import {
   taskForm,
@@ -16,6 +16,7 @@ import {
   type TaskFormErrors,
 } from "../forms/taskForm.js";
 import { toasts } from "../toast.js";
+import { enrichMemo } from "../../services/suggestions/llm-enrichment.js";
 
 // ============================================================================
 // Tasks Store (Rich Memos)
@@ -26,6 +27,23 @@ import { toasts } from "../toast.js";
  * Separate from old simple memos in data.ts
  */
 export const tasks = writable<Memo[]>([]);
+
+/**
+ * Set of task IDs currently being enriched by LLM
+ */
+export const enrichingTaskIds = writable<Set<string>>(new Set());
+
+/**
+ * Check if a specific task is being enriched
+ */
+export function isTaskEnriching(taskId: string): boolean {
+  return get(enrichingTaskIds).has(taskId);
+}
+
+/**
+ * Derived store: is any task being enriched?
+ */
+export const hasEnrichingTasks = derived(enrichingTaskIds, ($ids) => $ids.size > 0);
 
 // ============================================================================
 // Helper Functions
@@ -114,6 +132,58 @@ function validateTaskForm(formData: TaskFormData): { isValid: boolean; errors: T
   };
 }
 
+/**
+ * Enrich a task with LLM in background
+ * Updates the task in store when complete
+ */
+async function enrichTaskInBackground(taskId: string): Promise<void> {
+  // Mark as enriching
+  enrichingTaskIds.update((ids) => {
+    const newSet = new Set(ids);
+    newSet.add(taskId);
+    return newSet;
+  });
+
+  try {
+    // Get the task from store
+    const currentTasks = get(tasks);
+    const task = currentTasks.find((t) => t.id === taskId);
+    if (!task) {
+      console.warn(`[Enrichment] Task ${taskId} not found`);
+      return;
+    }
+
+    // Call LLM enrichment
+    const enrichedTask = await enrichMemo(task);
+
+    // Update task in store with enriched data
+    tasks.update((currentTasks) => {
+      const index = currentTasks.findIndex((t) => t.id === taskId);
+      if (index === -1) return currentTasks;
+
+      const newTasks = [...currentTasks];
+      newTasks[index] = enrichedTask;
+      return newTasks;
+    });
+
+    console.log(`[Enrichment] Task "${enrichedTask.title}" enriched:`, {
+      genre: enrichedTask.genre,
+      importance: enrichedTask.importance,
+      sessionDuration: enrichedTask.sessionDuration,
+      totalDurationExpected: enrichedTask.totalDurationExpected,
+    });
+  } catch (error) {
+    console.error(`[Enrichment] Failed to enrich task ${taskId}:`, error);
+  } finally {
+    // Remove from enriching set
+    enrichingTaskIds.update((ids) => {
+      const newSet = new Set(ids);
+      newSet.delete(taskId);
+      return newSet;
+    });
+  }
+}
+
 // ============================================================================
 // Actions
 // ============================================================================
@@ -121,6 +191,7 @@ function validateTaskForm(formData: TaskFormData): { isValid: boolean; errors: T
 export const taskActions = {
   /**
    * Create a new task from the current form data
+   * Task is added to store immediately, then enriched by LLM in background
    */
   async create(): Promise<Memo | null> {
     const formData = get(taskForm);
@@ -140,15 +211,18 @@ export const taskActions = {
     try {
       taskFormActions.setSubmitting(true);
 
-      // Create the memo
+      // Create the memo (without enrichment fields)
       const newMemo = createMemoFromForm(formData);
 
-      // Add to store
+      // Add to store immediately (shows task right away)
       tasks.update((currentTasks) => [...currentTasks, newMemo]);
 
       // Close form and show success
       taskFormActions.closeForm();
       toasts.show("タスクを作成しました", "success");
+
+      // Start LLM enrichment in background
+      enrichTaskInBackground(newMemo.id);
 
       return newMemo;
     } catch (error: any) {

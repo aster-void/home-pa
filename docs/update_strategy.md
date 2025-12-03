@@ -46,20 +46,127 @@ The following have been fully implemented and tested:
 
 ## 🔄 Remaining Tasks
 
-### 1. Enable LLM Enrichment
+### 1. Server-Side LLM Enrichment API
 
-**Status:** Module ready, needs SDK + API key
+**Status:** Client module ready, needs server endpoint for security
 
-**Steps:**
+**Problem:** API keys cannot be safely exposed to the browser. Currently:
+- `GEMINI_API_KEY` in `.env` is only available server-side
+- Client-side code can't access `process.env`
+- Exposing key via `VITE_` prefix would be insecure
+
+**Solution:** Create a SvelteKit API endpoint that:
+1. Receives memo data from browser
+2. Calls Gemini on server (where API key is safe)
+3. Returns enriched fields to client
+
+---
+
+#### Implementation Roadmap
+
+**Step 1: Install Gemini SDK**
 ```bash
-# Install Gemini SDK
 bun add @google/generative-ai
+```
 
-# Add to .env
+**Step 2: Ensure API key in `.env`**
+```env
 GEMINI_API_KEY=your-api-key-here
 ```
 
-The `llm-enrichment.ts` module will automatically use Gemini when configured. Currently falls back to rule-based defaults.
+**Step 3: Create Server Endpoint**
+
+File: `src/routes/api/enrich/+server.ts`
+
+```typescript
+import { json } from "@sveltejs/kit";
+import type { RequestHandler } from "./$types";
+import { GEMINI_API_KEY } from "$env/static/private";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+export const POST: RequestHandler = async ({ request }) => {
+  // 1. Parse memo from request
+  const memo = await request.json();
+  
+  // 2. Check API key
+  if (!GEMINI_API_KEY) {
+    return json({ error: "API key not configured" }, { status: 500 });
+  }
+  
+  // 3. Call Gemini
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  
+  const prompt = buildPrompt(memo); // reuse from llm-enrichment.ts
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  
+  // 4. Parse and return
+  const enrichment = parseResponse(text); // reuse from llm-enrichment.ts
+  return json(enrichment);
+};
+```
+
+**Step 4: Update Client Enrichment**
+
+File: `src/lib/services/suggestions/llm-enrichment.ts`
+
+Add browser-safe function:
+```typescript
+export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
+  try {
+    const response = await fetch("/api/enrich", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: memo.id,
+        title: memo.title,
+        type: memo.type,
+        deadline: memo.deadline,
+      }),
+    });
+    
+    if (!response.ok) {
+      console.warn("[LLM Enrichment] API error, using fallback");
+      return getFallbackEnrichment(memo);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.warn("[LLM Enrichment] Network error, using fallback");
+    return getFallbackEnrichment(memo);
+  }
+}
+```
+
+**Step 5: Update taskActions.ts**
+
+Change `enrichTaskInBackground()` to use the API:
+```typescript
+import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.js";
+
+// In enrichTaskInBackground:
+const enrichment = await enrichMemoViaAPI(task);
+```
+
+---
+
+#### File Changes Summary
+
+| File | Change |
+|------|--------|
+| `src/routes/api/enrich/+server.ts` | **New** — Server endpoint |
+| `src/lib/services/suggestions/llm-enrichment.ts` | Add `enrichMemoViaAPI()` |
+| `src/lib/stores/actions/taskActions.ts` | Use API instead of direct call |
+
+---
+
+#### Security Notes
+
+- ✅ API key stays on server (never sent to browser)
+- ✅ Uses SvelteKit's `$env/static/private` (type-safe, build-time)
+- ✅ Graceful fallback if API unavailable
+- ⚠️ Consider rate limiting for production
 
 ---
 

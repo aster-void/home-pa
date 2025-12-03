@@ -476,12 +476,16 @@ describe("Store Reactivity", () => {
 
     taskFormActions.updateField("title", "Task 1");
     await taskActions.create();
-    expect(updateCount).toBe(2);
+    // Task added (1 update) + background enrichment update (1 update) = 2 more updates
+    // Wait a tick for background enrichment to complete
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(updateCount).toBe(3); // 1 initial + 1 add + 1 enrichment
 
     taskFormActions.resetForm();
     taskFormActions.updateField("title", "Task 2");
     await taskActions.create();
-    expect(updateCount).toBe(3);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(updateCount).toBe(5); // +1 add + 1 enrichment
 
     unsubscribe();
   });
