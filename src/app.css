@@ -1,67 +1,69 @@
 /* HomePA Design System - White Theme */
 :root {
   /* Core Background Colors */
-  --bg-primary: #FFFFFF;           /* Main background */
-  --bg-secondary: #F8F9FA;         /* Secondary surfaces (cards, panels) */
-  --bg-tertiary: #F1F3F5;          /* Elevated surfaces, sections */
-  --bg-card: #FFFFFF;              /* Card backgrounds */
-  --bg-legend: #F8F9FA;            /* Legend background */
+  --bg-primary: #ffffff; /* Main background */
+  --bg-secondary: #f8f9fa; /* Secondary surfaces (cards, panels) */
+  --bg-tertiary: #f1f3f5; /* Elevated surfaces, sections */
+  --bg-card: #ffffff; /* Card backgrounds */
+  --bg-legend: #f8f9fa; /* Legend background */
 
   /* Text Colors */
-  --text-primary: #1A1A1A;         /* Main readable text (near black) */
-  --text-secondary: #6C757D;       /* Supporting text, muted content */
-  --text-tertiary: #ADB5BD;       /* Placeholder text, less important */
-  --text-today: #0066CC;           /* Today/current date highlight */
+  --text-primary: #1a1a1a; /* Main readable text (near black) */
+  --text-secondary: #6c757d; /* Supporting text, muted content */
+  --text-tertiary: #adb5bd; /* Placeholder text, less important */
+  --text-today: #0066cc; /* Today/current date highlight */
 
   /* Accent Colors */
-  --accent-primary: #F08A77;      /* Coral - Primary actions, highlights */
-  --accent-secondary: #9CA3AF;      /* Secondary actions */
-  --accent-hover: #E87862;         /* Hover state for accent */
-  --coral: var(--accent-primary);  /* Alias for compatibility */
+  --accent-primary: #f08a77; /* Coral - Primary actions, highlights */
+  --accent-secondary: #9ca3af; /* Secondary actions */
+  --accent-hover: #e87862; /* Hover state for accent */
+  --coral: var(--accent-primary); /* Alias for compatibility */
 
   /* Event Category Colors */
-  --event-blue: #4A9EFF;          /* Blue category events */
-  --event-orange: #F7A700;        /* Orange category events */
-  --event-green: #99C66D;         /* Green category events */
-  --event-yellow: #F9E900;        /* Yellow category events */
+  --event-blue: #4a9eff; /* Blue category events */
+  --event-orange: #f7a700; /* Orange category events */
+  --event-green: #99c66d; /* Green category events */
+  --event-yellow: #f9e900; /* Yellow category events */
 
   /* UI Element Colors */
-  --ui-arrow: #9CA3AF;            /* Navigation arrows */
-  --ui-border: #E5E7EB;           /* Borders, dividers */
-  --ui-empty: #F1F3F5;            /* Empty states */
-  --danger: #EF4444;              /* Error states, delete actions */
+  --ui-arrow: #9ca3af; /* Navigation arrows */
+  --ui-border: #e5e7eb; /* Borders, dividers */
+  --ui-empty: #f1f3f5; /* Empty states */
+  --danger: #ef4444; /* Error states, delete actions */
 
   /* Legacy Compatibility Colors */
-  --white: #FFFFFF;
-  --navy-900: #1A1A1A;            /* Dark text (alias) */
-  --navy-800: #2D2D2D;
-  --navy-700: #4A4A4A;
-  --muted: var(--text-secondary);  /* Secondary text */
-  --primary: #0066CC;              /* Primary accent (blue) */
-  --text: var(--text-primary);     /* Text color (alias) */
-  --panel: var(--bg-secondary);    /* Panel background */
-  --bg: var(--bg-secondary);       /* Page background */
+  --white: #ffffff;
+  --navy-900: #1a1a1a; /* Dark text (alias) */
+  --navy-800: #2d2d2d;
+  --navy-700: #4a4a4a;
+  --muted: var(--text-secondary); /* Secondary text */
+  --primary: #0066cc; /* Primary accent (blue) */
+  --text: var(--text-primary); /* Text color (alias) */
+  --panel: var(--bg-secondary); /* Panel background */
+  --bg: var(--bg-secondary); /* Page background */
 
   /* Typography */
-  --font-family: 'HelveticaNeue-UltraLight', 'Helvetica Neue UltraLight', 
-                 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  --font-sans: "Inter", "Poppins", system-ui, -apple-system, 
-               "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --font-family:
+    "HelveticaNeue-UltraLight", "Helvetica Neue UltraLight", "Helvetica Neue",
+    Arial, Helvetica, sans-serif;
+  --font-sans:
+    "Inter", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial;
   --font-display: var(--font-sans);
   --font-body: var(--font-sans);
 
   /* Font Weights */
-  --font-weight-light: 100;       /* UltraLight weight */
-  --font-weight-normal: 400;      /* Normal weight */
-  --font-weight-bold: 600;        /* Bold weight */
+  --font-weight-light: 100; /* UltraLight weight */
+  --font-weight-normal: 400; /* Normal weight */
+  --font-weight-bold: 600; /* Bold weight */
 
   /* Font Sizes */
-  --fs-xs: 9px;                   /* Day names, small labels */
-  --fs-sm: 13px;                  /* Captions, metadata */
-  --fs-md: 16px;                  /* Body text, events */
-  --fs-lg: 18px;                  /* Subheadings, headers */
-  --fs-xl: 20px;                  /* Page titles */
-  --fs-xxl: 22px;                 /* Hero text (rare) */
+  --fs-xs: 9px; /* Day names, small labels */
+  --fs-sm: 13px; /* Captions, metadata */
+  --fs-md: 16px; /* Body text, events */
+  --fs-lg: 18px; /* Subheadings, headers */
+  --fs-xl: 20px; /* Page titles */
+  --fs-xxl: 22px; /* Hero text (rare) */
 
   /* Border Radius */
   --radius-sm: 4px;

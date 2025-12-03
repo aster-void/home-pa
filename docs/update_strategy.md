@@ -9,10 +9,12 @@ This document outlines remaining tasks for completing the scheduling-and-suggest
 The following have been fully implemented and tested:
 
 ### Phase 1: Foundation ✅
+
 - `src/lib/types.ts` — New Memo, Suggestion, Gap interfaces
 - Rich Memo structure with type, deadline, recurrence, location, status
 
 ### Phase 2: Core Services ✅
+
 - `src/lib/services/suggestions/gap-enrichment.ts` — Location derivation from events
 - `src/lib/services/suggestions/period-utils.ts` — Day/week/month cycle helpers
 - `src/lib/services/suggestions/suggestion-scoring.ts` — Need/importance calculation
@@ -22,6 +24,7 @@ The following have been fully implemented and tested:
 - `src/lib/services/suggestions/index.ts` — Central exports
 
 ### Phase 3: Orchestration ✅
+
 - `src/lib/services/suggestions/suggestion-engine.ts` — Pipeline orchestrator
 - `src/lib/stores/schedule.ts` — Schedule result store + actions
 - `src/lib/stores/gaps.ts` — Enriched gaps (already had this)
@@ -29,6 +32,7 @@ The following have been fully implemented and tested:
 - `src/lib/stores/actions/taskActions.ts` — Task CRUD operations
 
 ### Phase 4: UI Components ✅
+
 - `src/lib/components/TaskView.svelte` — Task list view
 - `src/lib/components/task_components/TaskForm.svelte` — Rich task creation form
 - `src/lib/components/task_components/TaskCard.svelte` — Task display card
@@ -38,6 +42,7 @@ The following have been fully implemented and tested:
 - `src/routes/+page.svelte` — Wired up TaskView
 
 ### Tests ✅
+
 - `src/lib/stores/__tests__/schedule.test.ts` — 12 tests for engine + schedule
 - `src/lib/stores/__tests__/task-wiring.test.ts` — 21 tests for full flow
 - All 61 tests passing
@@ -51,11 +56,13 @@ The following have been fully implemented and tested:
 **Status:** Client module ready, needs server endpoint for security
 
 **Problem:** API keys cannot be safely exposed to the browser. Currently:
+
 - `GEMINI_API_KEY` in `.env` is only available server-side
 - Client-side code can't access `process.env`
 - Exposing key via `VITE_` prefix would be insecure
 
 **Solution:** Create a SvelteKit API endpoint that:
+
 1. Receives memo data from browser
 2. Calls Gemini on server (where API key is safe)
 3. Returns enriched fields to client
@@ -65,11 +72,13 @@ The following have been fully implemented and tested:
 #### Implementation Roadmap
 
 **Step 1: Install Gemini SDK**
+
 ```bash
 bun add @google/generative-ai
 ```
 
 **Step 2: Ensure API key in `.env`**
+
 ```env
 GEMINI_API_KEY=your-api-key-here
 ```
@@ -87,20 +96,20 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 export const POST: RequestHandler = async ({ request }) => {
   // 1. Parse memo from request
   const memo = await request.json();
-  
+
   // 2. Check API key
   if (!GEMINI_API_KEY) {
     return json({ error: "API key not configured" }, { status: 500 });
   }
-  
+
   // 3. Call Gemini
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-  
+
   const prompt = buildPrompt(memo); // reuse from llm-enrichment.ts
   const result = await model.generateContent(prompt);
   const text = result.response.text();
-  
+
   // 4. Parse and return
   const enrichment = parseResponse(text); // reuse from llm-enrichment.ts
   return json(enrichment);
@@ -112,6 +121,7 @@ export const POST: RequestHandler = async ({ request }) => {
 File: `src/lib/services/suggestions/llm-enrichment.ts`
 
 Add browser-safe function:
+
 ```typescript
 export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
   try {
@@ -125,12 +135,12 @@ export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
         deadline: memo.deadline,
       }),
     });
-    
+
     if (!response.ok) {
       console.warn("[LLM Enrichment] API error, using fallback");
       return getFallbackEnrichment(memo);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.warn("[LLM Enrichment] Network error, using fallback");
@@ -142,6 +152,7 @@ export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
 **Step 5: Update taskActions.ts**
 
 Change `enrichTaskInBackground()` to use the API:
+
 ```typescript
 import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.js";
 
@@ -153,11 +164,11 @@ const enrichment = await enrichMemoViaAPI(task);
 
 #### File Changes Summary
 
-| File | Change |
-|------|--------|
-| `src/routes/api/enrich/+server.ts` | **New** — Server endpoint |
-| `src/lib/services/suggestions/llm-enrichment.ts` | Add `enrichMemoViaAPI()` |
-| `src/lib/stores/actions/taskActions.ts` | Use API instead of direct call |
+| File                                             | Change                         |
+| ------------------------------------------------ | ------------------------------ |
+| `src/routes/api/enrich/+server.ts`               | **New** — Server endpoint      |
+| `src/lib/services/suggestions/llm-enrichment.ts` | Add `enrichMemoViaAPI()`       |
+| `src/lib/stores/actions/taskActions.ts`          | Use API instead of direct call |
 
 ---
 
@@ -177,6 +188,7 @@ const enrichment = await enrichMemoViaAPI(task);
 **Purpose:** Visual progress for each task
 
 **Display:**
+
 - Progress bar: `timeSpentMinutes / totalDurationExpected`
 - For routines: "2 of 3 this week" indicator
 - Deadline countdown for 期限付き
@@ -191,6 +203,7 @@ const enrichment = await enrichMemoViaAPI(task);
 **Purpose:** Track time when user works on a task
 
 **Features:**
+
 - Start/pause/complete buttons
 - Auto-update `timeSpentMinutes`
 - Increment routine completions on complete
@@ -206,6 +219,7 @@ const enrichment = await enrichMemoViaAPI(task);
 **Needed:** Persist to database
 
 **Options:**
+
 1. Add Prisma model for `Task` (similar to `Event`)
 2. Use local storage as interim solution
 3. Sync with existing memo persistence if any
@@ -286,13 +300,14 @@ SchedulePanel displays scheduled blocks
 
 ## Scoring Summary (Implemented)
 
-| Type | Need Range | Can Be Mandatory? |
-|------|------------|-------------------|
-| 期限付き | 0.1 - 1.0+ | Yes (due today or overdue) |
-| バックログ | 0.25 - 0.7 | No (capped) |
-| ルーティン | 0.3 - 0.8 | No (capped) |
+| Type       | Need Range | Can Be Mandatory?          |
+| ---------- | ---------- | -------------------------- |
+| 期限付き   | 0.1 - 1.0+ | Yes (due today or overdue) |
+| バックログ | 0.25 - 0.7 | No (capped)                |
+| ルーティン | 0.3 - 0.8  | No (capped)                |
 
 **Priority Logic:**
+
 - Mandatory tasks (need ≥ 1.0) scheduled first
 - Higher `need × importance` = higher priority
 - Location matching filters compatible gaps

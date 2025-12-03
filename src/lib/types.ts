@@ -37,7 +37,7 @@ export interface Event {
   recurrence?: Recurrence;
   rdateUtc?: Date[]; // Additional occurrence dates
   exdateUtc?: Date[]; // Excluded occurrence dates
-  
+
   // New sliding window fields
   recurrenceGroupId?: string; // Links events across time windows
   isDuplicate?: boolean; // True for auto-generated duplicates
@@ -62,17 +62,20 @@ export interface RecurrenceGoal {
  * Memo completion and progress status
  */
 export interface MemoStatus {
-  timeSpentMinutes: number;          // Total time user has spent on this memo
+  timeSpentMinutes: number; // Total time user has spent on this memo
   completionState: "not_started" | "in_progress" | "completed";
   // For ルーティン tracking:
-  completionsThisPeriod?: number;    // Resets when period changes (new day/week/month)
-  periodStartDate?: Date;            // When current tracking period started
+  completionsThisPeriod?: number; // Resets when period changes (new day/week/month)
+  periodStartDate?: Date; // When current tracking period started
 }
 
 /**
  * Location preference for where a memo/task can be done
  */
-export type LocationPreference = "home/near_home" | "workplace/near_workplace" | "no_preference";
+export type LocationPreference =
+  | "home/near_home"
+  | "workplace/near_workplace"
+  | "no_preference";
 
 /**
  * Location label for gaps (derived from surrounding events)
@@ -96,17 +99,17 @@ export type MemoType = "期限付き" | "バックログ" | "ルーティン";
 export interface Memo {
   id: string;
   title: string;
-  genre?: string;                    // System/LLM-filled (e.g., "勉強", "運動", "家事")
+  genre?: string; // System/LLM-filled (e.g., "勉強", "運動", "家事")
   type: MemoType;
-  createdAt: Date;                   // When the memo was created (for need gradient)
-  deadline?: Date;                   // Required for 期限付き type
-  recurrenceGoal?: RecurrenceGoal;   // For ルーティン, structured goal
+  createdAt: Date; // When the memo was created (for need gradient)
+  deadline?: Date; // Required for 期限付き type
+  recurrenceGoal?: RecurrenceGoal; // For ルーティン, structured goal
   locationPreference: LocationPreference;
   status: MemoStatus;
-  sessionDuration?: number;          // 1回のセッションの時間 (minutes) - LLM-suggested
-  totalDurationExpected?: number;    // Total expected time (minutes) - LLM-suggested
+  sessionDuration?: number; // 1回のセッションの時間 (minutes) - LLM-suggested
+  totalDurationExpected?: number; // Total expected time (minutes) - LLM-suggested
   lastActivity?: Date;
-  importance?: ImportanceLevel;      // LLM-suggested if not provided
+  importance?: ImportanceLevel; // LLM-suggested if not provided
 }
 
 export interface SuggestionLog {
@@ -123,10 +126,10 @@ export interface SuggestionLog {
  */
 export interface Suggestion {
   id: string;
-  memoId: string;                    // Reference to source memo
-  need: number;                      // 0.0–1.0+ (≥1.0 = mandatory)
-  importance: number;                // 0.0–1.0
-  duration: number;                  // Minutes for this session
+  memoId: string; // Reference to source memo
+  need: number; // 0.0–1.0+ (≥1.0 = mandatory)
+  importance: number; // 0.0–1.0
+  duration: number; // Minutes for this session
   locationPreference: LocationPreference;
 }
 
@@ -135,11 +138,11 @@ export interface Suggestion {
  * Used by scheduler to match suggestions to available time
  */
 export interface Gap {
-  gapId: string;                     // Unique identifier for scheduling reference
-  start: string;                     // HH:mm format
-  end: string;                       // HH:mm format
-  duration: number;                  // in minutes
-  locationLabel?: LocationLabel;     // Derived from surrounding events (Phase 2)
+  gapId: string; // Unique identifier for scheduling reference
+  start: string; // HH:mm format
+  end: string; // HH:mm format
+  duration: number; // in minutes
+  locationLabel?: LocationLabel; // Derived from surrounding events (Phase 2)
 }
 
 export type ViewMode = "day" | "list";

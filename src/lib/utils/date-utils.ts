@@ -1,6 +1,6 @@
 /**
  * Unified Date Handling Utilities
- * 
+ *
  * This module provides consistent date handling throughout the application:
  * - Store: Always saves dates in UTC
  * - Display: Always converts UTC to local time for UI
@@ -12,9 +12,9 @@
  */
 export function localDateStringToUTC(dateString: string): Date {
   if (!dateString) return new Date();
-  
+
   // Parse the local date and create UTC date
-  const [year, month, day] = dateString.split('-').map(Number);
+  const [year, month, day] = dateString.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
 }
 
@@ -24,9 +24,9 @@ export function localDateStringToUTC(dateString: string): Date {
  */
 export function localDateTimeStringToUTC(dateTimeString: string): Date {
   if (!dateTimeString) return new Date();
-  const [datePart, timePart] = dateTimeString.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  const [hours, minutes] = timePart.split(':').map(Number);
+  const [datePart, timePart] = dateTimeString.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
   // Create Date in local timezone first, then it gets stored as UTC
   return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
@@ -38,8 +38,8 @@ export function localDateTimeStringToUTC(dateTimeString: string): Date {
 export function utcToLocalDateString(utcDate: Date): string {
   // Convert UTC date to local timezone for display
   const year = utcDate.getFullYear();
-  const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-  const day = String(utcDate.getDate()).padStart(2, '0');
+  const month = String(utcDate.getMonth() + 1).padStart(2, "0");
+  const day = String(utcDate.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -50,10 +50,10 @@ export function utcToLocalDateString(utcDate: Date): string {
 export function utcToLocalDateTimeString(utcDate: Date): string {
   // Convert UTC date to local timezone for display
   const year = utcDate.getFullYear();
-  const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-  const day = String(utcDate.getDate()).padStart(2, '0');
-  const hours = String(utcDate.getHours()).padStart(2, '0');
-  const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+  const month = String(utcDate.getMonth() + 1).padStart(2, "0");
+  const day = String(utcDate.getDate()).padStart(2, "0");
+  const hours = String(utcDate.getHours()).padStart(2, "0");
+  const minutes = String(utcDate.getMinutes()).padStart(2, "0");
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
@@ -62,8 +62,8 @@ export function utcToLocalDateTimeString(utcDate: Date): string {
  * Used when displaying time in UI
  */
 export function utcToLocalTimeString(utcDate: Date): string {
-  const hours = String(utcDate.getHours()).padStart(2, '0');
-  const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+  const hours = String(utcDate.getHours()).padStart(2, "0");
+  const minutes = String(utcDate.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
@@ -71,7 +71,11 @@ export function utcToLocalTimeString(utcDate: Date): string {
  * Formats a Date into a localized date string (ja-JP)
  */
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+  return date.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 /**
@@ -84,7 +88,7 @@ export function formatDateTime(date: Date): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false
+    hour12: false,
   });
 }
 
@@ -92,14 +96,17 @@ export function formatDateTime(date: Date): string {
  * Creates a UTC Date object from local date and time strings
  * Used when combining separate date and time inputs
  */
-export function localDateTimeToUTC(dateString: string, timeString: string): Date {
+export function localDateTimeToUTC(
+  dateString: string,
+  timeString: string,
+): Date {
   if (!dateString) return new Date();
-  const [year, month, day] = dateString.split('-').map(Number);
+  const [year, month, day] = dateString.split("-").map(Number);
   if (!timeString) {
     // If no time, create date at start of day in local timezone
     return new Date(year, month - 1, day, 0, 0, 0, 0);
   }
-  const [hours, minutes] = timeString.split(':').map(Number);
+  const [hours, minutes] = timeString.split(":").map(Number);
   // Create Date in local timezone first, then it gets stored as UTC
   return new Date(year, month - 1, day, hours, minutes, 0, 0);
 }
@@ -113,8 +120,8 @@ export function createDateOnlyUTC(dateString: string): Date {
     const now = new Date();
     return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   }
-  
-  const [year, month, day] = dateString.split('-').map(Number);
+
+  const [year, month, day] = dateString.split("-").map(Number);
   // Create UTC date at 00:00 for date-only events
   return new Date(Date.UTC(year, month - 1, day));
 }
@@ -123,27 +130,36 @@ export function createDateOnlyUTC(dateString: string): Date {
  * Creates an all-day UTC Date range from a local date string
  * Used for all-day events (legacy function - use createDateOnlyUTC instead)
  */
-export function createAllDayUTCRange(dateString: string): { start: Date; end: Date } {
+export function createAllDayUTCRange(dateString: string): {
+  start: Date;
+  end: Date;
+} {
   const dateOnly = createDateOnlyUTC(dateString);
   return { start: dateOnly, end: dateOnly };
 }
-
 
 /**
  * Creates a multi-day all-day UTC Date range from start and end date strings
  * Used for all-day events that span multiple days
  * For multi-day events, start is first day at 00:00 UTC, end is last day at 00:00 UTC
  */
-export function createMultiDayAllDayUTCRange(startDateString: string, endDateString: string): { start: Date; end: Date } {
+export function createMultiDayAllDayUTCRange(
+  startDateString: string,
+  endDateString: string,
+): { start: Date; end: Date } {
   if (!startDateString || !endDateString) {
     const now = new Date();
-    const dateOnly = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const dateOnly = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
+    );
     return { start: dateOnly, end: dateOnly };
   }
-  
-  const [startYear, startMonth, startDay] = startDateString.split('-').map(Number);
-  const [endYear, endMonth, endDay] = endDateString.split('-').map(Number);
-  
+
+  const [startYear, startMonth, startDay] = startDateString
+    .split("-")
+    .map(Number);
+  const [endYear, endMonth, endDay] = endDateString.split("-").map(Number);
+
   // Create UTC dates at 00:00 for multi-day date-only events
   const start = new Date(Date.UTC(startYear, startMonth - 1, startDay));
   const end = new Date(Date.UTC(endYear, endMonth - 1, endDay));
@@ -153,11 +169,15 @@ export function createMultiDayAllDayUTCRange(startDateString: string, endDateStr
 /**
  * Helper function to determine if an event is date-only (all-day or some-timing)
  */
-export function isDateOnlyEvent(event: { timeLabel?: string; start: Date; end: Date }): boolean {
+export function isDateOnlyEvent(event: {
+  timeLabel?: string;
+  start: Date;
+  end: Date;
+}): boolean {
   if (event.timeLabel === "all-day" || event.timeLabel === "some-timing") {
     return true;
   }
-  
+
   // Fallback: check if start and end are the same (date-only)
   return event.start.getTime() === event.end.getTime();
 }

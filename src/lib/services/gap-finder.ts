@@ -67,7 +67,7 @@ export class GapFinder {
   findGaps(events: Event[]): Gap[] {
     // Reset gap counter for each findGaps call
     this.gapCounter = 0;
-    
+
     if (events.length === 0) {
       // No events = one big gap from day start to day end
       return [
@@ -96,13 +96,16 @@ export class GapFinder {
   private processMidnightEvents(events: Event[]): Event[] {
     return events.map((event) => {
       // Handle events that start before day boundaries (e.g., from previous day)
-      if (this.timeToMinutes(event.start) < this.timeToMinutes(this.dayBoundaries.dayStart)) {
+      if (
+        this.timeToMinutes(event.start) <
+        this.timeToMinutes(this.dayBoundaries.dayStart)
+      ) {
         return {
           ...event,
           start: this.dayBoundaries.dayStart, // Adjust start to day boundary
         };
       }
-      
+
       if (this.timeToMinutes(event.start) > this.timeToMinutes(event.end)) {
         // Event crosses midnight
         return {
@@ -213,7 +216,7 @@ export class GapFinder {
     const startMinutes = this.timeToMinutes(start);
     const endMinutes = this.timeToMinutes(end);
     const duration = endMinutes - startMinutes;
-    
+
     // Generate unique gap ID: gap-{start time}-{counter}
     const gapId = `gap-${start.replace(":", "")}-${this.gapCounter++}`;
 

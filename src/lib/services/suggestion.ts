@@ -2,7 +2,12 @@
 import type { SuggestionLog, Gap } from "../types.js";
 
 // Temporary type (will be replaced in Phase 4)
-interface SimpleSuggestion { id: string; template: string; gapMin: number; eventId?: string; }
+interface SimpleSuggestion {
+  id: string;
+  template: string;
+  gapMin: number;
+  eventId?: string;
+}
 type Suggestion = SimpleSuggestion;
 import { get } from "svelte/store";
 import {
@@ -28,24 +33,27 @@ export class SuggestionService {
 
   // Duration-specific suggestion templates
   private readonly durationSpecificTemplates = {
-    short: [ // 15-30 minutes
+    short: [
+      // 15-30 minutes
       "短時間でできる軽い運動をしましょう",
       "メールの整理をしましょう",
       "深呼吸してリラックスしましょう",
       "デスク周りを整理しましょう",
     ],
-    medium: [ // 30-60 minutes
+    medium: [
+      // 30-60 minutes
       "空き時間にメモを整理しませんか？",
       "次の予定の準備をしましょう",
       "この時間でタスクを整理しましょう",
       "次の会議の準備をしましょう",
     ],
-    long: [ // 60+ minutes
+    long: [
+      // 60+ minutes
       "少し休憩を取ってリフレッシュしましょう",
       "次の予定の資料を確認しましょう",
       "集中して重要なタスクに取り組みましょう",
       "この時間を有効活用して学習しましょう",
-    ]
+    ],
   };
 
   /**
@@ -67,7 +75,8 @@ export class SuggestionService {
     }
 
     // Generate suggestion
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+    const randomTemplate =
+      templates[Math.floor(Math.random() * templates.length)];
 
     return {
       id: crypto.randomUUID(),

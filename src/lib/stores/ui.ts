@@ -1,15 +1,15 @@
 /**
  * @fileoverview UI State Store
- * 
+ *
  * Manages UI state that affects the overall application layout and navigation.
  * This includes current view, view modes, panel states, and navigation state.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { writable } from 'svelte/store';
-import type { ViewMode } from '../types.js';
+import { writable } from "svelte/store";
+import type { ViewMode } from "../types.js";
 
 /**
  * Application view type
@@ -87,7 +87,7 @@ export const uiActions = {
    * Toggle the memo panel open/closed
    */
   toggleMemo(): void {
-    isMemoOpen.update(open => !open);
+    isMemoOpen.update((open) => !open);
   },
 
   /**
@@ -115,7 +115,7 @@ export const uiActions = {
    * Toggle the event form visibility
    */
   toggleEventForm(): void {
-    showEventForm.update(visible => !visible);
+    showEventForm.update((visible) => !visible);
   },
 
   /**
@@ -165,7 +165,7 @@ export const uiActions = {
    */
   clearError(): void {
     errorMessage.set(null);
-  }
+  },
 };
 
 /**
@@ -189,7 +189,7 @@ export const isPersonalAssistantView = writable<boolean>(false);
 export const isTasksView = writable<boolean>(false);
 
 // Update derived states when currentView changes
-currentView.subscribe(view => {
+currentView.subscribe((view) => {
   isCalendarView.set(view === "calendar");
   isPersonalAssistantView.set(view === "personal-assistant");
   isTasksView.set(view === "tasks");

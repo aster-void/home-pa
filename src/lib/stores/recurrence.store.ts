@@ -1,17 +1,17 @@
 /**
  * Lazy-Loading Recurrence Store
- * 
+ *
  * This store handles recurring event occurrence generation without blocking
  * the main application. It uses dynamic imports and manual triggers to avoid
  * SSR/hydration issues.
- * 
+ *
  * Note: Recurrence manager is lazy-loaded on demand to avoid SSR issues
  * and reduce initial bundle size (~119KB deferred until needed).
  */
 
-import { writable, derived, get } from 'svelte/store';
-import type { Event } from '../types.js';
-import { events, selectedDate } from './data.js';
+import { writable, derived, get } from "svelte/store";
+import type { Event } from "../types.js";
+import { events, selectedDate } from "./data.js";
 
 export interface RecurrenceOccurrence {
   id: string;
@@ -42,7 +42,7 @@ const initialState: RecurrenceState = {
   occurrences: [],
   loading: false,
   error: null,
-  lastUpdated: null
+  lastUpdated: null,
 };
 
 export const recurrenceStore = writable<RecurrenceState>(initialState);
@@ -53,7 +53,7 @@ export const recurrenceStore = writable<RecurrenceState>(initialState);
  */
 export const reactiveOccurrences = derived(
   recurrenceStore,
-  ($recurrenceState) => $recurrenceState.occurrences
+  ($recurrenceState) => $recurrenceState.occurrences,
 );
 
 // Singleton manager instance (lazy loaded)
@@ -66,21 +66,23 @@ let managerPromise: Promise<any> | null = null;
  */
 async function getManager() {
   if (manager) return manager;
-  
+
   if (!managerPromise) {
-    managerPromise = import('../services/recurrence/manager.js').then(module => {
-      manager = module.createRecurrenceManager();
-      return manager;
-    });
+    managerPromise = import("../services/recurrence/manager.js").then(
+      (module) => {
+        manager = module.createRecurrenceManager();
+        return manager;
+      },
+    );
   }
-  
+
   return managerPromise;
 }
 
 /**
  * Load occurrences for recurring events
  * This is the main function to call when you want to generate occurrences
- * 
+ *
  * @param events - Array of events (both recurring and non-recurring)
  * @param windowStart - Start of date range (UTC)
  * @param windowEnd - End of date range (UTC)
@@ -88,65 +90,69 @@ async function getManager() {
 export async function loadOccurrences(
   events: Event[],
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
 ): Promise<void> {
   // Set loading state
-  recurrenceStore.update(s => ({ 
-    ...s, 
-    loading: true, 
-    error: null 
+  recurrenceStore.update((s) => ({
+    ...s,
+    loading: true,
+    error: null,
   }));
 
   try {
     // Dynamic import - only loads when needed
     const mgr = await getManager();
-    const luxonModule = await import('luxon');
+    const luxonModule = await import("luxon");
     const DateTime = luxonModule.DateTime;
-    
+
     // Clear previous data
     await mgr.clearAll();
-    
+
     // Filter and add recurring events
     const recurringEvents = events.filter(
-      event => event.recurrence && event.recurrence.type !== "NONE"
+      (event) => event.recurrence && event.recurrence.type !== "NONE",
     );
-    
-    console.log('[recurrence.store] loadOccurrences:', {
+
+    console.log("[recurrence.store] loadOccurrences:", {
       totalEvents: events.length,
       recurringEvents: recurringEvents.length,
       windowStart,
-      windowEnd
+      windowEnd,
     });
-    
+
     // Debug: log all events to see their recurrence status (can be removed in production)
     if (events.length > 0) {
-      console.log('[DEBUG] Events with recurrence:', events.map(e => ({
-        id: e.id,
-        title: e.title,
-        hasRecurrence: !!e.recurrence,
-        recurrenceType: e.recurrence?.type
-      })));
+      console.log(
+        "[DEBUG] Events with recurrence:",
+        events.map((e) => ({
+          id: e.id,
+          title: e.title,
+          hasRecurrence: !!e.recurrence,
+          recurrenceType: e.recurrence?.type,
+        })),
+      );
     }
-    
+
     if (recurringEvents.length === 0) {
       // No recurring events, just clear occurrences
-      recurrenceStore.update(s => ({
+      recurrenceStore.update((s) => ({
         ...s,
         occurrences: [],
         loading: false,
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
       }));
-      console.log('[recurrence.store] No recurring events found');
+      console.log("[recurrence.store] No recurring events found");
       return;
     }
-    
+
     // Map to track manager event IDs -> original event IDs
     const eventIdMap = new Map<string, string>();
-    
+
     // Add each recurring event to the manager
     for (const event of recurringEvents) {
-      const tzid = event.tzid || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
+      const tzid =
+        event.tzid || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
       // Extract local time components from the Date object
       // event.start is a Date object that represents a local time
       const localTime = {
@@ -155,44 +161,47 @@ export async function loadOccurrences(
         day: event.start.getDate(),
         hour: event.start.getHours(),
         minute: event.start.getMinutes(),
-        second: event.start.getSeconds()
+        second: event.start.getSeconds(),
       };
-      
+
       // Create DateTime in the specified timezone with those local values
-      const startLocalISO = DateTime.fromObject(localTime, { zone: tzid })
-        .toISO({ suppressMilliseconds: true, includeOffset: false })!;
+      const startLocalISO = DateTime.fromObject(localTime, {
+        zone: tzid,
+      }).toISO({ suppressMilliseconds: true, includeOffset: false })!;
       const durationMs = event.end.getTime() - event.start.getTime();
-      
-      console.log('[DEBUG] Event conversion:', {
+
+      console.log("[DEBUG] Event conversion:", {
         originalDate: event.start,
         localTime,
         startLocalISO,
         tzid,
         weekday: event.start.getDay(),
         rdateUtc: event.rdateUtc,
-        exdateUtc: event.exdateUtc
+        exdateUtc: event.exdateUtc,
       });
-      
+
       // Convert rdateUtc if present (these are stored as local times but need to be UTC)
-      const rdateUtcConverted = event.rdateUtc?.map(rdate => {
+      const rdateUtcConverted = event.rdateUtc?.map((rdate) => {
         const rdateLocal = {
           year: rdate.getFullYear(),
           month: rdate.getMonth() + 1,
           day: rdate.getDate(),
           hour: rdate.getHours(),
           minute: rdate.getMinutes(),
-          second: rdate.getSeconds()
+          second: rdate.getSeconds(),
         };
-        const utcDate = DateTime.fromObject(rdateLocal, { zone: tzid }).toUTC().toJSDate();
-        console.log('[DEBUG] RDATE conversion:', {
+        const utcDate = DateTime.fromObject(rdateLocal, { zone: tzid })
+          .toUTC()
+          .toJSDate();
+        console.log("[DEBUG] RDATE conversion:", {
           original: rdate,
           rdateLocal,
           utcDate,
-          utcDay: utcDate.getDay()
+          utcDay: utcDate.getDay(),
         });
         return utcDate;
       });
-      
+
       const createdEvent = await mgr.createEvent({
         title: event.title,
         description: event.description,
@@ -204,100 +213,111 @@ export async function loadOccurrences(
         durationMs,
         recurrence: event.recurrence,
         rdateUtc: rdateUtcConverted,
-        exdateUtc: event.exdateUtc
+        exdateUtc: event.exdateUtc,
       });
-      
-      console.log('[DEBUG] Created event in manager:', {
+
+      console.log("[DEBUG] Created event in manager:", {
         managerId: createdEvent.id,
-        originalId: event.id
+        originalId: event.id,
       });
-      
+
       // Map manager ID to original event ID
       eventIdMap.set(createdEvent.id, event.id);
     }
-    
+
     // Generate occurrences for the window
-    const rawOccurrences = await mgr.getOccurrencesWindow(windowStart, windowEnd);
-    
-    console.log('[recurrence.store] Raw occurrences:', {
+    const rawOccurrences = await mgr.getOccurrencesWindow(
+      windowStart,
+      windowEnd,
+    );
+
+    console.log("[recurrence.store] Raw occurrences:", {
       count: rawOccurrences.length,
-      eventIdMap: Array.from(eventIdMap.entries())
+      eventIdMap: Array.from(eventIdMap.entries()),
     });
-    
+
     // Map to our interface and include event details
-    const occurrences: RecurrenceOccurrence[] = rawOccurrences.map((occ: any) => {
-      // Map manager ID back to original event ID
-      const originalEventId = eventIdMap.get(occ.eventId) || occ.eventId;
-      const masterEvent = events.find(e => e.id === originalEventId);
-      
-      console.log('[DEBUG] Generated occurrence:', {
-        managerEventId: occ.eventId,
-        originalEventId,
-        startUtc: occ.startUtc,
-        startUtcDay: occ.startUtc.getDay(), // 0=Sun, 6=Sat
-        startUtcDate: occ.startUtc.getDate(),
-        originalLocalISO: occ.originalLocalISO,
-        masterEventFound: !!masterEvent
-      });
-      
-      // Check if this is a forever recurring event
-      const isForever = masterEvent ? (
-        masterEvent.recurrence && masterEvent.recurrence.type !== "NONE" &&
-        ((masterEvent.recurrence.type === "RRULE" && !masterEvent.recurrence.until && !masterEvent.recurrence.count) ||
-         (masterEvent.recurrence.type === "WEEKLY_BITMASK" && !masterEvent.recurrence.until && !masterEvent.recurrence.count))
-      ) : false;
-      
-      return {
-        id: occ.id || `${originalEventId}-${occ.startUtc.getTime()}`,
-        eventId: originalEventId,
-        startUtc: occ.startUtc,
-        endUtc: occ.endUtc,
-        originalLocalISO: occ.originalLocalISO,
-        title: masterEvent?.title || 'Recurring Event',
-        description: masterEvent?.description,
-        address: masterEvent?.address,
-        importance: masterEvent?.importance,
-        timeLabel: masterEvent?.timeLabel,
-        // New sliding window fields
-        recurrenceGroupId: `group-${originalEventId}`,
-        isForever,
-        isDuplicate: false,
-        originalEventId
-      };
-    });
-    
+    const occurrences: RecurrenceOccurrence[] = rawOccurrences.map(
+      (occ: any) => {
+        // Map manager ID back to original event ID
+        const originalEventId = eventIdMap.get(occ.eventId) || occ.eventId;
+        const masterEvent = events.find((e) => e.id === originalEventId);
+
+        console.log("[DEBUG] Generated occurrence:", {
+          managerEventId: occ.eventId,
+          originalEventId,
+          startUtc: occ.startUtc,
+          startUtcDay: occ.startUtc.getDay(), // 0=Sun, 6=Sat
+          startUtcDate: occ.startUtc.getDate(),
+          originalLocalISO: occ.originalLocalISO,
+          masterEventFound: !!masterEvent,
+        });
+
+        // Check if this is a forever recurring event
+        const isForever = masterEvent
+          ? masterEvent.recurrence &&
+            masterEvent.recurrence.type !== "NONE" &&
+            ((masterEvent.recurrence.type === "RRULE" &&
+              !masterEvent.recurrence.until &&
+              !masterEvent.recurrence.count) ||
+              (masterEvent.recurrence.type === "WEEKLY_BITMASK" &&
+                !masterEvent.recurrence.until &&
+                !masterEvent.recurrence.count))
+          : false;
+
+        return {
+          id: occ.id || `${originalEventId}-${occ.startUtc.getTime()}`,
+          eventId: originalEventId,
+          startUtc: occ.startUtc,
+          endUtc: occ.endUtc,
+          originalLocalISO: occ.originalLocalISO,
+          title: masterEvent?.title || "Recurring Event",
+          description: masterEvent?.description,
+          address: masterEvent?.address,
+          importance: masterEvent?.importance,
+          timeLabel: masterEvent?.timeLabel,
+          // New sliding window fields
+          recurrenceGroupId: `group-${originalEventId}`,
+          isForever,
+          isDuplicate: false,
+          originalEventId,
+        };
+      },
+    );
+
     // Update store with success
-    console.log('[recurrence.store] Successfully loaded occurrences:', occurrences.length);
-    recurrenceStore.update(s => ({
+    console.log(
+      "[recurrence.store] Successfully loaded occurrences:",
+      occurrences.length,
+    );
+    recurrenceStore.update((s) => ({
       ...s,
       occurrences,
       loading: false,
       error: null,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     }));
-    
   } catch (error: any) {
-    console.error('Error loading recurrence occurrences:', error);
-    recurrenceStore.update(s => ({
+    console.error("Error loading recurrence occurrences:", error);
+    recurrenceStore.update((s) => ({
       ...s,
       occurrences: [],
       loading: false,
-      error: error.message || 'Failed to load recurring events',
-      lastUpdated: new Date()
+      error: error.message || "Failed to load recurring events",
+      lastUpdated: new Date(),
     }));
   }
 }
-
 
 /**
  * Get occurrences for a specific date
  */
 export function getOccurrencesForDate(
   occurrences: RecurrenceOccurrence[],
-  date: Date
+  date: Date,
 ): RecurrenceOccurrence[] {
   const targetDateString = date.toDateString();
-  return occurrences.filter(occ => {
+  return occurrences.filter((occ) => {
     const occDate = new Date(occ.startUtc);
     return occDate.toDateString() === targetDateString;
   });
@@ -311,7 +331,7 @@ export const todaysOccurrences = derived(
   [recurrenceStore, selectedDate],
   ([$recurrenceState, $selectedDate]) => {
     return getOccurrencesForDate($recurrenceState.occurrences, $selectedDate);
-  }
+  },
 );
 
 /**
@@ -323,16 +343,19 @@ export const getDisplayEventsForDate = derived(
   ([$events, $recurrenceState]) => {
     return (date: Date) => {
       // Get regular events for the date
-      const regularEvents = $events.filter(event => {
+      const regularEvents = $events.filter((event) => {
         const eventDate = new Date(event.start);
         return eventDate.toDateString() === date.toDateString();
       });
 
       // Get recurring occurrences for the date
-      const recurringOccurrences = getOccurrencesForDate($recurrenceState.occurrences, date);
+      const recurringOccurrences = getOccurrencesForDate(
+        $recurrenceState.occurrences,
+        date,
+      );
 
       // Convert occurrences to event format for display
-      const occurrenceEvents = recurringOccurrences.map(occ => ({
+      const occurrenceEvents = recurringOccurrences.map((occ) => ({
         id: occ.id,
         title: occ.title,
         start: occ.startUtc,
@@ -342,15 +365,15 @@ export const getDisplayEventsForDate = derived(
         importance: occ.importance,
         timeLabel: occ.timeLabel,
         isRecurring: true,
-        originalEventId: occ.eventId
+        originalEventId: occ.eventId,
       }));
 
       // Combine and sort by start time
       return [...regularEvents, ...occurrenceEvents].sort(
-        (a, b) => a.start.getTime() - b.start.getTime()
+        (a, b) => a.start.getTime() - b.start.getTime(),
       );
     };
-  }
+  },
 );
 
 /**
@@ -360,29 +383,36 @@ export const displayEvents = derived(
   [events, recurrenceStore],
   ([$events, $recurrenceState]) => {
     const recurringEventIds = new Set(
-      $events.filter(e => e.recurrence && e.recurrence.type !== "NONE").map(e => e.id)
+      $events
+        .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
+        .map((e) => e.id),
     );
 
     const occurrenceEvents = $recurrenceState.occurrences
-      .filter(occ => recurringEventIds.has(occ.eventId))
-      .map(occ => ({
-        id: occ.id,
-        eventId: occ.eventId,
-        title: occ.title,
-        start: occ.startUtc,
-        end: occ.endUtc,
-        description: occ.description,
-        address: occ.address,
-        importance: occ.importance,
-        timeLabel: occ.timeLabel
-      } as any));
+      .filter((occ) => recurringEventIds.has(occ.eventId))
+      .map(
+        (occ) =>
+          ({
+            id: occ.id,
+            eventId: occ.eventId,
+            title: occ.title,
+            start: occ.startUtc,
+            end: occ.endUtc,
+            description: occ.description,
+            address: occ.address,
+            importance: occ.importance,
+            timeLabel: occ.timeLabel,
+          }) as any,
+      );
 
-    const regularEvents = $events.filter(e => !e.recurrence || e.recurrence.type === "NONE");
+    const regularEvents = $events.filter(
+      (e) => !e.recurrence || e.recurrence.type === "NONE",
+    );
 
     return [...regularEvents, ...occurrenceEvents].sort(
-      (a, b) => a.start.getTime() - b.start.getTime()
+      (a, b) => a.start.getTime() - b.start.getTime(),
     );
-  }
+  },
 );
 
 /**
@@ -401,7 +431,7 @@ export const eventsForSelectedDate = derived(
       const eventEnd = new Date(event.end);
       return eventStart <= endOfDay && eventEnd >= startOfDay;
     });
-  }
+  },
 );
 
 /**
@@ -429,8 +459,6 @@ export function isForeverRecurring(event: Event): boolean {
 export const foreverRecurringEvents = derived(
   recurrenceStore,
   ($recurrenceState) => {
-    return $recurrenceState.occurrences.filter(occ => occ.isForever);
-  }
+    return $recurrenceState.occurrences.filter((occ) => occ.isForever);
+  },
 );
-
-

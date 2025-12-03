@@ -15,7 +15,11 @@
 
 import { writable, derived, get } from "svelte/store";
 import type { Memo, Gap } from "../types.js";
-import type { ScheduleResult, ScheduledBlock, PipelineSummary } from "../services/suggestions/index.js";
+import type {
+  ScheduleResult,
+  ScheduledBlock,
+  PipelineSummary,
+} from "../services/suggestions/index.js";
 import { createEngine } from "../services/suggestions/index.js";
 import { enrichedGaps } from "./gaps.js";
 
@@ -73,7 +77,7 @@ export const lastScheduleTime = writable<Date | null>(null);
  */
 export const scheduledBlocks = derived(
   scheduleResult,
-  ($result) => $result?.scheduled ?? []
+  ($result) => $result?.scheduled ?? [],
 );
 
 /**
@@ -81,7 +85,7 @@ export const scheduledBlocks = derived(
  */
 export const droppedSuggestions = derived(
   scheduleResult,
-  ($result) => $result?.dropped ?? []
+  ($result) => $result?.dropped ?? [],
 );
 
 /**
@@ -89,7 +93,7 @@ export const droppedSuggestions = derived(
  */
 export const droppedMandatory = derived(
   scheduleResult,
-  ($result) => $result?.mandatoryDropped ?? []
+  ($result) => $result?.mandatoryDropped ?? [],
 );
 
 /**
@@ -101,7 +105,7 @@ export const nextScheduledBlock = derived(
   ($result): ScheduledBlock | null => {
     if (!$result?.scheduled.length) return null;
     return $result.scheduled[0];
-  }
+  },
 );
 
 /**
@@ -109,7 +113,7 @@ export const nextScheduledBlock = derived(
  */
 export const hasScheduledTasks = derived(
   scheduleResult,
-  ($result) => ($result?.scheduled.length ?? 0) > 0
+  ($result) => ($result?.scheduled.length ?? 0) > 0,
 );
 
 /**
@@ -117,7 +121,7 @@ export const hasScheduledTasks = derived(
  */
 export const totalScheduledMinutes = derived(
   scheduleResult,
-  ($result) => $result?.totalScheduledMinutes ?? 0
+  ($result) => $result?.totalScheduledMinutes ?? 0,
 );
 
 /**
@@ -126,7 +130,7 @@ export const totalScheduledMinutes = derived(
  */
 export const hasMandatoryDropped = derived(
   scheduleResult,
-  ($result) => ($result?.mandatoryDropped.length ?? 0) > 0
+  ($result) => ($result?.mandatoryDropped.length ?? 0) > 0,
 );
 
 // ============================================================================
@@ -153,7 +157,7 @@ export const scheduleActions = {
     options: {
       gaps?: Gap[];
       skipLLMEnrichment?: boolean;
-    } = {}
+    } = {},
   ): Promise<ScheduleResult | null> {
     // Set loading state
     isScheduleLoading.set(true);
@@ -262,4 +266,3 @@ export function getBlocksForGap(gapId: string): ScheduledBlock[] {
   if (!result) return [];
   return result.scheduled.filter((b) => b.gapId === gapId);
 }
-

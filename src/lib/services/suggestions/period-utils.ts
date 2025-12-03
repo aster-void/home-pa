@@ -1,9 +1,9 @@
 /**
  * @fileoverview Period Tracking Utilities
- * 
+ *
  * Handles period calculations for routine tasks (daily/weekly/monthly cycles).
  * Used by scoring module to determine need based on routine goal completion.
- * 
+ *
  * @author Personal Assistant Team
  * @version 1.0.0
  */
@@ -22,11 +22,11 @@ export type Period = "day" | "week" | "month";
 
 /**
  * Get how far through the current period we are (0.0 - 1.0)
- * 
+ *
  * @param currentTime - Current time to check
  * @param period - Period type (day/week/month)
  * @returns Progress ratio from 0.0 (start of period) to 1.0 (end of period)
- * 
+ *
  * @example
  * // Monday 12:00 noon
  * getPeriodProgress(date, "day")   // ~0.5 (halfway through day)
@@ -86,12 +86,12 @@ function getDaysInMonth(date: Date): number {
 
 /**
  * Check if we've entered a new period since the last tracking date
- * 
+ *
  * @param lastPeriodStart - When the tracking period started
  * @param currentTime - Current time to check against
  * @param period - Period type (day/week/month)
  * @returns true if we've crossed into a new period
- * 
+ *
  * @example
  * // lastPeriodStart = Monday, currentTime = Tuesday
  * isNewPeriod(lastPeriodStart, currentTime, "day")   // true
@@ -100,7 +100,7 @@ function getDaysInMonth(date: Date): number {
 export function isNewPeriod(
   lastPeriodStart: Date,
   currentTime: Date,
-  period: Period
+  period: Period,
 ): boolean {
   switch (period) {
     case "day":
@@ -130,10 +130,7 @@ function isSameDay(date1: Date, date2: Date): boolean {
 function isSameWeek(date1: Date, date2: Date): boolean {
   const week1 = getWeekNumber(date1);
   const week2 = getWeekNumber(date2);
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    week1 === week2
-  );
+  return date1.getFullYear() === date2.getFullYear() && week1 === week2;
 }
 
 /**
@@ -142,7 +139,7 @@ function isSameWeek(date1: Date, date2: Date): boolean {
 function getWeekNumber(date: Date): number {
   const startOfYear = new Date(date.getFullYear(), 0, 1);
   const days = Math.floor(
-    (date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000)
+    (date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000),
   );
   return Math.ceil((days + startOfYear.getDay() + 1) / 7);
 }
@@ -164,7 +161,7 @@ function isSameMonth(date1: Date, date2: Date): boolean {
 /**
  * Reset period counter if we've entered a new period
  * Call this before scoring to ensure fresh counts
- * 
+ *
  * @param memo - Memo to check and potentially reset
  * @param currentTime - Current time
  * @returns Updated memo (new object if reset, same object if not)
@@ -176,9 +173,12 @@ export function resetPeriodIfNeeded(memo: Memo, currentTime: Date): Memo {
   }
 
   const periodStart = memo.status.periodStartDate;
-  
+
   // If no period start set, or we've entered a new period, reset
-  if (!periodStart || isNewPeriod(periodStart, currentTime, memo.recurrenceGoal.period)) {
+  if (
+    !periodStart ||
+    isNewPeriod(periodStart, currentTime, memo.recurrenceGoal.period)
+  ) {
     return {
       ...memo,
       status: {
@@ -195,7 +195,7 @@ export function resetPeriodIfNeeded(memo: Memo, currentTime: Date): Memo {
 /**
  * Increment completion count when user finishes a session
  * Call this when user accepts/completes a scheduled suggestion
- * 
+ *
  * @param memo - Memo to update
  * @param currentTime - Current time
  * @returns Updated memo with incremented counter
@@ -224,4 +224,3 @@ export function incrementCompletion(memo: Memo, currentTime: Date): Memo {
 // ============================================================================
 
 export { isSameDay, isSameWeek, isSameMonth, getWeekNumber, getDaysInMonth };
-

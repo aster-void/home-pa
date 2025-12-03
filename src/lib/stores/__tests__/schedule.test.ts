@@ -51,8 +51,10 @@ function createTestMemo(overrides: Partial<Memo> & { title: string }): Memo {
  * Create a test gap
  */
 function createTestGap(start: string, end: string, gapId?: string): Gap {
-  const startMinutes = parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
-  const endMinutes = parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]);
+  const startMinutes =
+    parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
+  const endMinutes =
+    parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]);
   return {
     gapId: gapId ?? `gap-${start.replace(":", "")}`,
     start,
@@ -232,7 +234,9 @@ describe("Suggestion Engine - Integration Tests", () => {
 
     // The mandatory task should be scheduled
     expect(schedule.scheduled.length).toBe(1);
-    const scheduledMemo = memos.find((m) => m.id === schedule.scheduled[0].memoId);
+    const scheduledMemo = memos.find(
+      (m) => m.id === schedule.scheduled[0].memoId,
+    );
     expect(scheduledMemo?.title).toBe("Deadline today!");
   });
 
@@ -337,4 +341,3 @@ describe("Schedule Store", () => {
     expect(updated.lastActivity).toBeDefined();
   });
 });
-

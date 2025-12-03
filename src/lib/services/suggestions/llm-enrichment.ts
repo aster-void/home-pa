@@ -59,7 +59,14 @@ interface RawLLMResponse {
 // Constants
 // ============================================================================
 
-const VALID_GENRES = ["勉強", "運動", "家事", "仕事", "趣味", "その他"] as const;
+const VALID_GENRES = [
+  "勉強",
+  "運動",
+  "家事",
+  "仕事",
+  "趣味",
+  "その他",
+] as const;
 const VALID_IMPORTANCE: ImportanceLevel[] = ["low", "medium", "high"];
 
 const DEFAULT_CONFIG: Required<LLMEnrichmentConfig> = {
@@ -203,12 +210,14 @@ export function parseResponse(responseText: string): EnrichmentResult | null {
 
     // Validate and sanitize each field
     const genre =
-      parsed.genre && VALID_GENRES.includes(parsed.genre as (typeof VALID_GENRES)[number])
+      parsed.genre &&
+      VALID_GENRES.includes(parsed.genre as (typeof VALID_GENRES)[number])
         ? parsed.genre
         : "その他";
 
     const importance: ImportanceLevel =
-      parsed.importance && VALID_IMPORTANCE.includes(parsed.importance as ImportanceLevel)
+      parsed.importance &&
+      VALID_IMPORTANCE.includes(parsed.importance as ImportanceLevel)
         ? (parsed.importance as ImportanceLevel)
         : "medium";
 
@@ -283,11 +292,11 @@ async function callGemini(
 
     const prompt = buildPrompt(memo);
     console.log("[LLM Enrichment] Sending prompt to Gemini...");
-    
+
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
-    
+
     console.log("[LLM Enrichment] Raw response:", text);
 
     return parseResponse(text);
@@ -323,8 +332,14 @@ async function callGemini(
  * The returned memo has optional fields filled in.
  * Original values are NOT overwritten.
  */
-export async function enrichMemo(memo: Memo, config: Partial<LLMEnrichmentConfig> = {}): Promise<Memo> {
-  const fullConfig: Required<LLMEnrichmentConfig> = { ...DEFAULT_CONFIG, ...config };
+export async function enrichMemo(
+  memo: Memo,
+  config: Partial<LLMEnrichmentConfig> = {},
+): Promise<Memo> {
+  const fullConfig: Required<LLMEnrichmentConfig> = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  };
 
   console.log(`[LLM Enrichment] Processing memo: "${memo.title}" (${memo.id})`);
 
@@ -349,7 +364,9 @@ export async function enrichMemo(memo: Memo, config: Partial<LLMEnrichmentConfig
       console.log(`[LLM Enrichment] ✗ Gemini failed, using fallback`);
     }
   } else {
-    console.log(`[LLM Enrichment] Gemini not configured (no API key), using fallback`);
+    console.log(
+      `[LLM Enrichment] Gemini not configured (no API key), using fallback`,
+    );
   }
 
   // Use fallback if LLM failed or unavailable
@@ -377,7 +394,8 @@ function applyEnrichment(memo: Memo, enrichment: EnrichmentResult): Memo {
     genre: memo.genre ?? enrichment.genre,
     importance: memo.importance ?? enrichment.importance,
     sessionDuration: memo.sessionDuration ?? enrichment.sessionDuration,
-    totalDurationExpected: memo.totalDurationExpected ?? enrichment.totalDurationExpected,
+    totalDurationExpected:
+      memo.totalDurationExpected ?? enrichment.totalDurationExpected,
   };
 }
 
@@ -391,11 +409,18 @@ export async function enrichMemos(
   memos: Memo[],
   config: Partial<LLMEnrichmentConfig> = {},
 ): Promise<Memo[]> {
-  const fullConfig: Required<LLMEnrichmentConfig> = { ...DEFAULT_CONFIG, ...config };
+  const fullConfig: Required<LLMEnrichmentConfig> = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  };
   const results: Memo[] = [];
 
-  console.log(`[LLM Enrichment] === Batch enrichment started: ${memos.length} memos ===`);
-  console.log(`[LLM Enrichment] Gemini configured: ${isGeminiConfigured(fullConfig)}`);
+  console.log(
+    `[LLM Enrichment] === Batch enrichment started: ${memos.length} memos ===`,
+  );
+  console.log(
+    `[LLM Enrichment] Gemini configured: ${isGeminiConfigured(fullConfig)}`,
+  );
 
   for (let i = 0; i < memos.length; i++) {
     const memo = memos[i];
@@ -415,7 +440,9 @@ export async function enrichMemos(
 
     // Add delay between API calls (not after last one)
     if (i < memos.length - 1 && isGeminiConfigured(fullConfig)) {
-      console.log(`[LLM Enrichment] Waiting ${fullConfig.requestDelayMs}ms before next request...`);
+      console.log(
+        `[LLM Enrichment] Waiting ${fullConfig.requestDelayMs}ms before next request...`,
+      );
       await sleep(fullConfig.requestDelayMs);
     }
   }
@@ -456,4 +483,3 @@ export function getCacheStats(): { size: number; entries: string[] } {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-

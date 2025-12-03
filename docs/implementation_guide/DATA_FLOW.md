@@ -3,31 +3,38 @@
 ## Store Overview
 
 ### UI State
+
 - `src/lib/stores/ui.ts` — view, viewMode, modals, AppView type
 - `src/lib/stores/actions/uiActions.ts` — navigation, view switching
 
 ### Core Data
+
 - `src/lib/stores/data.ts` — `events`, `memos` (legacy), `suggestionLogs`, `selectedDate`
 - `src/lib/stores/actions/taskActions.ts` — `tasks` store (rich Memo objects)
 
 ### Recurrence
+
 - `src/lib/stores/recurrence.store.ts` — sliding window system
 - Exports: `reactiveOccurrences`, `displayEvents`, `eventsForSelectedDate`
 
 ### Gaps
+
 - `src/lib/stores/gaps.ts` — gap calculation from events
 - Exports: `gaps`, `enrichedGaps` (with location labels)
 
 ### Schedule (NEW)
+
 - `src/lib/stores/schedule.ts` — suggestion engine output
 - Exports: `scheduleResult`, `scheduledBlocks`, `nextScheduledBlock`, `scheduleActions`
 
 ### Forms
+
 - `forms/eventForm.ts` — event creation/editing
 - `forms/memoForm.ts` — legacy memo form
 - `forms/taskForm.ts` — rich task form (type, deadline, recurrence)
 
 ### Bootstrap
+
 - `stores/bootstrap.ts` — initializes timezone, UI, suggestions
 
 ---
@@ -35,16 +42,19 @@
 ## Event Data Model
 
 ### Event Types
+
 - **All-day events**: Store start/end dates only (no times), can span multiple days
 - **Some-timing events**: Store start/end dates only (same date), single day only
 - **Timed events**: Store start/end dates AND times, can span multiple days
 
 ### Data Storage
+
 - All events store dates in UTC
 - Date-only events (all-day, some-timing): start/end times are 00:00 UTC
 - Timed events: actual start/end times in UTC
 
 ### Display Logic
+
 - **Timeline**: Shows timed events (positioned by time) and all-day events (full height)
 - **Event List**: Shows all events with appropriate labels
 - **Calendar Grid**: Shows all events with visual indicators
@@ -54,44 +64,47 @@
 ## Task/Suggestion Data Model (NEW)
 
 ### Task (Rich Memo) Structure
+
 ```typescript
 interface Memo {
   id: string;
   title: string;
   type: "期限付き" | "バックログ" | "ルーティン";
   createdAt: Date;
-  deadline?: Date;                    // For 期限付き
-  recurrenceGoal?: RecurrenceGoal;    // For ルーティン
+  deadline?: Date; // For 期限付き
+  recurrenceGoal?: RecurrenceGoal; // For ルーティン
   locationPreference: LocationPreference;
   status: MemoStatus;
-  genre?: string;                     // LLM-filled
-  importance?: ImportanceLevel;       // LLM-filled
-  sessionDuration?: number;           // LLM-suggested
-  totalDurationExpected?: number;     // LLM-suggested
+  genre?: string; // LLM-filled
+  importance?: ImportanceLevel; // LLM-filled
+  sessionDuration?: number; // LLM-suggested
+  totalDurationExpected?: number; // LLM-suggested
   lastActivity?: Date;
 }
 ```
 
 ### Suggestion Structure
+
 ```typescript
 interface Suggestion {
   id: string;
   memoId: string;
-  need: number;         // 0.0–1.0+ (≥1.0 = mandatory)
-  importance: number;   // 0.0–1.0
-  duration: number;     // Minutes
+  need: number; // 0.0–1.0+ (≥1.0 = mandatory)
+  importance: number; // 0.0–1.0
+  duration: number; // Minutes
   locationPreference: LocationPreference;
 }
 ```
 
 ### Gap Structure (Extended)
+
 ```typescript
 interface Gap {
   gapId: string;
-  start: string;        // HH:mm
-  end: string;          // HH:mm
-  duration: number;     // Minutes
-  locationLabel?: LocationLabel;  // Derived from surrounding events
+  start: string; // HH:mm
+  end: string; // HH:mm
+  duration: number; // Minutes
+  locationLabel?: LocationLabel; // Derived from surrounding events
 }
 ```
 
@@ -100,6 +113,7 @@ interface Gap {
 ## Suggestion System Flow
 
 ### Task Creation Flow
+
 ```
 User fills TaskForm
         ↓
@@ -115,6 +129,7 @@ Toast notification
 ```
 
 ### Schedule Generation Flow
+
 ```
 User clicks "Generate Schedule" (or auto-trigger)
         ↓
@@ -170,6 +185,7 @@ UI reactively updates (SchedulePanel)
 ```
 
 ### Session Completion Flow
+
 ```
 User completes a task session
         ↓
@@ -192,6 +208,7 @@ Update tasks store (caller responsibility)
 ## Sliding Window Recurrence Flow
 
 ### Event Creation/Update
+
 1. User fills event form with recurrence settings
 2. `eventActions.create/update` includes recurrence data
 3. Event stored with recurrence fields in core data store
@@ -200,12 +217,14 @@ Update tasks store (caller responsibility)
 6. Forever events marked with `isForever: true`
 
 ### Window Management
+
 1. Calendar navigation triggers window recalculation
 2. 7-month window: 3 before + current + 3 after
 3. `loadOccurrences` generates occurrences for window only
 4. Auto-shift when user navigates beyond current window
 
 ### Memory Efficiency
+
 - Only 7 months of data loaded at any time
 - Forever events handled without infinite generation
 - Recurrence groups link events across time windows
@@ -235,16 +254,16 @@ tasks (taskActions.ts) ────────────┘    scheduleResult
 
 ## File References
 
-| Purpose | File |
-|---------|------|
-| UI state | `stores/ui.ts` |
-| Events | `stores/data.ts` |
-| Tasks | `stores/actions/taskActions.ts` |
-| Schedule | `stores/schedule.ts` |
-| Gaps | `stores/gaps.ts` |
-| Task form | `stores/forms/taskForm.ts` |
-| Engine | `services/suggestions/suggestion-engine.ts` |
-| Scoring | `services/suggestions/suggestion-scoring.ts` |
+| Purpose   | File                                           |
+| --------- | ---------------------------------------------- |
+| UI state  | `stores/ui.ts`                                 |
+| Events    | `stores/data.ts`                               |
+| Tasks     | `stores/actions/taskActions.ts`                |
+| Schedule  | `stores/schedule.ts`                           |
+| Gaps      | `stores/gaps.ts`                               |
+| Task form | `stores/forms/taskForm.ts`                     |
+| Engine    | `services/suggestions/suggestion-engine.ts`    |
+| Scoring   | `services/suggestions/suggestion-scoring.ts`   |
 | Scheduler | `services/suggestions/suggestion-scheduler.ts` |
 
 ---

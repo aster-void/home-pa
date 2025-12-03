@@ -1,17 +1,20 @@
 /**
  * @fileoverview Event Form Store
- * 
+ *
  * Manages the state of the event creation/editing form.
  * This includes form fields, validation state, and form-specific UI state.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { writable, derived, get } from 'svelte/store';
-import { selectedDate } from '../data.js';
-import type { Event, Recurrence } from '../../types.js';
-import { utcToLocalDateTimeString, utcToLocalDateString } from '../../utils/date-utils.js';
+import { writable, derived, get } from "svelte/store";
+import { selectedDate } from "../data.js";
+import type { Event, Recurrence } from "../../types.js";
+import {
+  utcToLocalDateTimeString,
+  utcToLocalDateString,
+} from "../../utils/date-utils.js";
 
 /**
  * Event form data interface
@@ -81,25 +84,23 @@ export const isSubmitting = writable<boolean>(false);
 /**
  * Whether the form has any content
  */
-export const hasFormContent = derived(
-  eventForm,
-  ($form) => {
-    return $form.title.trim() !== "" || 
-           $form.description?.trim() !== "" || 
-           $form.address?.trim() !== "";
-  }
-);
+export const hasFormContent = derived(eventForm, ($form) => {
+  return (
+    $form.title.trim() !== "" ||
+    $form.description?.trim() !== "" ||
+    $form.address?.trim() !== ""
+  );
+});
 
 /**
  * Whether the form has time content (for timed events)
  */
-export const hasTimeContent = derived(
-  eventForm,
-  ($form) => {
-    return $form.timeLabel === "timed" && 
-           ($form.start.trim() !== "" || $form.end.trim() !== "");
-  }
-);
+export const hasTimeContent = derived(eventForm, ($form) => {
+  return (
+    $form.timeLabel === "timed" &&
+    ($form.start.trim() !== "" || $form.end.trim() !== "")
+  );
+});
 
 /**
  * Whether the form is valid
@@ -107,18 +108,14 @@ export const hasTimeContent = derived(
 export const isFormValid = derived(
   [eventForm, eventFormErrors],
   ([$form, $errors]) => {
-    return $form.title.trim() !== "" && 
-           Object.keys($errors).length === 0;
-  }
+    return $form.title.trim() !== "" && Object.keys($errors).length === 0;
+  },
 );
 
 /**
  * Whether the form is in editing mode
  */
-export const isEditing = derived(
-  eventForm,
-  ($form) => $form.isEditing
-);
+export const isEditing = derived(eventForm, ($form) => $form.isEditing);
 
 /**
  * Event Form Actions
@@ -137,15 +134,15 @@ export const eventFormActions = {
    * Update a form field
    */
   updateField<K extends keyof EventFormData>(
-    field: K, 
-    value: EventFormData[K]
+    field: K,
+    value: EventFormData[K],
   ): void {
-    eventForm.update(form => ({
+    eventForm.update((form) => ({
       ...form,
-      [field]: value
+      [field]: value,
     }));
     // Clear field-specific error on change
-    if (field === 'title' || field === 'start' || field === 'end') {
+    if (field === "title" || field === "start" || field === "end") {
       this.clearFieldError(field as any);
     }
   },
@@ -154,13 +151,13 @@ export const eventFormActions = {
    * Update multiple form fields at once
    */
   updateFields(updates: Partial<EventFormData>): void {
-    eventForm.update(form => ({
+    eventForm.update((form) => ({
       ...form,
-      ...updates
+      ...updates,
     }));
     // Best-effort clear basic field errors when updating them
     Object.keys(updates).forEach((k) => {
-      if (k === 'title' || k === 'start' || k === 'end') {
+      if (k === "title" || k === "start" || k === "end") {
         this.clearFieldError(k as keyof EventFormErrors);
       }
     });
@@ -177,7 +174,7 @@ export const eventFormActions = {
     // For timed events, show the datetime
     let startValue = "";
     let endValue = "";
-    
+
     if (timeLabel === "timed") {
       startValue = utcToLocalDateTimeString(new Date(event.start));
       endValue = utcToLocalDateTimeString(new Date(event.end));
@@ -213,7 +210,7 @@ export const eventFormActions = {
    * Set form to create new event mode
    */
   setCreateMode(): void {
-    eventForm.update(form => ({
+    eventForm.update((form) => ({
       ...form,
       isEditing: false,
       editingId: null,
@@ -224,10 +221,10 @@ export const eventFormActions = {
    * Switch between time labels
    */
   switchTimeLabel(label: "all-day" | "some-timing" | "timed"): void {
-    eventForm.update(form => {
+    eventForm.update((form) => {
       if (label === "some-timing") {
         // Some-timing events: start and end must be the same date
-        const currentStart = form.start ? form.start.split('T')[0] : "";
+        const currentStart = form.start ? form.start.split("T")[0] : "";
         return {
           ...form,
           timeLabel: label,
@@ -255,9 +252,9 @@ export const eventFormActions = {
    * Set validation error for a field
    */
   setFieldError(field: keyof EventFormErrors, error: string): void {
-    eventFormErrors.update(errors => ({
+    eventFormErrors.update((errors) => ({
       ...errors,
-      [field]: error
+      [field]: error,
     }));
   },
 
@@ -265,7 +262,7 @@ export const eventFormActions = {
    * Clear validation error for a field
    */
   clearFieldError(field: keyof EventFormErrors): void {
-    eventFormErrors.update(errors => {
+    eventFormErrors.update((errors) => {
       const newErrors = { ...errors };
       delete newErrors[field];
       return newErrors;
@@ -283,9 +280,9 @@ export const eventFormActions = {
    * Set general error message
    */
   setGeneralError(message: string): void {
-    eventFormErrors.update(errors => ({
+    eventFormErrors.update((errors) => ({
       ...errors,
-      general: message
+      general: message,
     }));
   },
 
@@ -303,17 +300,17 @@ export const eventFormActions = {
     // Default to the currently selected date in UI
     const sel = get(selectedDate);
     const yyyy = sel.getFullYear();
-    const mm = String(sel.getMonth() + 1).padStart(2, '0');
-    const dd = String(sel.getDate()).padStart(2, '0');
+    const mm = String(sel.getMonth() + 1).padStart(2, "0");
+    const dd = String(sel.getDate()).padStart(2, "0");
     const dateStr = `${yyyy}-${mm}-${dd}`;
 
     eventForm.set({
       ...initialFormState,
-      timeLabel: 'all-day',
+      timeLabel: "all-day",
       start: dateStr, // Date-only for all-day events
-      end: dateStr,   // Date-only for all-day events
+      end: dateStr, // Date-only for all-day events
     });
-  }
+  },
 };
 
 /**
@@ -326,7 +323,10 @@ function getCurrentForm(): EventFormData {
 /**
  * Shared validation logic for event form data
  */
-export function validateEventFormData(formData: EventFormData): { isValid: boolean; errors: Record<string, string> } {
+export function validateEventFormData(formData: EventFormData): {
+  isValid: boolean;
+  errors: Record<string, string>;
+} {
   const errors: Record<string, string> = {};
 
   if (!formData.title?.trim()) {
@@ -335,7 +335,10 @@ export function validateEventFormData(formData: EventFormData): { isValid: boole
 
   // For timed events, validate start/end times
   if (formData.timeLabel === "timed") {
-    if ((formData.start || formData.end) && (!formData.start || !formData.end)) {
+    if (
+      (formData.start || formData.end) &&
+      (!formData.start || !formData.end)
+    ) {
       errors.start = "開始時間と終了時間を入力してください";
       errors.end = "開始時間と終了時間を入力してください";
     }

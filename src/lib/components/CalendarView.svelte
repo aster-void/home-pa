@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import type { Event, Recurrence } from "../types.js";
-  import { 
-    events, 
-    eventOperations, 
+  import {
+    events,
+    eventOperations,
     selectedDate,
     currentView,
     viewMode,
@@ -14,14 +14,14 @@
     eventFormErrors,
     eventActions,
     uiActions,
-    recurrenceStore, 
-    loadOccurrences, 
+    recurrenceStore,
+    loadOccurrences,
     getOccurrencesForDate,
     isForeverRecurring,
     foreverRecurringEvents,
-    type RecurrenceOccurrence 
+    type RecurrenceOccurrence,
   } from "../stores/index.js";
-  import { 
+  import {
     localDateStringToUTC,
     localDateTimeStringToUTC,
     utcToLocalDateString,
@@ -33,7 +33,7 @@
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
-  
+
   // Form state - now using stores directly
   let eventTitle = $state("");
   let eventStartDate = $state("");
@@ -44,27 +44,28 @@
   let eventImportance = $state<"low" | "medium" | "high">("medium");
   let eventTimeLabel = $state<"all-day" | "some-timing" | "timed">("all-day");
   // Tri-state for clarity: default (grey), all-day, some-timing
-  type TimeMode = 'default' | 'all-day' | 'some-timing';
-  let timeMode = $state<TimeMode>('default');
-  let isGreyState = $derived(timeMode === 'default');
+  type TimeMode = "default" | "all-day" | "some-timing";
+  let timeMode = $state<TimeMode>("default");
+  let isGreyState = $derived(timeMode === "default");
   let isEventEditing = $state(false);
   let isManualDateOrTimeEdit = $state(false);
-  
+
   // Check if time fields have content (for timed events)
   let hasTimeContent = $derived(
-    eventTimeLabel === "timed" && (eventStartTime.trim() !== "" || eventEndTime.trim() !== "")
+    eventTimeLabel === "timed" &&
+      (eventStartTime.trim() !== "" || eventEndTime.trim() !== ""),
   );
 
   // Check if we're in timed mode (either explicitly timed or user has manually edited times)
   let isTimedMode = $derived(
-    eventTimeLabel === "timed" || isManualDateOrTimeEdit
+    eventTimeLabel === "timed" || isManualDateOrTimeEdit,
   );
-  
+
   // Initialize dates when form opens
   function initializeDates() {
     // Use unified date utility to get local date string
     const dateString = utcToLocalDateString($selectedDate);
-    
+
     if (!eventStartDate) {
       eventStartDate = dateString;
     }
@@ -72,7 +73,7 @@
       eventEndDate = dateString;
     }
   }
-  
+
   // Handle time label changes
   $effect(() => {
     if (eventTimeLabel === "some-timing") {
@@ -82,13 +83,23 @@
       }
     }
   });
-  
+
   // Recurrence form fields
   let isRecurring = $state(false);
-  let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">("WEEKLY");
+  let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">(
+    "WEEKLY",
+  );
   let recurrenceInterval = $state(1);
   let recurrenceEndDate = $state<string>(""); // Empty = forever
-  let weeklyDays = $state<boolean[]>([false, false, false, false, false, false, false]); // Sun-Sat
+  let weeklyDays = $state<boolean[]>([
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]); // Sun-Sat
   let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
   let monthlyPosition = $state(1);
 
@@ -96,7 +107,7 @@
   $effect(() => {
     const form = $eventForm;
     eventTitle = form.title;
-    
+
     // Parse the datetime-local format to separate date and time using unified utilities
     // Handle start date/time
     if (form.start) {
@@ -107,7 +118,7 @@
       eventStartDate = "";
       eventStartTime = "";
     }
-    
+
     // Handle end date/time
     if (form.end) {
       const endDateTime = new Date(form.end);
@@ -117,7 +128,7 @@
       eventEndDate = "";
       eventEndTime = "";
     }
-    
+
     // Override time fields based on time label (but preserve user edits within session)
     if (!isManualDateOrTimeEdit) {
       if (form.timeLabel === "all-day") {
@@ -131,7 +142,7 @@
         // Don't override them
       }
     }
-    
+
     eventAddress = form.address || "";
     eventImportance = form.importance || "medium";
     eventTimeLabel = form.timeLabel || "all-day";
@@ -140,47 +151,54 @@
 
   // Sync local form state to store
   $effect(() => {
-    eventFormActions.updateField('title', eventTitle);
+    eventFormActions.updateField("title", eventTitle);
   });
 
   // Sync recurrence data to form store
   $effect(() => {
     const recurrence = buildRecurrenceObject();
-    eventFormActions.updateField('recurrence', recurrence);
+    eventFormActions.updateField("recurrence", recurrence);
   });
 
   $effect(() => {
-    eventFormActions.updateField('address', eventAddress);
+    eventFormActions.updateField("address", eventAddress);
   });
 
   $effect(() => {
-    eventFormActions.updateField('importance', eventImportance);
+    eventFormActions.updateField("importance", eventImportance);
   });
 
   $effect(() => {
-    eventFormActions.updateField('timeLabel', eventTimeLabel);
+    eventFormActions.updateField("timeLabel", eventTimeLabel);
   });
 
   // Sync date/time combinations to store
   $effect(() => {
-    const startDateTime = eventStartDate && eventStartTime 
-      ? `${eventStartDate}T${eventStartTime}`
-      : "";
-    const endDateTime = eventEndDate && eventEndTime 
-      ? `${eventEndDate}T${eventEndTime}`
-      : "";
-    
+    const startDateTime =
+      eventStartDate && eventStartTime
+        ? `${eventStartDate}T${eventStartTime}`
+        : "";
+    const endDateTime =
+      eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "";
+
     eventFormActions.updateFields({
       start: startDateTime,
-      end: endDateTime
+      end: endDateTime,
     });
   });
 
-
   // Load recurring event occurrences on mount
   onMount(() => {
-    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
-    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
+    const windowStart = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() - 3,
+      1,
+    );
+    const windowEnd = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 4,
+      0,
+    );
     loadOccurrences($events, windowStart, windowEnd);
   });
 
@@ -188,14 +206,22 @@
   $effect(() => {
     // Access $events synchronously to ensure reactivity tracking
     const currentEvents = $events;
-    const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
-    const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
-    
+    const windowStart = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() - 3,
+      1,
+    );
+    const windowEnd = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 4,
+      0,
+    );
+
     // Debounce to avoid excessive reloads (200ms for better performance)
     const timeout = setTimeout(() => {
       loadOccurrences(currentEvents, windowStart, windowEnd);
     }, 200);
-    
+
     return () => clearTimeout(timeout);
   });
 
@@ -203,13 +229,21 @@
   $effect(() => {
     if (isEventEditing) {
       const currentForm = $eventForm;
-      const windowStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1);
-      const windowEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0);
-      
+      const windowStart = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() - 3,
+        1,
+      );
+      const windowEnd = new Date(
+        currentMonth.getFullYear(),
+        currentMonth.getMonth() + 4,
+        0,
+      );
+
       // Create a temporary event object for preview
       if (currentForm.start && currentForm.end) {
         const tempEvent: Event = {
-          id: currentForm.editingId || 'temp',
+          id: currentForm.editingId || "temp",
           title: currentForm.title,
           start: new Date(currentForm.start),
           end: new Date(currentForm.end),
@@ -219,16 +253,16 @@
           timeLabel: currentForm.timeLabel,
           tzid: Intl.DateTimeFormat().resolvedOptions().timeZone,
         };
-        
+
         // Debounce to avoid excessive reloads during typing
         const timeout = setTimeout(() => {
           // Temporarily replace the event in the events array for preview
-          const eventsWithPreview = $events.map(e => 
-            e.id === currentForm.editingId ? tempEvent : e
+          const eventsWithPreview = $events.map((e) =>
+            e.id === currentForm.editingId ? tempEvent : e,
           );
           loadOccurrences(eventsWithPreview, windowStart, windowEnd);
         }, 200);
-        
+
         return () => clearTimeout(timeout);
       }
     }
@@ -236,47 +270,61 @@
 
   // Combine regular events with recurring occurrences for display
   let allDisplayEvents = $derived.by(() => {
-    const regularEvents = $events.filter(e => !e.recurrence || e.recurrence.type === "NONE");
-    
-    // Filter occurrences to only include those for events that are still recurring
-    const recurringEventIds = new Set($events
-      .filter(e => e.recurrence && e.recurrence.type !== "NONE")
-      .map(e => e.id)
+    const regularEvents = $events.filter(
+      (e) => !e.recurrence || e.recurrence.type === "NONE",
     );
-    
+
+    // Filter occurrences to only include those for events that are still recurring
+    const recurringEventIds = new Set(
+      $events
+        .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
+        .map((e) => e.id),
+    );
+
     const occurrences = $recurrenceStore.occurrences
-      .filter(occ => recurringEventIds.has(occ.eventId))
-      .map((occ: RecurrenceOccurrence) => ({
-        id: occ.id, // Use unique occurrence ID, not the master event ID
-        eventId: occ.eventId, // Keep reference to master event ID
-        title: occ.title,
-        start: occ.startUtc,
-        end: occ.endUtc,
-        description: occ.description,
-        address: occ.address,
-        importance: occ.importance,
-        timeLabel: occ.timeLabel,
-        isRecurring: true,
-        originalEventId: occ.eventId,
-        // New sliding window fields
-        recurrenceGroupId: occ.recurrenceGroupId,
-        isForever: occ.isForever,
-        isDuplicate: occ.isDuplicate
-      } as Event & { eventId: string; isRecurring: boolean; originalEventId: string; recurrenceGroupId?: string; isForever?: boolean; isDuplicate?: boolean }));
-    
+      .filter((occ) => recurringEventIds.has(occ.eventId))
+      .map(
+        (occ: RecurrenceOccurrence) =>
+          ({
+            id: occ.id, // Use unique occurrence ID, not the master event ID
+            eventId: occ.eventId, // Keep reference to master event ID
+            title: occ.title,
+            start: occ.startUtc,
+            end: occ.endUtc,
+            description: occ.description,
+            address: occ.address,
+            importance: occ.importance,
+            timeLabel: occ.timeLabel,
+            isRecurring: true,
+            originalEventId: occ.eventId,
+            // New sliding window fields
+            recurrenceGroupId: occ.recurrenceGroupId,
+            isForever: occ.isForever,
+            isDuplicate: occ.isDuplicate,
+          }) as Event & {
+            eventId: string;
+            isRecurring: boolean;
+            originalEventId: string;
+            recurrenceGroupId?: string;
+            isForever?: boolean;
+            isDuplicate?: boolean;
+          },
+      );
+
     // Debug logging (can be disabled for production)
-    if (false) { // Set to true for debugging
-      console.log('[CalendarView] allDisplayEvents update:', {
+    if (false) {
+      // Set to true for debugging
+      console.log("[CalendarView] allDisplayEvents update:", {
         regularEvents: regularEvents.length,
         occurrences: occurrences.length,
         total: regularEvents.length + occurrences.length,
         recurringEventIds: Array.from(recurringEventIds),
-        recurrenceStore: $recurrenceStore
+        recurrenceStore: $recurrenceStore,
       });
     }
-    
-    return [...regularEvents, ...occurrences].sort((a, b) => 
-      a.start.getTime() - b.start.getTime()
+
+    return [...regularEvents, ...occurrences].sort(
+      (a, b) => a.start.getTime() - b.start.getTime(),
     );
   });
 
@@ -364,7 +412,7 @@
   function createEvent() {
     // Use the event actions to create a new event
     eventActions.createNewEvent();
-    
+
     // Initialize dates to selected date
     initializeDates();
 
@@ -399,12 +447,12 @@
     }
 
     let rrule = `FREQ=${recurrenceFrequency}`;
-    
+
     if (recurrenceInterval > 1) {
       rrule += `;INTERVAL=${recurrenceInterval}`;
     }
 
-    if (recurrenceFrequency === "WEEKLY" && weeklyDays.some(d => d)) {
+    if (recurrenceFrequency === "WEEKLY" && weeklyDays.some((d) => d)) {
       const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
       const selectedDays = days.filter((_, i) => weeklyDays[i]);
       if (selectedDays.length > 0) {
@@ -413,7 +461,10 @@
     }
 
     if (recurrenceFrequency === "MONTHLY") {
-      const start = localDateTimeToUTC(eventStartDate, eventStartTime || "00:00");
+      const start = localDateTimeToUTC(
+        eventStartDate,
+        eventStartTime || "00:00",
+      );
       if (monthlyType === "nthWeekday") {
         const days = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
         const dayOfWeek = days[start.getDay()];
@@ -426,13 +477,17 @@
 
     if (recurrenceEndDate) {
       const untilDate = new Date(recurrenceEndDate);
-      const utcDate = new Date(Date.UTC(
-        untilDate.getFullYear(),
-        untilDate.getMonth(),
-        untilDate.getDate(),
-        23, 59, 59
-      ));
-      rrule += `;UNTIL=${utcDate.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`;
+      const utcDate = new Date(
+        Date.UTC(
+          untilDate.getFullYear(),
+          untilDate.getMonth(),
+          untilDate.getDate(),
+          23,
+          59,
+          59,
+        ),
+      );
+      rrule += `;UNTIL=${utcDate.toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`;
     }
 
     const recurrenceObj = {
@@ -440,12 +495,11 @@
       rrule,
       frequency: recurrenceFrequency,
       count: null,
-      until: recurrenceEndDate ? new Date(recurrenceEndDate) : null
+      until: recurrenceEndDate ? new Date(recurrenceEndDate) : null,
     };
-    
+
     return recurrenceObj;
   }
-
 
   function parseRecurrenceForEdit(event: Event) {
     if (!event.recurrence || event.recurrence.type === "NONE") {
@@ -462,11 +516,13 @@
       for (let i = 0; i < 7; i++) {
         weeklyDays[i] = (bitmask & (1 << i)) !== 0;
       }
-      recurrenceEndDate = event.recurrence.until ? event.recurrence.until.toISOString().slice(0, 10) : "";
+      recurrenceEndDate = event.recurrence.until
+        ? event.recurrence.until.toISOString().slice(0, 10)
+        : "";
     } else if (event.recurrence.type === "RRULE") {
       const rrule = event.recurrence.rrule;
       recurrenceFrequency = event.recurrence.frequency || "WEEKLY";
-      
+
       const intervalMatch = rrule.match(/INTERVAL=(\d+)/);
       recurrenceInterval = intervalMatch ? parseInt(intervalMatch[1]) : 1;
 
@@ -474,10 +530,18 @@
         const bydayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
         if (bydayMatch) {
           const days = bydayMatch[1].split(",");
-          const dayMap: Record<string, number> = { "SU": 0, "MO": 1, "TU": 2, "WE": 3, "TH": 4, "FR": 5, "SA": 6 };
+          const dayMap: Record<string, number> = {
+            SU: 0,
+            MO: 1,
+            TU: 2,
+            WE: 3,
+            TH: 4,
+            FR: 5,
+            SA: 6,
+          };
           weeklyDays = [false, false, false, false, false, false, false];
-          days.forEach(day => {
-            const cleanDay = day.replace(/[+-]?\d+/, '');
+          days.forEach((day) => {
+            const cleanDay = day.replace(/[+-]?\d+/, "");
             if (dayMap[cleanDay] !== undefined) {
               weeklyDays[dayMap[cleanDay]] = true;
             }
@@ -497,7 +561,9 @@
         }
       }
 
-      recurrenceEndDate = event.recurrence.until ? event.recurrence.until.toISOString().slice(0, 10) : "";
+      recurrenceEndDate = event.recurrence.until
+        ? event.recurrence.until.toISOString().slice(0, 10)
+        : "";
     }
   }
 
@@ -508,34 +574,56 @@
 
     if (recurrence.type === "WEEKLY_BITMASK") {
       const days = ["日", "月", "火", "水", "木", "金", "土"];
-      const selectedDays = days.filter((_, i) => (recurrence.daysBitmask & (1 << i)) !== 0);
-      const interval = recurrence.intervalWeeks > 1 ? `${recurrence.intervalWeeks}週ごと ` : "毎週 ";
+      const selectedDays = days.filter(
+        (_, i) => (recurrence.daysBitmask & (1 << i)) !== 0,
+      );
+      const interval =
+        recurrence.intervalWeeks > 1
+          ? `${recurrence.intervalWeeks}週ごと `
+          : "毎週 ";
       return `${interval}${selectedDays.join("・")}${recurrence.count ? ` (${recurrence.count}回)` : ""}`;
     }
 
     if (recurrence.type === "RRULE") {
       const freq = recurrence.frequency || "DAILY";
-      const freqMap: Record<string, string> = { DAILY: "毎日", WEEKLY: "毎週", MONTHLY: "毎月", YEARLY: "毎年" };
+      const freqMap: Record<string, string> = {
+        DAILY: "毎日",
+        WEEKLY: "毎週",
+        MONTHLY: "毎月",
+        YEARLY: "毎年",
+      };
       const freqText = freqMap[freq] || freq;
-      
+
       let result = freqText;
-      
+
       if (recurrence.rrule.includes("INTERVAL=")) {
         const match = recurrence.rrule.match(/INTERVAL=(\d+)/);
         if (match && parseInt(match[1]) > 1) {
-          result = freq === "DAILY" ? `${match[1]}日ごと` :
-                   freq === "WEEKLY" ? `${match[1]}週ごと` :
-                   freq === "MONTHLY" ? `${match[1]}ヶ月ごと` :
-                   `${match[1]}年ごと`;
+          result =
+            freq === "DAILY"
+              ? `${match[1]}日ごと`
+              : freq === "WEEKLY"
+                ? `${match[1]}週ごと`
+                : freq === "MONTHLY"
+                  ? `${match[1]}ヶ月ごと`
+                  : `${match[1]}年ごと`;
         }
       }
 
       if (freq === "WEEKLY" && recurrence.rrule.includes("BYDAY=")) {
         const match = recurrence.rrule.match(/BYDAY=([A-Z,]+)/);
         if (match) {
-          const dayMap: Record<string, string> = { SU: "日", MO: "月", TU: "火", WE: "水", TH: "木", FR: "金", SA: "土" };
+          const dayMap: Record<string, string> = {
+            SU: "日",
+            MO: "月",
+            TU: "火",
+            WE: "水",
+            TH: "木",
+            FR: "金",
+            SA: "土",
+          };
           const days = match[1].split(",").map((d: string) => {
-            const cleanDay = d.replace(/[+-]?\d+/, '');
+            const cleanDay = d.replace(/[+-]?\d+/, "");
             return dayMap[cleanDay] || d;
           });
           result += ` (${days.join("・")})`;
@@ -610,7 +698,7 @@
     if (timeLabel === "all-day") {
       return 0;
     }
-    
+
     const hours = startTime.getHours();
     const minutes = startTime.getMinutes();
     return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
@@ -629,7 +717,7 @@
     if (event.timeLabel === "all-day") {
       return 400; // Full height (24 hours * 400px / 1440 minutes)
     }
-    
+
     const startTime = event.start;
     const endTime = event.end;
     const durationMs = endTime.getTime() - startTime.getTime();
@@ -667,17 +755,26 @@
         const eventEndTime = eventEndDate.getTime();
 
         // Include events where target date falls between start and end (inclusive)
-        return eventStartTime <= targetDateEndTime && eventEndTime >= targetDateStartTime;
+        return (
+          eventStartTime <= targetDateEndTime &&
+          eventEndTime >= targetDateStartTime
+        );
       })
       .map((event) => {
         const eventStartDate = new Date(event.start);
         const eventEndDate = new Date(event.end);
         const eventStartTime = eventStartDate.getTime();
         const eventEndTime = eventEndDate.getTime();
-        
-        const startsOnTarget = eventStartTime >= targetDateStartTime && eventStartTime <= targetDateEndTime;
-        const endsOnTarget = eventEndTime >= targetDateStartTime && eventEndTime <= targetDateEndTime;
-        const spansTarget = eventStartTime < targetDateStartTime && eventEndTime > targetDateEndTime;
+
+        const startsOnTarget =
+          eventStartTime >= targetDateStartTime &&
+          eventStartTime <= targetDateEndTime;
+        const endsOnTarget =
+          eventEndTime >= targetDateStartTime &&
+          eventEndTime <= targetDateEndTime;
+        const spansTarget =
+          eventStartTime < targetDateStartTime &&
+          eventEndTime > targetDateEndTime;
 
         // If event starts and ends on the same day, return as is
         if (startsOnTarget && endsOnTarget) {
@@ -723,7 +820,7 @@
 
   // Helper function to get events for timeline (includes timed and all-day events)
   function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
-    return getEventsForDate(events, targetDate).filter(event => {
+    return getEventsForDate(events, targetDate).filter((event) => {
       // Include timed events and all-day events in timeline
       // Exclude only some-timing events (they don't belong in timeline)
       return event.timeLabel === "timed" || event.timeLabel === "all-day";
@@ -742,7 +839,7 @@
       // Parse event start and end dates
       const eventStart = new Date(event.start);
       const eventEnd = new Date(event.end);
-      
+
       // Return events where eventStart <= endOfDay && eventEnd >= startOfDay
       // This includes multi-day events that span the target date
       return eventStart <= endOfDay && eventEnd >= startOfDay;
@@ -753,8 +850,8 @@
     if (events.length === 0) return [];
 
     // Separate all-day events from timed events
-    const allDayEvents = events.filter(e => e.timeLabel === "all-day");
-    const timedEvents = events.filter(e => e.timeLabel !== "all-day");
+    const allDayEvents = events.filter((e) => e.timeLabel === "all-day");
+    const timedEvents = events.filter((e) => e.timeLabel !== "all-day");
 
     // Sort timed events by start time
     const sortedTimedEvents = [...timedEvents].sort(
@@ -776,7 +873,7 @@
       while (columnIndex < timedColumns.length) {
         const column = timedColumns[columnIndex];
         const lastEvent = column[column.length - 1];
-        
+
         // For timed events, check actual time overlap
         if (event.start >= lastEvent.end) {
           break;
@@ -815,7 +912,11 @@
   }
 
   // Helper to determine bar position in multi-day event
-  function getEventBarPosition(eventStart: Date, eventEnd: Date, targetDate: Date): 'start' | 'middle' | 'end' | 'single' {
+  function getEventBarPosition(
+    eventStart: Date,
+    eventEnd: Date,
+    targetDate: Date,
+  ): "start" | "middle" | "end" | "single" {
     const eventStartDate = new Date(eventStart);
     eventStartDate.setHours(0, 0, 0, 0);
     const eventEndDate = new Date(eventEnd);
@@ -827,16 +928,16 @@
     const isEnd = eventEndDate.getTime() === targetDateOnly.getTime();
     const isMultiDay = eventEndDate.getTime() > eventStartDate.getTime();
 
-    if (!isMultiDay) return 'single';
-    if (isStart) return 'start';
-    if (isEnd) return 'end';
-    return 'middle';
+    if (!isMultiDay) return "single";
+    if (isStart) return "start";
+    if (isEnd) return "end";
+    return "middle";
   }
 
   // Assign row indices to events so multi-day events maintain same row across days
   function assignEventRows(events: Event[]): Map<string, number> {
     const eventRows = new Map<string, number>();
-    
+
     // Sort events by start date, then by duration (longer first)
     const sortedEvents = [...events].sort((a, b) => {
       const startDiff = a.start.getTime() - b.start.getTime();
@@ -864,7 +965,7 @@
         for (const [otherEventId, otherRow] of eventRows.entries()) {
           if (otherRow !== row) continue;
 
-          const otherEvent = events.find(e => e.id === otherEventId);
+          const otherEvent = events.find((e) => e.id === otherEventId);
           if (!otherEvent) continue;
 
           const otherStartDate = new Date(otherEvent.start);
@@ -913,12 +1014,12 @@
       </div>
 
       <div class="header-actions">
-        <button 
-          class="debug-toggle" 
-          onclick={() => showDebugInfo = !showDebugInfo}
+        <button
+          class="debug-toggle"
+          onclick={() => (showDebugInfo = !showDebugInfo)}
           title="Toggle debug information"
         >
-          {showDebugInfo ? 'Hide' : 'Show'} Debug
+          {showDebugInfo ? "Hide" : "Show"} Debug
         </button>
         {#if $recurrenceStore.loading}
           <div class="recurrence-loading">
@@ -941,23 +1042,34 @@
         <h3>Sliding Window Debug Info</h3>
         <div class="debug-stats">
           <div class="debug-stat">
-            <strong>Window:</strong> 
-            {new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 3, 1).toLocaleDateString()} - 
-            {new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 4, 0).toLocaleDateString()}
+            <strong>Window:</strong>
+            {new Date(
+              currentMonth.getFullYear(),
+              currentMonth.getMonth() - 3,
+              1,
+            ).toLocaleDateString()} -
+            {new Date(
+              currentMonth.getFullYear(),
+              currentMonth.getMonth() + 4,
+              0,
+            ).toLocaleDateString()}
           </div>
           <div class="debug-stat">
-            <strong>Total Events:</strong> {$events.length}
+            <strong>Total Events:</strong>
+            {$events.length}
           </div>
           <div class="debug-stat">
-            <strong>Display Events:</strong> {allDisplayEvents.length}
+            <strong>Display Events:</strong>
+            {allDisplayEvents.length}
           </div>
           <div class="debug-stat">
-            <strong>Forever Events:</strong> {foreverEvents.length}
+            <strong>Forever Events:</strong>
+            {foreverEvents.length}
           </div>
           <div class="debug-stat">
-            <strong>Recurrence Store:</strong> 
-            Loading: {$recurrenceStore.loading ? 'Yes' : 'No'}, 
-            Error: {$recurrenceStore.error || 'None'}
+            <strong>Recurrence Store:</strong>
+            Loading: {$recurrenceStore.loading ? "Yes" : "No"}, Error: {$recurrenceStore.error ||
+              "None"}
           </div>
         </div>
         {#if foreverEvents.length > 0}
@@ -966,7 +1078,7 @@
             <ul>
               {#each foreverEvents as event}
                 <li>
-                  {event.title} 
+                  {event.title}
                   <span class="forever-indicator">∞</span>
                   (Group: {event.recurrenceGroupId})
                 </li>
@@ -1003,22 +1115,36 @@
             <div class="day-number">{day.getDate()}</div>
             <div class="day-events">
               {#each getEventsForDate(allDisplayEvents, day) as truncatedEvent (truncatedEvent.id)}
-                {@const originalEvent = allDisplayEvents.find(e => e.id === truncatedEvent.id) || truncatedEvent}
-                {@const barPosition = getEventBarPosition(originalEvent.start, originalEvent.end, day)}
+                {@const originalEvent =
+                  allDisplayEvents.find((e) => e.id === truncatedEvent.id) ||
+                  truncatedEvent}
+                {@const barPosition = getEventBarPosition(
+                  originalEvent.start,
+                  originalEvent.end,
+                  day,
+                )}
                 {@const showLabel = isFirstDayOfEvent(originalEvent, day)}
                 {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
                 <div
                   class="event-bar {barPosition}"
-                  style="background-color: {getEventColor(truncatedEvent)}; top: {rowIndex * 18}px;"
+                  style="background-color: {getEventColor(
+                    truncatedEvent,
+                  )}; top: {rowIndex * 18}px;"
                 >
                   {#if showLabel}
                     <span class="event-label">
                       {truncatedEvent.title}
                       {#if (truncatedEvent as any).isForever}
-                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                        <span
+                          class="forever-indicator"
+                          title="Forever recurring">∞</span
+                        >
                       {/if}
                       {#if (truncatedEvent as any).isDuplicate}
-                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                        <span
+                          class="duplicate-indicator"
+                          title="Auto-generated duplicate">↻</span
+                        >
                       {/if}
                     </span>
                   {/if}
@@ -1039,28 +1165,40 @@
         <div class="events-list">
           {#each getFullEventsForDate(allDisplayEvents, $selectedDate) as event (event.id)}
             {#snippet eventContent()}
-              {#if $events.find(e => e.id === (event as any).eventId || e.id === event.id)}
-                {@const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id)!}
+              {#if $events.find((e) => e.id === (event as any).eventId || e.id === event.id)}
+                {@const masterEvent = $events.find(
+                  (e) => e.id === (event as any).eventId || e.id === event.id,
+                )!}
                 <div class="event-content">
                   <div class="event-header">
                     <div class="event-title">
                       {event.title}
                       {#if (event as any).isForever}
-                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                        <span
+                          class="forever-indicator"
+                          title="Forever recurring">∞</span
+                        >
                       {/if}
                       {#if (event as any).isDuplicate}
-                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                        <span
+                          class="duplicate-indicator"
+                          title="Auto-generated duplicate">↻</span
+                        >
                       {/if}
                     </div>
-                    {#if masterEvent.importance && masterEvent.importance !== 'medium'}
-                      <div class="importance-indicator {masterEvent.importance}">
-                        {masterEvent.importance === 'high' ? '🔴' : '🟡'}
+                    {#if masterEvent.importance && masterEvent.importance !== "medium"}
+                      <div
+                        class="importance-indicator {masterEvent.importance}"
+                      >
+                        {masterEvent.importance === "high" ? "🔴" : "🟡"}
                       </div>
                     {/if}
                   </div>
-                  {#if masterEvent.timeLabel === 'some-timing'}
-                    <div class="event-time some-timing">どこかのタイミングで</div>
-                  {:else if masterEvent.timeLabel === 'timed'}
+                  {#if masterEvent.timeLabel === "some-timing"}
+                    <div class="event-time some-timing">
+                      どこかのタイミングで
+                    </div>
+                  {:else if masterEvent.timeLabel === "timed"}
                     <div class="event-time timed">
                       {formatTime(event.start)} - {formatTime(event.end)}
                     </div>
@@ -1076,7 +1214,9 @@
                   {#if masterEvent.recurrence && masterEvent.recurrence.type !== "NONE"}
                     <div class="event-recurrence">
                       <span class="recurrence-icon">🔄</span>
-                      <span class="recurrence-text">{formatRecurrenceText(masterEvent.recurrence)}</span>
+                      <span class="recurrence-text"
+                        >{formatRecurrenceText(masterEvent.recurrence)}</span
+                      >
                     </div>
                   {/if}
                 </div>
@@ -1086,21 +1226,29 @@
                     <div class="event-title">
                       {event.title}
                       {#if (event as any).isForever}
-                        <span class="forever-indicator" title="Forever recurring">∞</span>
+                        <span
+                          class="forever-indicator"
+                          title="Forever recurring">∞</span
+                        >
                       {/if}
                       {#if (event as any).isDuplicate}
-                        <span class="duplicate-indicator" title="Auto-generated duplicate">↻</span>
+                        <span
+                          class="duplicate-indicator"
+                          title="Auto-generated duplicate">↻</span
+                        >
                       {/if}
                     </div>
-                    {#if event.importance && event.importance !== 'medium'}
+                    {#if event.importance && event.importance !== "medium"}
                       <div class="importance-indicator {event.importance}">
-                        {event.importance === 'high' ? '🔴' : '🟡'}
+                        {event.importance === "high" ? "🔴" : "🟡"}
                       </div>
                     {/if}
                   </div>
-                  {#if event.timeLabel === 'some-timing'}
-                    <div class="event-time some-timing">どこかのタイミングで</div>
-                  {:else if event.timeLabel === 'timed'}
+                  {#if event.timeLabel === "some-timing"}
+                    <div class="event-time some-timing">
+                      どこかのタイミングで
+                    </div>
+                  {:else if event.timeLabel === "timed"}
                     <div class="event-time timed">
                       {formatTime(event.start)} - {formatTime(event.end)}
                     </div>
@@ -1119,13 +1267,21 @@
             <div
               class="event-item"
               onclick={() => {
-                const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id) || event;
+                const masterEvent =
+                  $events.find(
+                    (e) => e.id === (event as any).eventId || e.id === event.id,
+                  ) || event;
                 eventActions.editEvent(masterEvent);
                 parseRecurrenceForEdit(masterEvent);
               }}
               onkeydown={(e) => {
                 if (e.key === "Enter") {
-                  const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                  const masterEvent =
+                    $events.find(
+                      (evt) =>
+                        evt.id === (event as any).eventId ||
+                        evt.id === event.id,
+                    ) || event;
                   eventActions.editEvent(masterEvent);
                   parseRecurrenceForEdit(masterEvent);
                 }
@@ -1138,7 +1294,12 @@
                 <button
                   onclick={(e) => {
                     e.stopPropagation();
-                    const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                    const masterEvent =
+                      $events.find(
+                        (evt) =>
+                          evt.id === (event as any).eventId ||
+                          evt.id === event.id,
+                      ) || event;
                     eventActions.editEvent(masterEvent);
                     parseRecurrenceForEdit(masterEvent);
                   }}>編集</button
@@ -1210,13 +1371,23 @@
                         class="timeline-event-block"
                         onclick={() => {
                           // Find master event if this is a recurring occurrence
-                          const masterEvent = $events.find(e => e.id === (event as any).eventId || e.id === event.id) || event;
+                          const masterEvent =
+                            $events.find(
+                              (e) =>
+                                e.id === (event as any).eventId ||
+                                e.id === event.id,
+                            ) || event;
                           eventActions.editEvent(masterEvent);
                           parseRecurrenceForEdit(masterEvent);
                         }}
                         onkeydown={(e) => {
                           if (e.key === "Enter") {
-                            const masterEvent = $events.find(evt => evt.id === (event as any).eventId || evt.id === event.id) || event;
+                            const masterEvent =
+                              $events.find(
+                                (evt) =>
+                                  evt.id === (event as any).eventId ||
+                                  evt.id === event.id,
+                              ) || event;
                             eventActions.editEvent(masterEvent);
                             parseRecurrenceForEdit(masterEvent);
                           }
@@ -1224,7 +1395,10 @@
                         role="button"
                         tabindex="0"
                         style="
-                          top: {getEventPositionScaled(event.start, event.timeLabel)}px;
+                          top: {getEventPositionScaled(
+                          event.start,
+                          event.timeLabel,
+                        )}px;
                           height: {getEventHeightScaled(event)}px;
                           background-color: {getEventColor(event)};
                           color: white;
@@ -1232,7 +1406,7 @@
                       >
                         <div class="timeline-event-title">{event.title}</div>
                         <div class="timeline-event-time">
-                          {#if event.timeLabel === 'all-day'}
+                          {#if event.timeLabel === "all-day"}
                             00:00 - 23:59
                           {:else}
                             {formatTime(event.start)} - {formatTime(event.end)}
@@ -1278,7 +1452,6 @@
             </div>
           </div>
 
-
           <div class="form-group">
             <div class="inline-field">
               <label for="event-address">場所</label>
@@ -1297,21 +1470,23 @@
               <button
                 type="button"
                 class="star-button {eventImportance === 'low' ? 'active' : ''}"
-                onclick={() => eventImportance = 'low'}
+                onclick={() => (eventImportance = "low")}
               >
                 ⭐
               </button>
               <button
                 type="button"
-                class="star-button {eventImportance === 'medium' ? 'active' : ''}"
-                onclick={() => eventImportance = 'medium'}
+                class="star-button {eventImportance === 'medium'
+                  ? 'active'
+                  : ''}"
+                onclick={() => (eventImportance = "medium")}
               >
                 ⭐⭐
               </button>
               <button
                 type="button"
                 class="star-button {eventImportance === 'high' ? 'active' : ''}"
-                onclick={() => eventImportance = 'high'}
+                onclick={() => (eventImportance = "high")}
               >
                 ⭐⭐⭐
               </button>
@@ -1323,11 +1498,13 @@
             <div class="time-label-switches" id="time-label-switches">
               <button
                 type="button"
-                class="time-switch {timeMode === 'all-day' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+                class="time-switch {timeMode === 'all-day'
+                  ? 'active'
+                  : ''} {isGreyState ? 'grey' : ''}"
                 onclick={() => {
-                  timeMode = 'all-day';
-                  eventTimeLabel = 'all-day';
-                  eventFormActions.switchTimeLabel('all-day');
+                  timeMode = "all-day";
+                  eventTimeLabel = "all-day";
+                  eventFormActions.switchTimeLabel("all-day");
                   // Set time fields to show all-day times (but user can edit them)
                   eventStartTime = "00:00";
                   eventEndTime = "23:59";
@@ -1338,11 +1515,13 @@
               </button>
               <button
                 type="button"
-                class="time-switch {timeMode === 'some-timing' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+                class="time-switch {timeMode === 'some-timing'
+                  ? 'active'
+                  : ''} {isGreyState ? 'grey' : ''}"
                 onclick={() => {
-                  timeMode = 'some-timing';
-                  eventTimeLabel = 'some-timing';
-                  eventFormActions.switchTimeLabel('some-timing');
+                  timeMode = "some-timing";
+                  eventTimeLabel = "some-timing";
+                  eventFormActions.switchTimeLabel("some-timing");
                   // Fix date to selected date when some-timing is chosen
                   const dateString = utcToLocalDateString($selectedDate);
                   eventStartDate = dateString;
@@ -1363,20 +1542,20 @@
                 id="event-start-date"
                 type="date"
                 bind:value={eventStartDate}
-                onfocus={() => { 
-                  if (eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                onfocus={() => {
+                  if (eventTimeLabel === "some-timing") {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
-                oninput={() => { 
-                  if (eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                oninput={() => {
+                  if (eventTimeLabel === "some-timing") {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
               />
@@ -1387,20 +1566,20 @@
                 id="event-end-date"
                 type="date"
                 bind:value={eventEndDate}
-                onfocus={() => { 
-                  if (eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                onfocus={() => {
+                  if (eventTimeLabel === "some-timing") {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
-                oninput={() => { 
-                  if (eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                oninput={() => {
+                  if (eventTimeLabel === "some-timing") {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
               />
@@ -1416,20 +1595,26 @@
                 type="time"
                 bind:value={eventStartTime}
                 class:error={$eventFormErrors.start}
-                onfocus={() => { 
-                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                onfocus={() => {
+                  if (
+                    eventTimeLabel === "all-day" ||
+                    eventTimeLabel === "some-timing"
+                  ) {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
-                oninput={() => { 
-                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                oninput={() => {
+                  if (
+                    eventTimeLabel === "all-day" ||
+                    eventTimeLabel === "some-timing"
+                  ) {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
               />
@@ -1444,20 +1629,26 @@
                 type="time"
                 bind:value={eventEndTime}
                 class:error={$eventFormErrors.end}
-                onfocus={() => { 
-                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                onfocus={() => {
+                  if (
+                    eventTimeLabel === "all-day" ||
+                    eventTimeLabel === "some-timing"
+                  ) {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
-                oninput={() => { 
-                  if (eventTimeLabel === 'all-day' || eventTimeLabel === 'some-timing') {
-                    timeMode = 'default'; 
+                oninput={() => {
+                  if (
+                    eventTimeLabel === "all-day" ||
+                    eventTimeLabel === "some-timing"
+                  ) {
+                    timeMode = "default";
                     isManualDateOrTimeEdit = true;
-                    eventTimeLabel = 'timed';
-                    eventFormActions.switchTimeLabel('timed');
+                    eventTimeLabel = "timed";
+                    eventFormActions.switchTimeLabel("timed");
                   }
                 }}
               />
@@ -1479,7 +1670,9 @@
           {#if isRecurring}
             <div class="recurrence-panel">
               <div class="recurrence-field">
-                <label for="recurrence-interval-input" class="field-label">繰り返し</label>
+                <label for="recurrence-interval-input" class="field-label"
+                  >繰り返し</label
+                >
                 <div class="interval-row">
                   <input
                     id="recurrence-interval-input"
@@ -1514,43 +1707,58 @@
               {/if}
 
               {#if recurrenceFrequency === "MONTHLY"}
-                {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+                {@const startDate = new Date(
+                  eventStartDate + "T" + (eventStartTime || "00:00"),
+                )}
                 {@const dayOfMonth = startDate.getDate()}
                 {@const weekdays = ["日", "月", "火", "水", "木", "金", "土"]}
                 {@const weekday = weekdays[startDate.getDay()]}
                 {@const weekOfMonth = Math.ceil(dayOfMonth / 7)}
-                {@const positionText = weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
-                
+                {@const positionText =
+                  weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
+
                 <div class="recurrence-field">
                   <span class="field-label">繰り返しパターン</span>
                   <div class="monthly-options">
-                    <label class="option-card {monthlyType === 'dayOfMonth' ? 'selected' : ''}">
-                      <input 
-                        type="radio" 
-                        name="monthly-type" 
+                    <label
+                      class="option-card {monthlyType === 'dayOfMonth'
+                        ? 'selected'
+                        : ''}"
+                    >
+                      <input
+                        type="radio"
+                        name="monthly-type"
                         value="dayOfMonth"
                         bind:group={monthlyType}
                       />
                       <span class="option-text">毎月{dayOfMonth}日</span>
                     </label>
-                    <label class="option-card {monthlyType === 'nthWeekday' ? 'selected' : ''}">
-                      <input 
-                        type="radio" 
-                        name="monthly-type" 
+                    <label
+                      class="option-card {monthlyType === 'nthWeekday'
+                        ? 'selected'
+                        : ''}"
+                    >
+                      <input
+                        type="radio"
+                        name="monthly-type"
                         value="nthWeekday"
                         bind:group={monthlyType}
                       />
-                      <span class="option-text">毎月{positionText}{weekday}曜日</span>
+                      <span class="option-text"
+                        >毎月{positionText}{weekday}曜日</span
+                      >
                     </label>
                   </div>
                 </div>
               {/if}
 
               {#if recurrenceFrequency === "YEARLY"}
-                {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+                {@const startDate = new Date(
+                  eventStartDate + "T" + (eventStartTime || "00:00"),
+                )}
                 {@const month = startDate.getMonth() + 1}
                 {@const day = startDate.getDate()}
-                
+
                 <div class="recurrence-field">
                   <span class="field-label">繰り返しパターン</span>
                   <div class="yearly-info">
@@ -1601,7 +1809,9 @@
                 eventActions.submitEventForm();
               }}>作成</button
             >
-            <button onclick={() => eventActions.cancelEventForm()}>キャンセル</button>
+            <button onclick={() => eventActions.cancelEventForm()}
+              >キャンセル</button
+            >
           {/if}
         </div>
       </div>
@@ -1693,7 +1903,9 @@
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .loading-text {
@@ -2518,7 +2730,7 @@
   }
 
   .toggle-switch input[type="checkbox"]::after {
-    content: '';
+    content: "";
     position: absolute;
     width: 18px;
     height: 18px;
@@ -2547,7 +2759,11 @@
   .recurrence-panel {
     margin-top: var(--space-md);
     padding: var(--space-md);
-    background: linear-gradient(135deg, rgba(0, 200, 255, 0.03), rgba(240, 138, 119, 0.03));
+    background: linear-gradient(
+      135deg,
+      rgba(0, 200, 255, 0.03),
+      rgba(240, 138, 119, 0.03)
+    );
     border: 1px solid rgba(0, 200, 255, 0.15);
     border-radius: var(--radius-sm);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -2695,7 +2911,7 @@
   }
 
   .option-card input[type="radio"]:checked::after {
-    content: '';
+    content: "";
     position: absolute;
     width: 10px;
     height: 10px;
@@ -2817,7 +3033,6 @@
     outline: none;
   }
 
-
   /* Inline form fields */
   .inline-field {
     display: flex;
@@ -2838,8 +3053,6 @@
     flex: 1;
     min-width: 0;
   }
-
-
 
   /* Time Label Switches */
   .time-label-switches {
@@ -3032,7 +3245,7 @@
       font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
     }
-    
+
     .header-actions {
       gap: var(--space-xs);
     }
@@ -3068,7 +3281,7 @@
     .interval-row {
       flex-wrap: wrap;
     }
-    
+
     .timeline-view {
       height: auto;
       max-height: 50vh;
@@ -3123,4 +3336,3 @@
     }
   }
 </style>
-

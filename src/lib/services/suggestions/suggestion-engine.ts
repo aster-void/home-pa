@@ -22,11 +22,23 @@
 import type { Memo, Gap, Suggestion } from "../../types.js";
 
 // Import from sibling modules
-import { enrichMemo, enrichMemos, type LLMEnrichmentConfig } from "./llm-enrichment.js";
+import {
+  enrichMemo,
+  enrichMemos,
+  type LLMEnrichmentConfig,
+} from "./llm-enrichment.js";
 import { resetPeriodIfNeeded, incrementCompletion } from "./period-utils.js";
 import { createSuggestionFromMemo } from "./suggestion-scoring.js";
-import { scheduleSuggestions, type ScheduleResult } from "./suggestion-scheduler.js";
-import { enrichGapsWithLocation, DEFAULT_CONFIG as DEFAULT_GAP_CONFIG, type EnrichableEvent, type EnrichmentConfig as GapEnrichmentConfig } from "./gap-enrichment.js";
+import {
+  scheduleSuggestions,
+  type ScheduleResult,
+} from "./suggestion-scheduler.js";
+import {
+  enrichGapsWithLocation,
+  DEFAULT_CONFIG as DEFAULT_GAP_CONFIG,
+  type EnrichableEvent,
+  type EnrichmentConfig as GapEnrichmentConfig,
+} from "./gap-enrichment.js";
 
 // ============================================================================
 // Types
@@ -154,7 +166,10 @@ export function filterActiveMemos(memos: Memo[]): Memo[] {
  * @param currentTime - Current time for period checking
  * @returns Memos with reset counters where needed
  */
-export function resetMemoPeriodsIfNeeded(memos: Memo[], currentTime: Date): Memo[] {
+export function resetMemoPeriodsIfNeeded(
+  memos: Memo[],
+  currentTime: Date,
+): Memo[] {
   return memos.map((memo) => resetPeriodIfNeeded(memo, currentTime));
 }
 
@@ -165,7 +180,10 @@ export function resetMemoPeriodsIfNeeded(memos: Memo[], currentTime: Date): Memo
  * @param currentTime - Current time for need calculation
  * @returns Suggestion for each memo
  */
-export function memosToSuggestions(memos: Memo[], currentTime: Date): Suggestion[] {
+export function memosToSuggestions(
+  memos: Memo[],
+  currentTime: Date,
+): Suggestion[] {
   return memos.map((memo) => createSuggestionFromMemo(memo, currentTime));
 }
 
@@ -245,7 +263,10 @@ export class SuggestionEngine {
     const activeMemos = filterActiveMemos(memos);
 
     // Step 2: Reset period counters if needed
-    const memosWithResetPeriods = resetMemoPeriodsIfNeeded(activeMemos, currentTime);
+    const memosWithResetPeriods = resetMemoPeriodsIfNeeded(
+      activeMemos,
+      currentTime,
+    );
 
     // Step 3: LLM enrichment (optional)
     let enrichedMemos: Memo[];
@@ -272,7 +293,11 @@ export class SuggestionEngine {
     }
 
     // Step 6: Schedule suggestions into gaps
-    const schedule = scheduleSuggestions(suggestions, enrichedGaps, this.config.scheduler);
+    const schedule = scheduleSuggestions(
+      suggestions,
+      enrichedGaps,
+      this.config.scheduler,
+    );
 
     // Build summary
     const endTime = performance.now();
@@ -301,7 +326,10 @@ export class SuggestionEngine {
    * @param input - Session details
    * @returns Updated memo and status flags
    */
-  markSessionComplete(memo: Memo, input: SessionCompleteInput): SessionCompleteResult {
+  markSessionComplete(
+    memo: Memo,
+    input: SessionCompleteInput,
+  ): SessionCompleteResult {
     const currentTime = input.currentTime ?? this.config.getCurrentTime();
 
     // Update time spent
@@ -311,7 +339,10 @@ export class SuggestionEngine {
       status: {
         ...memo.status,
         timeSpentMinutes: memo.status.timeSpentMinutes + input.minutesSpent,
-        completionState: memo.status.completionState === "not_started" ? "in_progress" : memo.status.completionState,
+        completionState:
+          memo.status.completionState === "not_started"
+            ? "in_progress"
+            : memo.status.completionState,
       },
     };
 
@@ -333,7 +364,10 @@ export class SuggestionEngine {
     }
 
     // Check if routine goal reached
-    const goalReached = updatedMemo.type === "ルーティン" ? isRoutineGoalReached(updatedMemo) : undefined;
+    const goalReached =
+      updatedMemo.type === "ルーティン"
+        ? isRoutineGoalReached(updatedMemo)
+        : undefined;
 
     return {
       memo: updatedMemo,
@@ -410,7 +444,9 @@ export class SuggestionEngine {
  * @param config - Optional configuration overrides
  * @returns New SuggestionEngine instance
  */
-export function createEngine(config: Partial<EngineConfig> = {}): SuggestionEngine {
+export function createEngine(
+  config: Partial<EngineConfig> = {},
+): SuggestionEngine {
   return new SuggestionEngine(config);
 }
 
@@ -420,4 +456,3 @@ export function createEngine(config: Partial<EngineConfig> = {}): SuggestionEngi
 
 // Re-export commonly used types for convenience
 export type { ScheduleResult, ScheduledBlock } from "./suggestion-scheduler.js";
-

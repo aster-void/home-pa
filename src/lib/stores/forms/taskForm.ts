@@ -6,7 +6,12 @@
  */
 
 import { writable, derived } from "svelte/store";
-import type { MemoType, LocationPreference, ImportanceLevel, RecurrenceGoal } from "../../types.js";
+import type {
+  MemoType,
+  LocationPreference,
+  ImportanceLevel,
+  RecurrenceGoal,
+} from "../../types.js";
 
 // ============================================================================
 // Types
@@ -97,23 +102,29 @@ export const isTaskFormOpen = writable<boolean>(false);
 /**
  * Whether the form has required content
  */
-export const hasTaskFormContent = derived(taskForm, ($form) => $form.title.trim() !== "");
+export const hasTaskFormContent = derived(
+  taskForm,
+  ($form) => $form.title.trim() !== "",
+);
 
 /**
  * Whether the form is valid
  */
-export const isTaskFormValid = derived([taskForm, taskFormErrors], ([$form, $errors]) => {
-  // Must have title
-  if (!$form.title.trim()) return false;
+export const isTaskFormValid = derived(
+  [taskForm, taskFormErrors],
+  ([$form, $errors]) => {
+    // Must have title
+    if (!$form.title.trim()) return false;
 
-  // If 期限付き, must have deadline
-  if ($form.type === "期限付き" && !$form.deadline) return false;
+    // If 期限付き, must have deadline
+    if ($form.type === "期限付き" && !$form.deadline) return false;
 
-  // No validation errors
-  if (Object.keys($errors).length > 0) return false;
+    // No validation errors
+    if (Object.keys($errors).length > 0) return false;
 
-  return true;
-});
+    return true;
+  },
+);
 
 /**
  * Whether the form is in editing mode
@@ -123,12 +134,18 @@ export const isTaskFormEditing = derived(taskForm, ($form) => $form.isEditing);
 /**
  * Whether deadline field should be shown
  */
-export const showDeadlineField = derived(taskForm, ($form) => $form.type === "期限付き");
+export const showDeadlineField = derived(
+  taskForm,
+  ($form) => $form.type === "期限付き",
+);
 
 /**
  * Whether recurrence fields should be shown
  */
-export const showRecurrenceFields = derived(taskForm, ($form) => $form.type === "ルーティン");
+export const showRecurrenceFields = derived(
+  taskForm,
+  ($form) => $form.type === "ルーティン",
+);
 
 // ============================================================================
 // Actions
@@ -138,7 +155,10 @@ export const taskFormActions = {
   /**
    * Update a single field
    */
-  updateField<K extends keyof TaskFormData>(field: K, value: TaskFormData[K]): void {
+  updateField<K extends keyof TaskFormData>(
+    field: K,
+    value: TaskFormData[K],
+  ): void {
     taskForm.update((form) => ({ ...form, [field]: value }));
     // Clear error for this field if any
     taskFormErrors.update((errors) => {
@@ -250,4 +270,3 @@ export const taskFormActions = {
     }));
   },
 };
-

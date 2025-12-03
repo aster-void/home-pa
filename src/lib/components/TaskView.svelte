@@ -22,8 +22,12 @@
   // Stats
   let stats = $derived(() => {
     const all = $tasks;
-    const active = all.filter((t) => t.status.completionState !== "completed").length;
-    const completed = all.filter((t) => t.status.completionState === "completed").length;
+    const active = all.filter(
+      (t) => t.status.completionState !== "completed",
+    ).length;
+    const completed = all.filter(
+      (t) => t.status.completionState === "completed",
+    ).length;
     return { total: all.length, active, completed };
   });
 
@@ -99,7 +103,10 @@
     display: flex;
     flex-direction: column;
     background: var(--bg-primary);
-    padding-bottom: calc(var(--bottom-nav-height, 48px) + env(safe-area-inset-bottom) + var(--space-md));
+    padding-bottom: calc(
+      var(--bottom-nav-height, 48px) + env(safe-area-inset-bottom) +
+        var(--space-md)
+    );
   }
 
   .task-header {
@@ -229,4 +236,3 @@
     }
   }
 </style>
-

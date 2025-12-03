@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { Memo } from "../../types.js";
-  import { taskActions, enrichingTaskIds } from "../../stores/actions/taskActions.js";
+  import {
+    taskActions,
+    enrichingTaskIds,
+  } from "../../stores/actions/taskActions.js";
 
   interface Props {
     task: Memo;
@@ -13,11 +16,19 @@
 
   // Computed values
   let typeLabel = $derived(
-    task.type === "期限付き" ? "Deadline" : task.type === "ルーティン" ? "Routine" : "Backlog"
+    task.type === "期限付き"
+      ? "Deadline"
+      : task.type === "ルーティン"
+        ? "Routine"
+        : "Backlog",
   );
 
   let typeClass = $derived(
-    task.type === "期限付き" ? "deadline" : task.type === "ルーティン" ? "routine" : "backlog"
+    task.type === "期限付き"
+      ? "deadline"
+      : task.type === "ルーティン"
+        ? "routine"
+        : "backlog",
   );
 
   // Deadline info
@@ -64,7 +75,7 @@
       ? "🏠 Home"
       : task.locationPreference === "workplace/near_workplace"
         ? "🏢 Work"
-        : "📍 Anywhere"
+        : "📍 Anywhere",
   );
 
   // Handlers
@@ -83,7 +94,11 @@
   }
 </script>
 
-<div class="task-card {typeClass}" class:completed={task.status.completionState === "completed"} class:enriching={isEnriching}>
+<div
+  class="task-card {typeClass}"
+  class:completed={task.status.completionState === "completed"}
+  class:enriching={isEnriching}
+>
   {#if isEnriching}
     <div class="enriching-overlay">
       <div class="enriching-spinner"></div>
@@ -113,7 +128,9 @@
       {@const prog = routineProgress()}
       <div class="meta-item">
         <span class="meta-icon">🔄</span>
-        <span class="meta-text">{prog?.done}/{prog?.goal} this {task.recurrenceGoal?.period}</span>
+        <span class="meta-text"
+          >{prog?.done}/{prog?.goal} this {task.recurrenceGoal?.period}</span
+        >
       </div>
     {/if}
 
@@ -127,7 +144,10 @@
     {#if task.type === "ルーティン" && routineProgress()}
       {@const prog = routineProgress()}
       <div class="progress-bar">
-        <div class="progress-fill routine" style="width: {prog?.percent}%"></div>
+        <div
+          class="progress-fill routine"
+          style="width: {prog?.percent}%"
+        ></div>
       </div>
       <span class="progress-label">{prog?.done}/{prog?.goal}</span>
     {:else}
@@ -142,7 +162,11 @@
   <!-- Actions -->
   <div class="task-actions">
     {#if task.status.completionState !== "completed"}
-      <button class="action-btn complete" onclick={handleComplete} title="Mark complete">
+      <button
+        class="action-btn complete"
+        onclick={handleComplete}
+        title="Mark complete"
+      >
         ✓
       </button>
     {/if}
@@ -399,4 +423,3 @@
     }
   }
 </style>
-

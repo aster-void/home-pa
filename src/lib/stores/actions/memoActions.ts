@@ -1,24 +1,30 @@
 /**
  * @fileoverview Memo Actions
- * 
+ *
  * Contains all business logic and operations for memo management.
  * This includes CRUD operations, validation, and data transformations.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { get } from 'svelte/store';
+import { get } from "svelte/store";
 // Temporary simple memo type (will be replaced with new Memo in Phase 4)
 interface SimpleMemo {
   id: string;
   text: string;
 }
 type Memo = SimpleMemo;
-import { memoOperations } from '../data.js';
-import { memoForm, memoFormActions, memoFormErrors, isSubmitting, type MemoFormErrors } from '../forms/memoForm.js';
-import { uiActions } from '../ui.js';
-import { toasts } from '../toast.js';
+import { memoOperations } from "../data.js";
+import {
+  memoForm,
+  memoFormActions,
+  memoFormErrors,
+  isSubmitting,
+  type MemoFormErrors,
+} from "../forms/memoForm.js";
+import { uiActions } from "../ui.js";
+import { toasts } from "../toast.js";
 
 /**
  * Memo Actions
@@ -30,10 +36,10 @@ export const memoActions = {
    */
   async create(): Promise<Memo | null> {
     const formData = get(memoForm);
-    
+
     // Clear previous errors
     memoFormActions.clearAllErrors();
-    
+
     // Validate form data
     const validationResult = validateMemoForm(formData);
     if (!validationResult.isValid) {
@@ -71,7 +77,7 @@ export const memoActions = {
    */
   async update(): Promise<Memo | null> {
     const formData = get(memoForm);
-    
+
     if (!formData.editingId) {
       memoFormActions.setGeneralError("No memo selected for editing");
       return null;
@@ -79,7 +85,7 @@ export const memoActions = {
 
     // Clear previous errors
     memoFormActions.clearAllErrors();
-    
+
     // Validate form data
     const validationResult = validateMemoForm(formData);
     if (!validationResult.isValid) {
@@ -95,7 +101,10 @@ export const memoActions = {
       memoFormActions.setSubmitting(true);
 
       // Update the memo
-      const updatedMemo = memoOperations.update(formData.editingId, formData.text.trim());
+      const updatedMemo = memoOperations.update(
+        formData.editingId,
+        formData.text.trim(),
+      );
 
       if (!updatedMemo) {
         memoFormActions.setGeneralError("Memo not found");
@@ -123,13 +132,13 @@ export const memoActions = {
   async delete(memoId: string): Promise<boolean> {
     try {
       const deleted = memoOperations.delete(memoId);
-      
+
       if (deleted) {
         toasts.show("Memo deleted", "success");
       } else {
         toasts.show("Memo not found", "error");
       }
-      
+
       return deleted;
     } catch (error: any) {
       toasts.show(error.message || "Failed to delete memo", "error");
@@ -166,7 +175,7 @@ export const memoActions = {
    */
   async submitMemoForm(): Promise<Memo | null> {
     const formData = get(memoForm);
-    
+
     if (formData.isEditing) {
       return await this.update();
     } else {
@@ -179,7 +188,7 @@ export const memoActions = {
    */
   async quickSave(): Promise<Memo | null> {
     const formData = get(memoForm);
-    
+
     if (!formData.text.trim()) {
       return null;
     }
@@ -196,7 +205,7 @@ export const memoActions = {
    */
   async autoSave(): Promise<void> {
     const formData = get(memoForm);
-    
+
     // Only auto-save if there's content and it's not currently submitting
     if (formData.text.trim() && !get(isSubmitting)) {
       try {
@@ -207,16 +216,19 @@ export const memoActions = {
         }
       } catch (error) {
         // Silently fail for auto-save
-        console.warn('Auto-save failed:', error);
+        console.warn("Auto-save failed:", error);
       }
     }
-  }
+  },
 };
 
 /**
  * Validation function for memo form data
  */
-function validateMemoForm(formData: any): { isValid: boolean; errors: Record<string, string> } {
+function validateMemoForm(formData: any): {
+  isValid: boolean;
+  errors: Record<string, string>;
+} {
   const errors: Record<string, string> = {};
 
   // Validate text content
@@ -232,6 +244,6 @@ function validateMemoForm(formData: any): { isValid: boolean; errors: Record<str
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 }

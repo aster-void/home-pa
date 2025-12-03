@@ -42,8 +42,10 @@ import { enrichedGaps } from "../gaps.js";
 // ============================================================================
 
 function createTestGap(start: string, end: string): Gap {
-  const startMinutes = parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
-  const endMinutes = parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]);
+  const startMinutes =
+    parseInt(start.split(":")[0]) * 60 + parseInt(start.split(":")[1]);
+  const endMinutes =
+    parseInt(end.split(":")[0]) * 60 + parseInt(end.split(":")[1]);
   return {
     gapId: `gap-${start.replace(":", "")}`,
     start,
@@ -94,7 +96,7 @@ describe("Task Form Wiring", () => {
     // Empty title should fail validation
     taskFormActions.updateField("title", "");
     const result = await taskActions.create();
-    
+
     // Create should return null and set errors
     expect(result).toBeNull();
     expect(get(taskFormErrors).title).toBeDefined();
@@ -106,7 +108,7 @@ describe("Task Form Wiring", () => {
     taskFormActions.updateField("deadline", ""); // Missing deadline
 
     const result = await taskActions.create();
-    
+
     // Create should return null and set errors
     expect(result).toBeNull();
     expect(get(taskFormErrors).deadline).toBeDefined();
@@ -335,7 +337,7 @@ describe("Session Completion Wiring", () => {
   it("marks task as completed when time spent exceeds expected", async () => {
     taskFormActions.updateField("title", "Quick task");
     const task = await taskActions.create();
-    
+
     // Set a low expected duration
     const taskWithDuration: Memo = {
       ...task!,
@@ -426,7 +428,10 @@ describe("End-to-End Task Flow", () => {
     // Create deadline task (high priority)
     taskFormActions.updateField("title", "Urgent deadline");
     taskFormActions.updateField("type", "期限付き");
-    taskFormActions.updateField("deadline", tomorrow.toISOString().split("T")[0]);
+    taskFormActions.updateField(
+      "deadline",
+      tomorrow.toISOString().split("T")[0],
+    );
     await taskActions.create();
 
     // Create backlog task (lower priority)
@@ -515,4 +520,3 @@ describe("Store Reactivity", () => {
     unsub2();
   });
 });
-

@@ -5,6 +5,7 @@ A personal assistant calendar application built with SvelteKit, featuring smart 
 ## Features
 
 ### 📅 Calendar Management
+
 - **Event Creation**: All-day, some-timing, and timed events
 - **🆕 Recurring Events**: RRULE support with 7-month sliding window
 - **🆕 Forever Events**: Special handling for events with no end date (∞ indicator)
@@ -12,11 +13,13 @@ A personal assistant calendar application built with SvelteKit, featuring smart 
 - **Visual Indicators**: ∞ for forever events, ↻ for duplicates
 
 ### 💡 Smart Suggestions
+
 - Gap detection for free time
 - Productive activity suggestions
 - Reaction tracking and logging
 
 ### 📝 Memo Management
+
 - Simple text-based memos
 - Full CRUD operations
 
@@ -80,6 +83,5 @@ part of: up.sh
 - Base URL: `http://localhost:3000` (ensure `BETTER_AUTH_URL` matches).
 - Client: see `src/lib/auth-client.ts`.
 - Demo UI: visit `/auth` for sign in/up.
-
 
 # Development Branch Test

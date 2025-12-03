@@ -142,7 +142,9 @@
             <li class="upcoming-item">
               <span class="upcoming-time">{block.startTime}</span>
               <span class="upcoming-title">{title}</span>
-              <span class="upcoming-duration">{formatDuration(block.duration)}</span>
+              <span class="upcoming-duration"
+                >{formatDuration(block.duration)}</span
+              >
             </li>
           {/each}
         </ul>
@@ -486,4 +488,3 @@
     }
   }
 </style>
-

@@ -2,8 +2,16 @@
 import type { Event, ViewMode } from "../types.js";
 
 // Temporary types (will be replaced in Phase 4)
-interface SimpleMemo { id: string; text: string; }
-interface SimpleSuggestion { id: string; template: string; gapMin: number; eventId?: string; }
+interface SimpleMemo {
+  id: string;
+  text: string;
+}
+interface SimpleSuggestion {
+  id: string;
+  template: string;
+  gapMin: number;
+  eventId?: string;
+}
 type Memo = SimpleMemo;
 type Suggestion = SimpleSuggestion;
 import { writable, type Writable, get } from "svelte/store";
@@ -14,11 +22,11 @@ import {
   selectedDate,
 } from "../stores/data.js";
 import { suggestionService } from "../services/suggestion.js";
-import { 
+import {
   utcToLocalDateTimeString,
   createAllDayUTCRange,
   createMultiDayAllDayUTCRange,
-  localDateTimeToUTC
+  localDateTimeToUTC,
 } from "../utils/date-utils.js";
 
 // Form interfaces moved to dedicated form stores
@@ -79,10 +87,6 @@ export class AppController {
   }
 
   // Event management moved to eventActions
-
-
-
-
 
   // Memo management moved to memoActions
 

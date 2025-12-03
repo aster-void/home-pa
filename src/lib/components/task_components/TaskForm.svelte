@@ -13,11 +13,20 @@
   import type { MemoType, LocationPreference } from "../../types.js";
 
   // Type options
-  const typeOptions: { value: MemoType; label: string; description: string }[] = [
-    { value: "期限付き", label: "Deadline", description: "Task with a due date" },
-    { value: "バックログ", label: "Backlog", description: "Task without urgency" },
-    { value: "ルーティン", label: "Routine", description: "Recurring task" },
-  ];
+  const typeOptions: { value: MemoType; label: string; description: string }[] =
+    [
+      {
+        value: "期限付き",
+        label: "Deadline",
+        description: "Task with a due date",
+      },
+      {
+        value: "バックログ",
+        label: "Backlog",
+        description: "Task without urgency",
+      },
+      { value: "ルーティン", label: "Routine", description: "Recurring task" },
+    ];
 
   // Location options
   const locationOptions: { value: LocationPreference; label: string }[] = [
@@ -49,11 +58,24 @@
 </script>
 
 {#if $isTaskFormOpen}
-  <div class="form-overlay" onclick={handleClose} onkeydown={(e) => e.key === "Escape" && handleClose()} role="button" tabindex="-1">
-    <div class="form-sheet" onclick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+  <div
+    class="form-overlay"
+    onclick={handleClose}
+    onkeydown={(e) => e.key === "Escape" && handleClose()}
+    role="button"
+    tabindex="-1"
+  >
+    <div
+      class="form-sheet"
+      onclick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+    >
       <div class="form-header">
         <h2>{$taskForm.isEditing ? "Edit Task" : "New Task"}</h2>
-        <button class="close-btn" onclick={handleClose} aria-label="Close">✕</button>
+        <button class="close-btn" onclick={handleClose} aria-label="Close"
+          >✕</button
+        >
       </div>
 
       <form onsubmit={handleSubmit}>
@@ -122,7 +144,12 @@
                 aria-label="Number of times"
               />
               <span class="recurrence-text">times per</span>
-              <select id="recurrence-period" bind:value={$taskForm.recurrencePeriod} class="recurrence-period" aria-label="Period">
+              <select
+                id="recurrence-period"
+                bind:value={$taskForm.recurrencePeriod}
+                class="recurrence-period"
+                aria-label="Period"
+              >
                 {#each periodOptions as option}
                   <option value={option.value}>{option.label}</option>
                 {/each}
@@ -145,7 +172,11 @@
                   name="location"
                   value={option.value}
                   checked={$taskForm.locationPreference === option.value}
-                  onchange={() => taskFormActions.updateField("locationPreference", option.value)}
+                  onchange={() =>
+                    taskFormActions.updateField(
+                      "locationPreference",
+                      option.value,
+                    )}
                 />
                 <span>{option.label}</span>
               </label>
@@ -459,4 +490,3 @@
     cursor: not-allowed;
   }
 </style>
-

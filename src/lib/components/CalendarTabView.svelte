@@ -55,14 +55,14 @@
     </div>
 
     <!-- Mobile overlay - outside memo-section for proper layering -->
-  {#if isMobile && $isMemoOpen}
+    {#if isMobile && $isMemoOpen}
       <div
         class="mobile-overlay"
-      onclick={() => uiActions.setMemoOpen(false)}
+        onclick={() => uiActions.setMemoOpen(false)}
         onkeydown={(e) => {
           if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-          uiActions.setMemoOpen(false);
+            uiActions.setMemoOpen(false);
           }
         }}
         role="button"
@@ -75,7 +75,9 @@
 
 <style>
   .calendar-tab {
-    height: calc(100vh - var(--bottom-nav-height, 80px)); /* Account for navigation */
+    height: calc(
+      100vh - var(--bottom-nav-height, 80px)
+    ); /* Account for navigation */
     position: relative;
     overflow: hidden;
   }
@@ -115,7 +117,9 @@
     box-shadow: 4px 4px 16px rgba(240, 138, 119, 0.5);
   }
 
-  .memo-tab-label { letter-spacing: 0.06em; }
+  .memo-tab-label {
+    letter-spacing: 0.06em;
+  }
 
   /* Extra-small size on narrow phones */
   @media (max-width: 380px) {

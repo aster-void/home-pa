@@ -13,9 +13,12 @@ import { writable, derived } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.js";
 import { GapFinder } from "../services/gap-finder.js";
 import { selectedDate } from "./data.js";
-import { eventsForSelectedDate } from './recurrence.store.js';
+import { eventsForSelectedDate } from "./recurrence.store.js";
 import type { Event as CalendarEvent } from "../types.js";
-import { enrichGapsWithLocation, type EnrichableEvent } from "../services/suggestions/index.js";
+import {
+  enrichGapsWithLocation,
+  type EnrichableEvent,
+} from "../services/suggestions/index.js";
 
 /**
  * User-configurable day boundaries for gap calculation
@@ -115,7 +118,7 @@ export const events = derived(
     return $displayEvents
       .map((event: any) => convertCalendarEventToGapEvent(event, $selectedDate))
       .filter((event): event is Event => event !== null);
-  }
+  },
 );
 
 /**

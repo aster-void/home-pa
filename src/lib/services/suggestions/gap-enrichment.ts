@@ -1,9 +1,9 @@
 /**
  * @fileoverview Gap Enrichment Module
- * 
+ *
  * Derives location labels for gaps based on surrounding calendar events.
  * This module is separate from gap-finder for maintainability and testability.
- * 
+ *
  * @author Personal Assistant Team
  * @version 1.0.0
  */
@@ -21,8 +21,8 @@ import type { Gap, LocationLabel } from "../../types.js";
 export interface EnrichableEvent {
   id: string;
   title: string;
-  start: string;           // HH:mm format
-  end: string;             // HH:mm format
+  start: string; // HH:mm format
+  end: string; // HH:mm format
   locationLabel?: LocationLabel;
 }
 
@@ -60,15 +60,15 @@ function timeToMinutes(time: string): number {
 
 /**
  * Find the event that ends closest to (but before) the gap start
- * 
+ *
  * If multiple events end at the same time (ambiguous), returns null
  * to avoid guessing - the gap will use fallback logic instead.
- * 
+ *
  * @returns The preceding event, or null if none found or ambiguous
  */
 export function findPrecedingEvent(
   gapStartMinutes: number,
-  events: EnrichableEvent[]
+  events: EnrichableEvent[],
 ): EnrichableEvent | null {
   let closest: EnrichableEvent | null = null;
   let closestEndMinutes = -Infinity;
@@ -97,15 +97,15 @@ export function findPrecedingEvent(
 
 /**
  * Find the event that starts closest to (but after) the gap end
- * 
+ *
  * If multiple events start at the same time (ambiguous), returns null
  * to avoid guessing - the gap will use fallback logic instead.
- * 
+ *
  * @returns The following event, or null if none found or ambiguous
  */
 export function findFollowingEvent(
   gapEndMinutes: number,
-  events: EnrichableEvent[]
+  events: EnrichableEvent[],
 ): EnrichableEvent | null {
   let closest: EnrichableEvent | null = null;
   let closestStartMinutes = Infinity;
@@ -134,7 +134,7 @@ export function findFollowingEvent(
 
 /**
  * Derive location label for a single gap based on surrounding events
- * 
+ *
  * Priority:
  * 1. Preceding event's location (user is likely still there)
  * 2. Following event's location (if preceding unknown)
@@ -144,7 +144,7 @@ export function findFollowingEvent(
 export function deriveLocationLabel(
   gap: Gap,
   events: EnrichableEvent[],
-  config: EnrichmentConfig = DEFAULT_CONFIG
+  config: EnrichmentConfig = DEFAULT_CONFIG,
 ): LocationLabel {
   const gapStartMinutes = timeToMinutes(gap.start);
   const gapEndMinutes = timeToMinutes(gap.end);
@@ -185,7 +185,7 @@ export function deriveLocationLabel(
 
 /**
  * Enrich gaps with location labels based on surrounding events
- * 
+ *
  * @param gaps - Gaps to enrich (from GapFinder)
  * @param events - Events with optional location labels
  * @param config - Optional configuration overrides
@@ -194,7 +194,7 @@ export function deriveLocationLabel(
 export function enrichGapsWithLocation(
   gaps: Gap[],
   events: EnrichableEvent[],
-  config: EnrichmentConfig = DEFAULT_CONFIG
+  config: EnrichmentConfig = DEFAULT_CONFIG,
 ): Gap[] {
   return gaps.map((gap) => ({
     ...gap,
@@ -204,4 +204,3 @@ export function enrichGapsWithLocation(
 
 // Re-export DEFAULT_CONFIG for convenience
 export { DEFAULT_CONFIG };
-

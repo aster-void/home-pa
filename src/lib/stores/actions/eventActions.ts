@@ -1,27 +1,32 @@
 /**
  * @fileoverview Event Actions
- * 
+ *
  * Contains all business logic and operations for event management.
  * This includes CRUD operations, validation, and data transformations.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { get } from 'svelte/store';
-import type { Event } from '../../types.js';
-import { eventOperations, selectedDate } from '../data.js';
-import { eventForm, eventFormActions, eventFormErrors, validateEventFormData } from '../forms/eventForm.js';
-import { uiActions } from '../ui.js';
-import { toasts } from '../toast.js';
-import { 
+import { get } from "svelte/store";
+import type { Event } from "../../types.js";
+import { eventOperations, selectedDate } from "../data.js";
+import {
+  eventForm,
+  eventFormActions,
+  eventFormErrors,
+  validateEventFormData,
+} from "../forms/eventForm.js";
+import { uiActions } from "../ui.js";
+import { toasts } from "../toast.js";
+import {
   utcToLocalDateTimeString,
   utcToLocalDateString,
   localDateTimeStringToUTC,
   createDateOnlyUTC,
   createMultiDayAllDayUTCRange,
-  localDateTimeToUTC
-} from '../../utils/date-utils.js';
+  localDateTimeToUTC,
+} from "../../utils/date-utils.js";
 
 /**
  * Event Actions
@@ -33,15 +38,19 @@ export const eventActions = {
    */
   async create(): Promise<Event | null> {
     const formData = get(eventForm);
-    
+
     // Clear previous errors
     eventFormActions.clearAllErrors();
-    
+
     // Validate form data
     const validationResult = validateEventFormData(formData);
     if (!validationResult.isValid) {
       // Set validation errors
-      (Object.entries(validationResult.errors) as Array<[keyof typeof validationResult.errors, string]>).forEach(([field, error]) => {
+      (
+        Object.entries(validationResult.errors) as Array<
+          [keyof typeof validationResult.errors, string]
+        >
+      ).forEach(([field, error]) => {
         eventFormActions.setFieldError(field as any, error);
       });
       return null;
@@ -55,12 +64,12 @@ export const eventActions = {
       const { startDate, endDate } = createEventDates(formData);
 
       // Debug: verify storage vs input
-      console.debug('[eventActions.create] form inputs', {
+      console.debug("[eventActions.create] form inputs", {
         startInput: formData.start,
         endInput: formData.end,
         timeLabel: formData.timeLabel,
       });
-      console.debug('[eventActions.create] computed UTC dates', {
+      console.debug("[eventActions.create] computed UTC dates", {
         startISO: startDate.toISOString(),
         endISO: endDate.toISOString(),
         startMs: startDate.getTime(),
@@ -88,7 +97,9 @@ export const eventActions = {
 
       return newEvent;
     } catch (error: any) {
-      eventFormActions.setGeneralError(error.message || "Failed to create event");
+      eventFormActions.setGeneralError(
+        error.message || "Failed to create event",
+      );
       return null;
     } finally {
       eventFormActions.setSubmitting(false);
@@ -100,7 +111,7 @@ export const eventActions = {
    */
   async update(): Promise<Event | null> {
     const formData = get(eventForm);
-    
+
     if (!formData.editingId) {
       eventFormActions.setGeneralError("No event selected for editing");
       return null;
@@ -108,12 +119,16 @@ export const eventActions = {
 
     // Clear previous errors
     eventFormActions.clearAllErrors();
-    
+
     // Validate form data
     const validationResult = validateEventFormData(formData);
     if (!validationResult.isValid) {
       // Set validation errors
-      (Object.entries(validationResult.errors) as Array<[keyof typeof validationResult.errors, string]>).forEach(([field, error]) => {
+      (
+        Object.entries(validationResult.errors) as Array<
+          [keyof typeof validationResult.errors, string]
+        >
+      ).forEach(([field, error]) => {
         eventFormActions.setFieldError(field as any, error);
       });
       return null;
@@ -152,7 +167,9 @@ export const eventActions = {
 
       return updatedEvent;
     } catch (error: any) {
-      eventFormActions.setGeneralError(error.message || "Failed to update event");
+      eventFormActions.setGeneralError(
+        error.message || "Failed to update event",
+      );
       return null;
     } finally {
       eventFormActions.setSubmitting(false);
@@ -165,13 +182,13 @@ export const eventActions = {
   async delete(eventId: string): Promise<boolean> {
     try {
       const deleted = eventOperations.delete(eventId);
-      
+
       if (deleted) {
         toasts.show("Event deleted", "success");
       } else {
         toasts.show("Event not found", "error");
       }
-      
+
       return deleted;
     } catch (error: any) {
       toasts.show(error.message || "Failed to delete event", "error");
@@ -189,7 +206,7 @@ export const eventActions = {
     // Set form data for editing
     eventFormActions.setFormForEditing({
       ...event,
-      timeLabel
+      timeLabel,
     });
 
     // Show the form
@@ -222,19 +239,22 @@ export const eventActions = {
    */
   async submitEventForm(): Promise<Event | null> {
     const formData = get(eventForm);
-    
+
     if (formData.isEditing) {
       return await this.update();
     } else {
       return await this.create();
     }
-  }
+  },
 };
 
 /**
  * Validation function for event form data
  */
-function validateEventForm(formData: any): { isValid: boolean; errors: Record<string, string> } {
+function validateEventForm(formData: any): {
+  isValid: boolean;
+  errors: Record<string, string>;
+} {
   const errors: Record<string, string> = {};
 
   // Validate title
@@ -252,11 +272,11 @@ function validateEventForm(formData: any): { isValid: boolean; errors: Record<st
   if (formData.start && formData.end) {
     const startDate = new Date(formData.start);
     const endDate = new Date(formData.end);
-    
+
     if (startDate >= endDate) {
       errors.end = "終了時間は開始時間より後にしてください";
     }
-    
+
     // Check if event is in the past (only for specific-time events)
     const now = new Date();
     if (startDate < now) {
@@ -266,7 +286,7 @@ function validateEventForm(formData: any): { isValid: boolean; errors: Record<st
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 }
 
@@ -279,20 +299,24 @@ function createEventDates(formData: any): { startDate: Date; endDate: Date } {
     if (!formData.start || !formData.end) {
       throw new Error("Timed events require both start and end times");
     }
-    
+
     const startDate = localDateTimeStringToUTC(formData.start);
     const endDate = localDateTimeStringToUTC(formData.end);
     return { startDate, endDate };
   }
-  
+
   // For date-only events (all-day, some-timing)
   let startDateStr: string;
   let endDateStr: string;
-  
+
   if (formData.start && formData.end) {
     // Extract date parts (remove time if present)
-    startDateStr = formData.start.includes('T') ? formData.start.split('T')[0] : formData.start;
-    endDateStr = formData.end.includes('T') ? formData.end.split('T')[0] : formData.end;
+    startDateStr = formData.start.includes("T")
+      ? formData.start.split("T")[0]
+      : formData.start;
+    endDateStr = formData.end.includes("T")
+      ? formData.end.split("T")[0]
+      : formData.end;
   } else {
     // Use selected date as fallback
     const currentSelectedDate = get(selectedDate);
@@ -300,7 +324,7 @@ function createEventDates(formData: any): { startDate: Date; endDate: Date } {
     startDateStr = dateString;
     endDateStr = dateString;
   }
-  
+
   if (formData.timeLabel === "some-timing") {
     // Some-timing events: start and end must be the same date (single day only)
     const dateOnly = createDateOnlyUTC(startDateStr);

@@ -24,7 +24,11 @@
     let todaysEvents: Event[] = [];
     events.subscribe(($events) => {
       selectedDate.subscribe(($date) => {
-        todaysEvents = $events.filter((ev) => new Date(ev.start).toDateString() === new Date($date).toDateString());
+        todaysEvents = $events.filter(
+          (ev) =>
+            new Date(ev.start).toDateString() ===
+            new Date($date).toDateString(),
+        );
       })();
     })();
     // Map to GapFinder.Event (HH:mm strings)
@@ -59,7 +63,9 @@
 
 <div class="personal-assistant-view">
   <!-- Minimal bottom-left Settings trigger -->
-  <button class="settings-trigger" onclick={() => (showSettings = true)}>settings</button>
+  <button class="settings-trigger" onclick={() => (showSettings = true)}
+    >settings</button
+  >
 
   <!-- Main Content -->
   <main class="pa-main">
@@ -115,15 +121,25 @@
     <section class="settings-section">
       <div class="settings-header">
         <span>Settings</span>
-        <button class="settings-close" onclick={() => (showSettings = false)}>close</button>
+        <button class="settings-close" onclick={() => (showSettings = false)}
+          >close</button
+        >
       </div>
       <div class="settings-content">
         <div class="settings-row">
           <span class="label">Active hours</span>
           <div class="inputs">
-            <input type="time" bind:value={activeStart} onchange={recomputeGaps} />
+            <input
+              type="time"
+              bind:value={activeStart}
+              onchange={recomputeGaps}
+            />
             <span>–</span>
-            <input type="time" bind:value={activeEnd} onchange={recomputeGaps} />
+            <input
+              type="time"
+              bind:value={activeEnd}
+              onchange={recomputeGaps}
+            />
           </div>
         </div>
         <div class="settings-logs">

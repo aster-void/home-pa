@@ -27,24 +27,28 @@ src/lib/stores/
 ## 📁 File Responsibilities
 
 ### **UI State (`ui.ts`)**
+
 - **Purpose**: Manages UI state that affects the overall application layout
 - **Contains**: Current view, view mode, panel states, navigation state
 - **Usage**: Components subscribe to these stores to react to UI changes
 - **Example**: `currentView`, `viewMode`, `isMemoOpen`
 
 ### **Form State (`forms/`)**
+
 - **Purpose**: Manages form data and validation state
 - **Contains**: Form fields, validation errors, editing states, event timing types
 - **Usage**: Form components bind directly to these stores
 - **Example**: `eventForm` (supports all-day, some-timing, timed events), `memoForm`
 
 ### **Business Logic (`actions/`)**
+
 - **Purpose**: Contains all business logic and operations
 - **Contains**: CRUD operations, validation, data transformations
 - **Usage**: Components call these functions to perform actions
 - **Example**: `createEvent()`, `updateMemo()`, `navigateDate()`
 
 ### **Core Data (`data.ts`)**
+
 - **Purpose**: Core application data stores
 - **Contains**: Events (with flexible timing), memos, suggestion logs, selected date
 - **Usage**: All components access these for data display
@@ -65,22 +69,26 @@ User Interaction → Action Function → Store Update → Component Reactivity
 ## 🎯 Key Principles
 
 ### **1. Single Source of Truth**
+
 - All data lives in stores
 - No duplicate state between components
 - Stores are the authoritative data source
 
 ### **2. Separation of Concerns**
+
 - **UI State**: What the user sees (views, panels, modes)
 - **Form State**: What the user is editing (form fields, validation)
 - **Business Logic**: What the app does (CRUD, validation, transformations)
 - **Core Data**: What the app stores (events, memos, etc.)
 
 ### **3. Reactive Updates**
+
 - Components automatically update when stores change
 - No manual syncing or state management
 - Changes propagate automatically through the app
 
 ### **4. Action-Based Operations**
+
 - All operations go through action functions
 - Actions handle validation, business logic, and store updates
 - Components just call actions - they don't manage state directly
@@ -88,32 +96,35 @@ User Interaction → Action Function → Store Update → Component Reactivity
 ## 📖 Usage Examples
 
 ### **Accessing UI State**
+
 ```typescript
-import { currentView, viewMode } from '$lib/stores/ui.js';
+import { currentView, viewMode } from "$lib/stores/ui.js";
 
 // In component
-$currentView // reactive value
-viewActions.setView('personal-assistant') // action call
+$currentView; // reactive value
+viewActions.setView("personal-assistant"); // action call
 ```
 
 ### **Form Management**
+
 ```typescript
-import { eventForm } from '$lib/stores/forms/eventForm.js';
-import { eventActions } from '$lib/stores/actions/eventActions.js';
+import { eventForm } from "$lib/stores/forms/eventForm.js";
+import { eventActions } from "$lib/stores/actions/eventActions.js";
 
 // In component
-$eventForm.title // reactive form field
-eventActions.create() // submit form
+$eventForm.title; // reactive form field
+eventActions.create(); // submit form
 ```
 
 ### **Data Operations**
+
 ```typescript
-import { events } from '$lib/stores/data.js';
-import { eventActions } from '$lib/stores/actions/eventActions.js';
+import { events } from "$lib/stores/data.js";
+import { eventActions } from "$lib/stores/actions/eventActions.js";
 
 // In component
-$events // reactive events array
-eventActions.delete(eventId) // delete event
+$events; // reactive events array
+eventActions.delete(eventId); // delete event
 ```
 
 ## 🚀 Benefits
@@ -128,18 +139,21 @@ eventActions.delete(eventId) // delete event
 ## 🔧 Development Guidelines
 
 ### **Adding New State**
+
 1. Determine the category (UI, form, or core data)
 2. Add to appropriate store file
 3. Create action functions if needed
 4. Update components to use new state
 
 ### **Adding New Actions**
+
 1. Add to appropriate actions file
 2. Handle validation and business logic
 3. Update stores with results
 4. Components call the action function
 
 ### **Component Integration**
+
 1. Import needed stores and actions
 2. Subscribe to stores with `$storeName`
 3. Call actions in event handlers
@@ -148,18 +162,22 @@ eventActions.delete(eventId) // delete event
 ## 🐛 Debugging
 
 ### **Store DevTools**
+
 Enable store debugging in development:
+
 ```typescript
 // In component
-import { events } from '$lib/stores/data.js';
-console.log('Events:', $events); // Log current state
+import { events } from "$lib/stores/data.js";
+console.log("Events:", $events); // Log current state
 ```
 
 ### **Action Debugging**
+
 Add logging to action functions:
+
 ```typescript
 export function createEvent(data) {
-  console.log('Creating event:', data);
+  console.log("Creating event:", data);
   // ... validation and store updates
 }
 ```

@@ -1,19 +1,22 @@
 /**
  * @fileoverview Suggestion Scheduler Module
- * 
+ *
  * Assigns suggestions to gaps using:
  * - Mandatory/optional partitioning
  * - Knapsack DP for optimal subset selection
  * - Permutation enumeration for optimal ordering
  * - Greedy gap assignment
- * 
+ *
  * Simplified from Python version: no coordinates or travel time calculations.
  * Location matching uses string labels (handled by location-matching.ts).
  */
 
 import type { Gap, Suggestion } from "../../types.js";
 import { canFit, findFirstCompatibleGap } from "./location-matching.js";
-import { calculatePriority, MANDATORY_THRESHOLD } from "./suggestion-scoring.js";
+import {
+  calculatePriority,
+  MANDATORY_THRESHOLD,
+} from "./suggestion-scoring.js";
 
 // ============================================================================
 // TYPES
@@ -26,9 +29,9 @@ export interface ScheduledBlock {
   suggestionId: string;
   memoId: string;
   gapId: string;
-  startTime: string;      // HH:mm format
-  endTime: string;        // HH:mm format
-  duration: number;       // minutes
+  startTime: string; // HH:mm format
+  endTime: string; // HH:mm format
+  duration: number; // minutes
 }
 
 /**
@@ -40,7 +43,7 @@ export interface ScheduleResult {
   totalScheduledMinutes: number;
   totalDroppedMinutes: number;
   permutationsEvaluated: number;
-  mandatoryDropped: Suggestion[];  // Warning: mandatory tasks that couldn't fit
+  mandatoryDropped: Suggestion[]; // Warning: mandatory tasks that couldn't fit
 }
 
 /**
@@ -51,9 +54,9 @@ interface MutableGap {
   start: string;
   end: string;
   duration: number;
-  remaining: number;      // Remaining capacity in minutes
+  remaining: number; // Remaining capacity in minutes
   locationLabel?: string;
-  currentStartTime: string;  // Tracks where next block should start
+  currentStartTime: string; // Tracks where next block should start
 }
 
 /**
@@ -149,7 +152,7 @@ export function sortByPriority(suggestions: Suggestion[]): Suggestion[] {
 /**
  * Select optimal subset of suggestions using 0/1 Knapsack DP
  * Maximizes total score under capacity constraint
- * 
+ *
  * @param suggestions - Candidate suggestions
  * @param capacityMinutes - Available time capacity
  * @param resolutionMinutes - Discretization resolution (default 1 minute)
@@ -158,7 +161,7 @@ export function sortByPriority(suggestions: Suggestion[]): Suggestion[] {
 export function knapsackSelect(
   suggestions: Suggestion[],
   capacityMinutes: number,
-  resolutionMinutes: number = 1.0
+  resolutionMinutes: number = 1.0,
 ): Suggestion[] {
   if (capacityMinutes <= TOLERANCE || suggestions.length === 0) {
     return [];
@@ -169,13 +172,17 @@ export function knapsackSelect(
 
   // Convert to integer DP units
   const W = Math.max(0, Math.round(capacityMinutes / resolutionMinutes));
-  const weights = items.map((s) => Math.max(1, Math.round(s.duration / resolutionMinutes)));
+  const weights = items.map((s) =>
+    Math.max(1, Math.round(s.duration / resolutionMinutes)),
+  );
   const values = items.map((s) => calculateScore(s));
 
   // DP table: dp[w] = max score achievable with capacity w
   const dp: number[] = new Array(W + 1).fill(0);
   // Track which items are taken at each capacity
-  const take: boolean[][] = Array.from({ length: n }, () => new Array(W + 1).fill(false));
+  const take: boolean[][] = Array.from({ length: n }, () =>
+    new Array(W + 1).fill(false),
+  );
 
   // Fill DP table
   for (let i = 0; i < n; i++) {
@@ -229,12 +236,12 @@ function* permutations<T>(arr: T[]): Generator<T[]> {
 /**
  * Evaluate a specific ordering of suggestions against gaps
  * Returns number of suggestions that can be scheduled (higher = better)
- * 
+ *
  * Since we don't have travel time, we just check if suggestions fit in order
  */
 function evaluateOrder(
   order: Suggestion[],
-  gaps: MutableGap[]
+  gaps: MutableGap[],
 ): { schedulable: number; totalDuration: number } {
   // Clone gaps for simulation
   const simGaps = gaps.map((g) => ({ ...g }));
@@ -259,7 +266,10 @@ function evaluateOrder(
         if (canFit(suggestion, tempGap)) {
           // Can fit here
           gap.remaining -= suggestion.duration;
-          gap.currentStartTime = addMinutesToTime(gap.currentStartTime, suggestion.duration);
+          gap.currentStartTime = addMinutesToTime(
+            gap.currentStartTime,
+            suggestion.duration,
+          );
           schedulable++;
           totalDuration += suggestion.duration;
           found = true;
@@ -278,7 +288,7 @@ function evaluateOrder(
 
 /**
  * Find the best ordering of suggestions via permutation enumeration
- * 
+ *
  * @param suggestions - Suggestions to order
  * @param gaps - Available gaps
  * @param permutationLimit - Max suggestions to permute (factorial explosion protection)
@@ -287,7 +297,7 @@ function evaluateOrder(
 export function enumerateBestOrder(
   suggestions: Suggestion[],
   gaps: MutableGap[],
-  permutationLimit: number = DEFAULT_PERMUTATION_LIMIT
+  permutationLimit: number = DEFAULT_PERMUTATION_LIMIT,
 ): { order: Suggestion[]; permutationsChecked: number } {
   const n = suggestions.length;
 
@@ -298,7 +308,7 @@ export function enumerateBestOrder(
   // If too many suggestions, just use priority sort (can't enumerate)
   if (n > permutationLimit) {
     console.warn(
-      `Permutation limit exceeded: ${n} > ${permutationLimit}. Using priority sort.`
+      `Permutation limit exceeded: ${n} > ${permutationLimit}. Using priority sort.`,
     );
     return { order: sortByPriority(suggestions), permutationsChecked: 0 };
   }
@@ -353,7 +363,7 @@ function totalRemainingCapacity(gaps: MutableGap[]): number {
  */
 export function assignOrderToGaps(
   orderedSuggestions: Suggestion[],
-  gaps: MutableGap[]
+  gaps: MutableGap[],
 ): { blocks: ScheduledBlock[]; dropped: Suggestion[] } {
   const blocks: ScheduledBlock[] = [];
   const dropped: Suggestion[] = [];
@@ -413,7 +423,7 @@ export function assignOrderToGaps(
 
 /**
  * Schedule suggestions into gaps
- * 
+ *
  * Algorithm:
  * 1. Partition into mandatory vs optional
  * 2. Sort mandatory by priority → permute → assign
@@ -421,7 +431,7 @@ export function assignOrderToGaps(
  * 4. Knapsack select optimal optional subset
  * 5. Permute selected optional → assign
  * 6. Return results
- * 
+ *
  * @param suggestions - All suggestions to schedule
  * @param gaps - Available gaps (should be time-sorted)
  * @param options - Scheduler options
@@ -432,9 +442,12 @@ export function scheduleSuggestions(
   options: {
     permutationLimit?: number;
     resolutionMinutes?: number;
-  } = {}
+  } = {},
 ): ScheduleResult {
-  const { permutationLimit = DEFAULT_PERMUTATION_LIMIT, resolutionMinutes = 1.0 } = options;
+  const {
+    permutationLimit = DEFAULT_PERMUTATION_LIMIT,
+    resolutionMinutes = 1.0,
+  } = options;
 
   // Initialize result
   const result: ScheduleResult = {
@@ -449,9 +462,12 @@ export function scheduleSuggestions(
   // Handle empty inputs
   if (gaps.length === 0) {
     result.dropped = [...suggestions];
-    result.totalDroppedMinutes = suggestions.reduce((sum, s) => sum + s.duration, 0);
+    result.totalDroppedMinutes = suggestions.reduce(
+      (sum, s) => sum + s.duration,
+      0,
+    );
     result.mandatoryDropped = suggestions.filter(
-      (s) => s.need >= MANDATORY_THRESHOLD - TOLERANCE
+      (s) => s.need >= MANDATORY_THRESHOLD - TOLERANCE,
     );
     return result;
   }
@@ -470,7 +486,7 @@ export function scheduleSuggestions(
     const { order: mandatoryOrder, permutationsChecked } = enumerateBestOrder(
       sortByPriority(mandatory),
       mutableGaps,
-      permutationLimit
+      permutationLimit,
     );
     result.permutationsEvaluated += permutationsChecked;
 
@@ -490,19 +506,23 @@ export function scheduleSuggestions(
 
     if (remainingCapacity > TOLERANCE) {
       // Use knapsack to select optimal subset
-      const selected = knapsackSelect(optional, remainingCapacity, resolutionMinutes);
+      const selected = knapsackSelect(
+        optional,
+        remainingCapacity,
+        resolutionMinutes,
+      );
 
       if (selected.length > 0) {
         // Find best order via permutation
-        const { order: optionalOrder, permutationsChecked } = enumerateBestOrder(
-          selected,
-          mutableGaps,
-          permutationLimit
-        );
+        const { order: optionalOrder, permutationsChecked } =
+          enumerateBestOrder(selected, mutableGaps, permutationLimit);
         result.permutationsEvaluated += permutationsChecked;
 
         // Assign to gaps
-        const { blocks, dropped } = assignOrderToGaps(optionalOrder, mutableGaps);
+        const { blocks, dropped } = assignOrderToGaps(
+          optionalOrder,
+          mutableGaps,
+        );
         result.scheduled.push(...blocks);
         result.dropped.push(...dropped);
       }
@@ -521,8 +541,14 @@ export function scheduleSuggestions(
   }
 
   // Calculate totals
-  result.totalScheduledMinutes = result.scheduled.reduce((sum, b) => sum + b.duration, 0);
-  result.totalDroppedMinutes = result.dropped.reduce((sum, s) => sum + s.duration, 0);
+  result.totalScheduledMinutes = result.scheduled.reduce(
+    (sum, b) => sum + b.duration,
+    0,
+  );
+  result.totalDroppedMinutes = result.dropped.reduce(
+    (sum, s) => sum + s.duration,
+    0,
+  );
 
   // Sort scheduled blocks by time
   result.scheduled.sort((a, b) => {
@@ -539,4 +565,3 @@ export function scheduleSuggestions(
 // ============================================================================
 
 export { calculateScore, timeToMinutes, minutesToTime, addMinutesToTime };
-

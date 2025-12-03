@@ -1,6 +1,6 @@
 /**
  * @fileoverview Suggestions Module Index
- * 
+ *
  * Central export for all suggestion-related services.
  * Import from this index for clean imports.
  */
@@ -14,10 +14,7 @@ export {
   DEFAULT_CONFIG,
 } from "./gap-enrichment.js";
 
-export type {
-  EnrichableEvent,
-  EnrichmentConfig,
-} from "./gap-enrichment.js";
+export type { EnrichableEvent, EnrichmentConfig } from "./gap-enrichment.js";
 
 // Period Tracking
 export {

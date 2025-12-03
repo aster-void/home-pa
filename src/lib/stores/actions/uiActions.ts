@@ -1,17 +1,21 @@
 /**
  * @fileoverview UI Actions
- * 
+ *
  * Contains all business logic and operations for UI state management.
  * This includes navigation, view switching, and UI state coordination.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { get } from 'svelte/store';
-import { selectedDate } from '../data.js';
-import { uiActions as uiStateActions, currentSuggestion, type AppView } from '../ui.js';
-import { suggestionService } from '../../services/suggestion.js';
+import { get } from "svelte/store";
+import { selectedDate } from "../data.js";
+import {
+  uiActions as uiStateActions,
+  currentSuggestion,
+  type AppView,
+} from "../ui.js";
+import { suggestionService } from "../../services/suggestion.js";
 
 /**
  * UI Actions
@@ -234,8 +238,8 @@ export const uiActions = {
   initialize(): void {
     // Set initial selected date to today
     this.setSelectedDate(new Date());
-    
+
     // Check for initial suggestion
     this.checkForSuggestion();
-  }
+  },
 };

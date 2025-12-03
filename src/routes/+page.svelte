@@ -16,7 +16,6 @@
   {:else if $currentView === "utilities"}
     <UtilitiesView />
   {/if}
-  
 </main>
 
 <style>

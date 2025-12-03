@@ -5,7 +5,9 @@
 <div class="utilities-view">
   <div class="utilities-header">
     <h2>Utilities</h2>
-    <p class="utilities-subtitle">Helpful tools and widgets for your daily tasks</p>
+    <p class="utilities-subtitle">
+      Helpful tools and widgets for your daily tasks
+    </p>
   </div>
 
   <div class="utilities-content">
@@ -18,7 +20,9 @@
     <div class="coming-soon">
       <div class="coming-soon-icon">🔧</div>
       <h3>More Utilities Coming Soon</h3>
-      <p>Weather, News, Calculator, and more utility widgets will be added here.</p>
+      <p>
+        Weather, News, Calculator, and more utility widgets will be added here.
+      </p>
     </div>
   </div>
 </div>

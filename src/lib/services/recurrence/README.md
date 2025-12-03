@@ -24,26 +24,26 @@ bun add -d vitest @types/luxon
 ## Quick Start
 
 ```typescript
-import { createRecurrenceManager } from '$lib/services/recurrence-manager';
+import { createRecurrenceManager } from "$lib/services/recurrence-manager";
 
 const manager = createRecurrenceManager();
 
 // Create a weekly recurring event
 const event = await manager.createEvent({
-  title: 'Weekly Standup',
-  startLocalISO: '2025-10-06T09:00:00',
-  tzid: 'America/New_York',
+  title: "Weekly Standup",
+  startLocalISO: "2025-10-06T09:00:00",
+  tzid: "America/New_York",
   durationMs: 30 * 60 * 1000, // 30 minutes
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=WEEKLY;BYDAY=MO,TU;INTERVAL=1'
-  }
+    type: "RRULE",
+    rrule: "FREQ=WEEKLY;BYDAY=MO,TU;INTERVAL=1",
+  },
 });
 
 // Get occurrences for a date range
 const occurrences = await manager.getOccurrencesWindow(
-  new Date('2025-10-01T00:00:00Z'),
-  new Date('2025-10-31T23:59:59Z')
+  new Date("2025-10-01T00:00:00Z"),
+  new Date("2025-10-31T23:59:59Z"),
 );
 
 console.log(occurrences);
@@ -69,12 +69,12 @@ interface EventMaster {
   id: string;
   title: string;
   description?: string;
-  startLocalISO: string;      // e.g. "2025-10-06T09:00:00"
-  tzid: string;                // IANA timezone, e.g. "America/New_York"
+  startLocalISO: string; // e.g. "2025-10-06T09:00:00"
+  tzid: string; // IANA timezone, e.g. "America/New_York"
   durationMs: number;
   recurrence: Recurrence;
-  rdateUtc?: Date[];          // Additional explicit dates
-  exdateUtc?: Date[];         // Excluded dates
+  rdateUtc?: Date[]; // Additional explicit dates
+  exdateUtc?: Date[]; // Excluded dates
   createdAtUtc: Date;
   updatedAtUtc?: Date;
 }
@@ -83,11 +83,15 @@ interface EventMaster {
 ### Recurrence Types
 
 #### 1. None (Single Event)
+
 ```typescript
-{ type: "NONE" }
+{
+  type: "NONE";
+}
 ```
 
 #### 2. RRULE (RFC-5545)
+
 ```typescript
 {
   type: "RRULE",
@@ -99,6 +103,7 @@ interface EventMaster {
 ```
 
 #### 3. Weekly Bitmask (Optimized)
+
 ```typescript
 {
   type: "WEEKLY_BITMASK",
@@ -111,6 +116,7 @@ interface EventMaster {
 ```
 
 **Bitmask Encoding:**
+
 - Sunday: 1 << 0 = 1
 - Monday: 1 << 1 = 2
 - Tuesday: 1 << 2 = 4
@@ -127,10 +133,10 @@ Modify or cancel individual occurrences:
 interface OccurrenceOverride {
   id: string;
   eventId: string;
-  originalLocalISO?: string | null;  // Which occurrence to modify
-  isCancelled?: boolean;             // Cancel this occurrence
-  newStartUtc?: Date | null;         // Move to new time (UTC)
-  newDurationMs?: number | null;     // Change duration
+  originalLocalISO?: string | null; // Which occurrence to modify
+  isCancelled?: boolean; // Cancel this occurrence
+  newStartUtc?: Date | null; // Move to new time (UTC)
+  newDurationMs?: number | null; // Change duration
   note?: string;
 }
 ```
@@ -142,35 +148,35 @@ interface OccurrenceOverride {
 ```typescript
 // Single event
 const event = await manager.createEvent({
-  title: 'Meeting',
-  startLocalISO: '2025-10-15T10:00:00',
-  tzid: 'America/New_York',
+  title: "Meeting",
+  startLocalISO: "2025-10-15T10:00:00",
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
-  recurrence: { type: 'NONE' }
+  recurrence: { type: "NONE" },
 });
 
 // Daily recurring event
 const dailyEvent = await manager.createEvent({
-  title: 'Daily Standup',
-  startLocalISO: '2025-10-06T09:00:00',
-  tzid: 'Asia/Tokyo',
+  title: "Daily Standup",
+  startLocalISO: "2025-10-06T09:00:00",
+  tzid: "Asia/Tokyo",
   durationMs: 15 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=DAILY;INTERVAL=1;COUNT=20'
-  }
+    type: "RRULE",
+    rrule: "FREQ=DAILY;INTERVAL=1;COUNT=20",
+  },
 });
 
 // Monthly event (3rd Tuesday)
 const monthlyEvent = await manager.createEvent({
-  title: 'Monthly Review',
-  startLocalISO: '2025-10-21T14:00:00',
-  tzid: 'America/Los_Angeles',
+  title: "Monthly Review",
+  startLocalISO: "2025-10-21T14:00:00",
+  tzid: "America/Los_Angeles",
   durationMs: 2 * 60 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=MONTHLY;BYDAY=TU;BYSETPOS=3'
-  }
+    type: "RRULE",
+    rrule: "FREQ=MONTHLY;BYDAY=TU;BYSETPOS=3",
+  },
 });
 ```
 
@@ -178,8 +184,8 @@ const monthlyEvent = await manager.createEvent({
 
 ```typescript
 await manager.updateEvent(event.id, {
-  title: 'Updated Title',
-  durationMs: 90 * 60 * 1000
+  title: "Updated Title",
+  durationMs: 90 * 60 * 1000,
 });
 ```
 
@@ -196,23 +202,23 @@ await manager.deleteEvent(event.id);
 // Cancel a single occurrence
 await manager.createOverride({
   eventId: event.id,
-  originalLocalISO: '2025-10-15T10:00:00',
-  isCancelled: true
+  originalLocalISO: "2025-10-15T10:00:00",
+  isCancelled: true,
 });
 
 // Move an occurrence
 await manager.createOverride({
   eventId: event.id,
-  originalLocalISO: '2025-10-15T10:00:00',
-  newStartUtc: new Date('2025-10-15T14:00:00Z')
+  originalLocalISO: "2025-10-15T10:00:00",
+  newStartUtc: new Date("2025-10-15T14:00:00Z"),
 });
 
 // Change duration for single occurrence
 await manager.createOverride({
   eventId: event.id,
-  originalLocalISO: '2025-10-15T10:00:00',
-  newStartUtc: new Date('2025-10-15T14:00:00Z'),
-  newDurationMs: 2 * 60 * 60 * 1000
+  originalLocalISO: "2025-10-15T10:00:00",
+  newStartUtc: new Date("2025-10-15T14:00:00Z"),
+  newDurationMs: 2 * 60 * 60 * 1000,
 });
 ```
 
@@ -220,16 +226,16 @@ await manager.createOverride({
 
 ```typescript
 const occurrences = await manager.getOccurrencesWindow(
-  new Date('2025-10-01T00:00:00Z'),
-  new Date('2025-10-31T23:59:59Z')
+  new Date("2025-10-01T00:00:00Z"),
+  new Date("2025-10-31T23:59:59Z"),
 );
 
 // Occurrences are returned sorted by startUtc
-occurrences.forEach(occ => {
+occurrences.forEach((occ) => {
   console.log(`Event: ${occ.eventId}`);
   console.log(`Starts (UTC): ${occ.startUtc}`);
   console.log(`Local: ${occ.originalLocalISO}`);
-  console.log(`Modified: ${occ.overrideId ? 'Yes' : 'No'}`);
+  console.log(`Modified: ${occ.overrideId ? "Yes" : "No"}`);
 });
 ```
 
@@ -252,14 +258,14 @@ When clocks jump forward (e.g., 2:00 AM → 3:00 AM), times like 2:30 AM don't e
 ```typescript
 // Event at 2:30 AM during DST forward transition
 const event = await manager.createEvent({
-  title: 'Early Morning',
-  startLocalISO: '2025-03-02T02:30:00',
-  tzid: 'America/New_York',
+  title: "Early Morning",
+  startLocalISO: "2025-03-02T02:30:00",
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=DAILY;INTERVAL=1'
-  }
+    type: "RRULE",
+    rrule: "FREQ=DAILY;INTERVAL=1",
+  },
 });
 
 // March 9, 2025: 2:30 AM is skipped (DST forward)
@@ -275,14 +281,14 @@ When clocks fall back (e.g., 2:00 AM → 1:00 AM), times like 1:30 AM occur twic
 ```typescript
 // Event at 1:30 AM during DST backward transition
 const event = await manager.createEvent({
-  title: 'Late Night',
-  startLocalISO: '2025-11-02T01:30:00',
-  tzid: 'America/New_York',
+  title: "Late Night",
+  startLocalISO: "2025-11-02T01:30:00",
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=DAILY;INTERVAL=1'
-  }
+    type: "RRULE",
+    rrule: "FREQ=DAILY;INTERVAL=1",
+  },
 });
 
 // November 2, 2025: Uses the first 1:30 AM (EDT, not EST)
@@ -296,15 +302,15 @@ Explicitly add occurrence dates:
 
 ```typescript
 const event = await manager.createEvent({
-  title: 'Special Events',
-  startLocalISO: '2025-10-15T10:00:00',
-  tzid: 'America/New_York',
+  title: "Special Events",
+  startLocalISO: "2025-10-15T10:00:00",
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
-  recurrence: { type: 'NONE' },
+  recurrence: { type: "NONE" },
   rdateUtc: [
-    new Date('2025-10-20T14:00:00Z'),
-    new Date('2025-10-25T14:00:00Z')
-  ]
+    new Date("2025-10-20T14:00:00Z"),
+    new Date("2025-10-25T14:00:00Z"),
+  ],
 });
 
 // Returns occurrences on Oct 15, 20, and 25
@@ -318,19 +324,19 @@ Explicitly exclude occurrence dates:
 
 ```typescript
 const event = await manager.createEvent({
-  title: 'Daily Meeting',
-  startLocalISO: '2025-10-06T09:00:00',
-  tzid: 'America/New_York',
+  title: "Daily Meeting",
+  startLocalISO: "2025-10-06T09:00:00",
+  tzid: "America/New_York",
   durationMs: 30 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=DAILY;INTERVAL=1'
+    type: "RRULE",
+    rrule: "FREQ=DAILY;INTERVAL=1",
   },
   exdateUtc: [
     // Skip Oct 10 and Oct 15
-    new Date('2025-10-10T13:00:00Z'),
-    new Date('2025-10-15T13:00:00Z')
-  ]
+    new Date("2025-10-10T13:00:00Z"),
+    new Date("2025-10-15T13:00:00Z"),
+  ],
 });
 
 // Oct 10 and Oct 15 are excluded from results
@@ -345,20 +351,20 @@ To prevent runaway recurrence rules, a hard limit of **20,000 occurrences per qu
 ```typescript
 // This would generate millions of occurrences
 const event = await manager.createEvent({
-  title: 'Hourly Forever',
-  startLocalISO: '2025-01-01T00:00:00',
-  tzid: 'UTC',
+  title: "Hourly Forever",
+  startLocalISO: "2025-01-01T00:00:00",
+  tzid: "UTC",
   durationMs: 15 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=HOURLY;INTERVAL=1' // No end!
-  }
+    type: "RRULE",
+    rrule: "FREQ=HOURLY;INTERVAL=1", // No end!
+  },
 });
 
 // Query for 10 years
 const occurrences = await manager.getOccurrencesWindow(
-  new Date('2025-01-01T00:00:00Z'),
-  new Date('2035-01-01T00:00:00Z')
+  new Date("2025-01-01T00:00:00Z"),
+  new Date("2035-01-01T00:00:00Z"),
 );
 
 // Will be truncated to 20,000 occurrences max
@@ -405,6 +411,7 @@ bun test recurrence-manager.test.ts
 ### Test Coverage
 
 The test suite covers:
+
 - ✅ Basic CRUD operations
 - ✅ Weekly bitmask optimization
 - ✅ DST transitions (skip & ambiguous)
@@ -422,25 +429,25 @@ The test suite covers:
 ```typescript
 // Event in Tokyo
 const tokyoEvent = await manager.createEvent({
-  title: 'Tokyo Meeting',
-  startLocalISO: '2025-10-15T09:00:00',
-  tzid: 'Asia/Tokyo',
+  title: "Tokyo Meeting",
+  startLocalISO: "2025-10-15T09:00:00",
+  tzid: "Asia/Tokyo",
   durationMs: 60 * 60 * 1000,
-  recurrence: { type: 'NONE' }
+  recurrence: { type: "NONE" },
 });
 
 // Event in New York (same UTC instant)
 const nyEvent = await manager.createEvent({
-  title: 'NY Meeting',
-  startLocalISO: '2025-10-14T20:00:00', // Day before!
-  tzid: 'America/New_York',
+  title: "NY Meeting",
+  startLocalISO: "2025-10-14T20:00:00", // Day before!
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
-  recurrence: { type: 'NONE' }
+  recurrence: { type: "NONE" },
 });
 
 const occurrences = await manager.getOccurrencesWindow(
-  new Date('2025-10-14T00:00:00Z'),
-  new Date('2025-10-16T00:00:00Z')
+  new Date("2025-10-14T00:00:00Z"),
+  new Date("2025-10-16T00:00:00Z"),
 );
 
 // Both events have same UTC time but different local representations
@@ -451,26 +458,26 @@ const occurrences = await manager.getOccurrencesWindow(
 ```typescript
 // Last Friday of every month
 const lastFriday = await manager.createEvent({
-  title: 'Last Friday Meeting',
-  startLocalISO: '2025-10-31T15:00:00',
-  tzid: 'America/New_York',
+  title: "Last Friday Meeting",
+  startLocalISO: "2025-10-31T15:00:00",
+  tzid: "America/New_York",
   durationMs: 60 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1'
-  }
+    type: "RRULE",
+    rrule: "FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1",
+  },
 });
 
 // First and third Monday
 const firstAndThird = await manager.createEvent({
-  title: 'Biweekly Monday',
-  startLocalISO: '2025-10-06T10:00:00',
-  tzid: 'America/New_York',
+  title: "Biweekly Monday",
+  startLocalISO: "2025-10-06T10:00:00",
+  tzid: "America/New_York",
   durationMs: 90 * 60 * 1000,
   recurrence: {
-    type: 'RRULE',
-    rrule: 'FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1,3'
-  }
+    type: "RRULE",
+    rrule: "FREQ=MONTHLY;BYDAY=MO;BYSETPOS=1,3",
+  },
 });
 ```
 
@@ -482,8 +489,8 @@ await manager.clearAll();
 
 // Debug state
 const state = await manager._dumpState();
-console.log('Events:', state.events.length);
-console.log('Overrides:', state.overrides.length);
+console.log("Events:", state.events.length);
+console.log("Overrides:", state.overrides.length);
 ```
 
 ## Integration Examples
@@ -492,27 +499,27 @@ console.log('Overrides:', state.overrides.length);
 
 ```svelte
 <script lang="ts">
-  import { createRecurrenceManager } from '$lib/services/recurrence-manager';
-  import { onMount } from 'svelte';
+  import { createRecurrenceManager } from "$lib/services/recurrence-manager";
+  import { onMount } from "svelte";
 
   let occurrences = $state<Occurrence[]>([]);
   const manager = createRecurrenceManager();
 
   onMount(async () => {
     await manager.createEvent({
-      title: 'Weekly Standup',
-      startLocalISO: '2025-10-06T09:00:00',
-      tzid: 'America/New_York',
+      title: "Weekly Standup",
+      startLocalISO: "2025-10-06T09:00:00",
+      tzid: "America/New_York",
       durationMs: 30 * 60 * 1000,
       recurrence: {
-        type: 'RRULE',
-        rrule: 'FREQ=WEEKLY;BYDAY=MO;INTERVAL=1'
-      }
+        type: "RRULE",
+        rrule: "FREQ=WEEKLY;BYDAY=MO;INTERVAL=1",
+      },
     });
 
     occurrences = await manager.getOccurrencesWindow(
-      new Date('2025-10-01T00:00:00Z'),
-      new Date('2025-10-31T23:59:59Z')
+      new Date("2025-10-01T00:00:00Z"),
+      new Date("2025-10-31T23:59:59Z"),
     );
   });
 </script>
@@ -530,8 +537,8 @@ console.log('Overrides:', state.overrides.length);
 
 ```typescript
 // stores/calendar.ts
-import { writable } from 'svelte/store';
-import { createRecurrenceManager } from '$lib/services/recurrence-manager';
+import { writable } from "svelte/store";
+import { createRecurrenceManager } from "$lib/services/recurrence-manager";
 
 const manager = createRecurrenceManager();
 
@@ -555,9 +562,11 @@ export { manager };
 
 ```typescript
 // Check if time is valid
-import { DateTime } from 'luxon';
+import { DateTime } from "luxon";
 
-const dt = DateTime.fromISO('2025-03-09T02:30:00', { zone: 'America/New_York' });
+const dt = DateTime.fromISO("2025-03-09T02:30:00", {
+  zone: "America/New_York",
+});
 console.log(dt.isValid); // false - this time doesn't exist
 ```
 
@@ -603,4 +612,3 @@ await manager.createOverride({
 ## License
 
 This module is part of the home-pa project.
-

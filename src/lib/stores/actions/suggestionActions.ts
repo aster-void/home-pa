@@ -1,19 +1,23 @@
 /**
  * @fileoverview Suggestion Actions
- * 
+ *
  * Contains all business logic and operations for the suggestion system.
  * This includes checking for suggestions, logging reactions, and managing suggestion state.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { get } from 'svelte/store';
-import { suggestionLogOperations, suggestionLogs, selectedDate } from '../data.js';
-import { uiActions, currentSuggestion } from '../ui.js';
-import { gaps } from '../gaps.js';
-import { suggestionService } from '../../services/suggestion.js';
-import type { Gap } from '../../types.js';
+import { get } from "svelte/store";
+import {
+  suggestionLogOperations,
+  suggestionLogs,
+  selectedDate,
+} from "../data.js";
+import { uiActions, currentSuggestion } from "../ui.js";
+import { gaps } from "../gaps.js";
+import { suggestionService } from "../../services/suggestion.js";
+import type { Gap } from "../../types.js";
 
 /**
  * Suggestion Actions
@@ -57,7 +61,7 @@ export const suggestionActions = {
 
     // Log the reaction
     suggestionService.logReaction(active, reaction);
-    
+
     // Clear the current suggestion
     uiActions.clearCurrentSuggestion();
   },
@@ -108,11 +112,11 @@ export const suggestionActions = {
     acceptanceRate: number;
   } {
     const logs = get(suggestionLogs) as any[];
-    
+
     const total = logs.length;
-    const accepted = logs.filter(log => log.reaction === "accepted").length;
-    const rejected = logs.filter(log => log.reaction === "rejected").length;
-    const later = logs.filter(log => log.reaction === "later").length;
+    const accepted = logs.filter((log) => log.reaction === "accepted").length;
+    const rejected = logs.filter((log) => log.reaction === "rejected").length;
+    const later = logs.filter((log) => log.reaction === "later").length;
     const acceptanceRate = total > 0 ? (accepted / total) * 100 : 0;
 
     return {
@@ -120,7 +124,7 @@ export const suggestionActions = {
       accepted,
       rejected,
       later,
-      acceptanceRate
+      acceptanceRate,
     };
   },
 
@@ -157,5 +161,5 @@ export const suggestionActions = {
     selectedDate.subscribe(() => {
       this.checkForSuggestion();
     });
-  }
+  },
 };

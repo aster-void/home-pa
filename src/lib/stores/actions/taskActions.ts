@@ -6,7 +6,14 @@
  */
 
 import { writable, derived, get } from "svelte/store";
-import type { Memo, MemoType, LocationPreference, ImportanceLevel, RecurrenceGoal, MemoStatus } from "../../types.js";
+import type {
+  Memo,
+  MemoType,
+  LocationPreference,
+  ImportanceLevel,
+  RecurrenceGoal,
+  MemoStatus,
+} from "../../types.js";
 import {
   taskForm,
   taskFormActions,
@@ -43,7 +50,10 @@ export function isTaskEnriching(taskId: string): boolean {
 /**
  * Derived store: is any task being enriched?
  */
-export const hasEnrichingTasks = derived(enrichingTaskIds, ($ids) => $ids.size > 0);
+export const hasEnrichingTasks = derived(
+  enrichingTaskIds,
+  ($ids) => $ids.size > 0,
+);
 
 // ============================================================================
 // Helper Functions
@@ -98,7 +108,10 @@ function createMemoFromForm(formData: TaskFormData): Memo {
 /**
  * Validate form data
  */
-function validateTaskForm(formData: TaskFormData): { isValid: boolean; errors: TaskFormErrors } {
+function validateTaskForm(formData: TaskFormData): {
+  isValid: boolean;
+  errors: TaskFormErrors;
+} {
   const errors: TaskFormErrors = {};
 
   // Title is required
@@ -226,7 +239,9 @@ export const taskActions = {
 
       return newMemo;
     } catch (error: any) {
-      taskFormActions.setGeneralError(error.message || "タスクの作成に失敗しました");
+      taskFormActions.setGeneralError(
+        error.message || "タスクの作成に失敗しました",
+      );
       return null;
     } finally {
       taskFormActions.setSubmitting(false);
@@ -262,7 +277,9 @@ export const taskActions = {
       let updatedMemo: Memo | null = null;
 
       tasks.update((currentTasks) => {
-        const index = currentTasks.findIndex((t) => t.id === formData.editingId);
+        const index = currentTasks.findIndex(
+          (t) => t.id === formData.editingId,
+        );
         if (index === -1) return currentTasks;
 
         const existing = currentTasks[index];
@@ -278,7 +295,10 @@ export const taskActions = {
               : undefined,
           recurrenceGoal:
             formData.type === "ルーティン"
-              ? { count: formData.recurrenceCount, period: formData.recurrencePeriod }
+              ? {
+                  count: formData.recurrenceCount,
+                  period: formData.recurrencePeriod,
+                }
               : undefined,
           locationPreference: formData.locationPreference,
           importance: formData.importance || undefined,
@@ -300,7 +320,9 @@ export const taskActions = {
 
       return updatedMemo;
     } catch (error: any) {
-      taskFormActions.setGeneralError(error.message || "タスクの更新に失敗しました");
+      taskFormActions.setGeneralError(
+        error.message || "タスクの更新に失敗しました",
+      );
       return null;
     } finally {
       taskFormActions.setSubmitting(false);
@@ -418,4 +440,3 @@ export const taskActions = {
     taskFormActions.closeForm();
   },
 };
-

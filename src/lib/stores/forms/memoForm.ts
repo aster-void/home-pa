@@ -1,14 +1,14 @@
 /**
  * @fileoverview Memo Form Store
- * 
+ *
  * Manages the state of the memo creation/editing form.
  * This includes form fields, validation state, and form-specific UI state.
- * 
+ *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
-import { writable, derived } from 'svelte/store';
+import { writable, derived } from "svelte/store";
 // Temporary simple memo type (will be replaced with new Memo in Phase 4)
 interface SimpleMemo {
   id: string;
@@ -70,7 +70,7 @@ export const isSubmitting = writable<boolean>(false);
  */
 export const hasFormContent = derived(
   memoForm,
-  ($form) => $form.text.trim() !== ""
+  ($form) => $form.text.trim() !== "",
 );
 
 /**
@@ -79,37 +79,30 @@ export const hasFormContent = derived(
 export const isFormValid = derived(
   [memoForm, memoFormErrors],
   ([$form, $errors]) => {
-    return $form.text.trim() !== "" && 
-           Object.keys($errors).length === 0;
-  }
+    return $form.text.trim() !== "" && Object.keys($errors).length === 0;
+  },
 );
 
 /**
  * Whether the form is in editing mode
  */
-export const isEditing = derived(
-  memoForm,
-  ($form) => $form.isEditing
-);
+export const isEditing = derived(memoForm, ($form) => $form.isEditing);
 
 /**
  * Character count for the memo text
  */
-export const characterCount = derived(
-  memoForm,
-  ($form) => $form.text.length
-);
+export const characterCount = derived(memoForm, ($form) => $form.text.length);
 
 /**
  * Word count for the memo text
  */
-export const wordCount = derived(
-  memoForm,
-  ($form) => {
-    const words = $form.text.trim().split(/\s+/).filter(word => word.length > 0);
-    return words.length;
-  }
-);
+export const wordCount = derived(memoForm, ($form) => {
+  const words = $form.text
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
+  return words.length;
+});
 
 /**
  * Memo Form Actions
@@ -120,9 +113,9 @@ export const memoFormActions = {
    * Update the memo text
    */
   updateText(text: string): void {
-    memoForm.update(form => ({
+    memoForm.update((form) => ({
       ...form,
-      text
+      text,
     }));
   },
 
@@ -130,9 +123,9 @@ export const memoFormActions = {
    * Update multiple form fields at once
    */
   updateFields(updates: Partial<MemoFormData>): void {
-    memoForm.update(form => ({
+    memoForm.update((form) => ({
       ...form,
-      ...updates
+      ...updates,
     }));
   },
 
@@ -160,7 +153,7 @@ export const memoFormActions = {
    * Set form to create new memo mode
    */
   setCreateMode(): void {
-    memoForm.update(form => ({
+    memoForm.update((form) => ({
       ...form,
       isEditing: false,
       editingId: null,
@@ -171,9 +164,9 @@ export const memoFormActions = {
    * Set validation error for a field
    */
   setFieldError(field: keyof MemoFormErrors, error: string): void {
-    memoFormErrors.update(errors => ({
+    memoFormErrors.update((errors) => ({
       ...errors,
-      [field]: error
+      [field]: error,
     }));
   },
 
@@ -181,7 +174,7 @@ export const memoFormActions = {
    * Clear validation error for a field
    */
   clearFieldError(field: keyof MemoFormErrors): void {
-    memoFormErrors.update(errors => {
+    memoFormErrors.update((errors) => {
       const newErrors = { ...errors };
       delete newErrors[field];
       return newErrors;
@@ -199,9 +192,9 @@ export const memoFormActions = {
    * Set general error message
    */
   setGeneralError(message: string): void {
-    memoFormErrors.update(errors => ({
+    memoFormErrors.update((errors) => ({
       ...errors,
-      general: message
+      general: message,
     }));
   },
 
@@ -216,9 +209,9 @@ export const memoFormActions = {
    * Clear the memo text
    */
   clearText(): void {
-    memoForm.update(form => ({
+    memoForm.update((form) => ({
       ...form,
-      text: ""
+      text: "",
     }));
   },
 
@@ -226,9 +219,9 @@ export const memoFormActions = {
    * Append text to the memo
    */
   appendText(text: string): void {
-    memoForm.update(form => ({
+    memoForm.update((form) => ({
       ...form,
-      text: form.text + text
+      text: form.text + text,
     }));
   },
 
@@ -236,13 +229,13 @@ export const memoFormActions = {
    * Insert text at cursor position (if supported by component)
    */
   insertTextAtPosition(text: string, position: number): void {
-    memoForm.update(form => {
+    memoForm.update((form) => {
       const before = form.text.slice(0, position);
       const after = form.text.slice(position);
       return {
         ...form,
-        text: before + text + after
+        text: before + text + after,
       };
     });
-  }
+  },
 };

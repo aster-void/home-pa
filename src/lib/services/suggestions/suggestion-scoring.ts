@@ -1,14 +1,14 @@
 /**
  * @fileoverview Suggestion Scoring Module
- * 
+ *
  * Calculates need/importance/duration scores for each memo to produce Suggestions.
  * Core of the suggestion engine that determines what tasks to prioritize.
- * 
+ *
  * Need Score Ranges by Type:
  * - 期限付き (Deadline):  0.1 – 1.0+ (can become mandatory)
  * - ルーティン (Routine): 0.3 – 0.8 (never conflicts with deadlines)
  * - バックログ (Backlog): 0.25 – 0.7 (never conflicts with deadlines)
- * 
+ *
  * Design Principle:
  * - Routine/Backlog have HIGHER minimums → prioritized when no urgent deadlines
  * - Routine/Backlog have LOWER maximums → never override mandatory deadlines
@@ -16,7 +16,11 @@
  */
 
 import type { Memo, Suggestion, ImportanceLevel } from "../../types.js";
-import { resetPeriodIfNeeded, getPeriodProgress, isSameDay } from "./period-utils.js";
+import {
+  resetPeriodIfNeeded,
+  getPeriodProgress,
+  isSameDay,
+} from "./period-utils.js";
 
 // ============================================================================
 // TYPES
@@ -32,9 +36,9 @@ export interface ScoreInput {
 }
 
 export interface ScoreOutput {
-  need: number;       // 0.0–1.0+ (≥1.0 = mandatory)
+  need: number; // 0.0–1.0+ (≥1.0 = mandatory)
   importance: number; // 0.0–1.0
-  duration: number;   // Minutes
+  duration: number; // Minutes
 }
 
 // ============================================================================
@@ -45,14 +49,14 @@ const DAYS_IN_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Need score ranges by memo type
- * 
+ *
  * Higher minimums for Routine/Backlog = they get priority when no urgent deadlines
  * Lower maximums for Routine/Backlog = they never block mandatory deadlines
  */
 export const NEED_RANGES = {
-  deadline: { min: 0.1, max: 1.0 },   // Can exceed 1.0 when overdue
-  routine:  { min: 0.3, max: 0.8 },   // Higher floor, capped ceiling
-  backlog:  { min: 0.25, max: 0.7 },  // Higher floor, capped ceiling
+  deadline: { min: 0.1, max: 1.0 }, // Can exceed 1.0 when overdue
+  routine: { min: 0.3, max: 0.8 }, // Higher floor, capped ceiling
+  backlog: { min: 0.25, max: 0.7 }, // Higher floor, capped ceiling
 } as const;
 
 /** When need >= this value, task is mandatory */
@@ -69,12 +73,12 @@ const MAX_SESSION_MINUTES = 120;
 
 /**
  * Calculate need for 期限付き (Deadline) tasks
- * 
+ *
  * Uses gradient from creation date to deadline:
  * - At creation: need = 0.1 (MIN)
  * - At deadline: need = 1.0 (mandatory)
  * - Overdue: need > 1.0 (escalating)
- * 
+ *
  * Adjusts by remaining work - mostly done tasks have slightly reduced need
  */
 export function calculateDeadlineNeed(memo: Memo, currentTime: Date): number {
@@ -94,7 +98,8 @@ export function calculateDeadlineNeed(memo: Memo, currentTime: Date): number {
   const elapsedMs = now.getTime() - created.getTime();
 
   // Progress factor: more work remaining = higher need multiplier
-  const progressRatio = memo.status.timeSpentMinutes / (memo.totalDurationExpected || 60);
+  const progressRatio =
+    memo.status.timeSpentMinutes / (memo.totalDurationExpected || 60);
   const remainingWork = 1 - Math.min(progressRatio, 1);
 
   // Check if overdue
@@ -133,7 +138,7 @@ export function calculateDeadlineNeed(memo: Memo, currentTime: Date): number {
 
 /**
  * Calculate need for バックログ (Backlog) tasks
- * 
+ *
  * Based on time since last activity:
  * - Longer neglect = higher need
  * - Range: 0.25 (min) to 0.7 (max) — never conflicts with mandatory deadlines
@@ -146,7 +151,8 @@ export function calculateBacklogNeed(memo: Memo, currentTime: Date): number {
   const lastActivity = memo.lastActivity ? new Date(memo.lastActivity) : null;
 
   // Progress factor: more work remaining = higher need multiplier
-  const progressRatio = memo.status.timeSpentMinutes / (memo.totalDurationExpected || 60);
+  const progressRatio =
+    memo.status.timeSpentMinutes / (memo.totalDurationExpected || 60);
   const remainingWork = 1 - Math.min(progressRatio, 1);
 
   // If never worked on, use high-end of range
@@ -154,7 +160,8 @@ export function calculateBacklogNeed(memo: Memo, currentTime: Date): number {
     return min + range * 0.8 * remainingWork; // ~0.61 if no progress
   }
 
-  const daysSinceActivity = (currentTime.getTime() - lastActivity.getTime()) / DAYS_IN_MS;
+  const daysSinceActivity =
+    (currentTime.getTime() - lastActivity.getTime()) / DAYS_IN_MS;
 
   // Neglect factor: 0.0 (just worked on) to 1.0 (very neglected)
   let neglectFactor: number;
@@ -182,7 +189,7 @@ export function calculateBacklogNeed(memo: Memo, currentTime: Date): number {
 
 /**
  * Calculate need for ルーティン (Routine) tasks
- * 
+ *
  * Based on recurrence goal fulfillment:
  * - { count: 3, period: "week" } with 1 done = behind schedule
  * - Range: 0.3 (min) to 0.8 (max) — never conflicts with mandatory deadlines
@@ -213,7 +220,8 @@ export function calculateRoutineNeed(memo: Memo, currentTime: Date): number {
 
   // Urgency factor: how behind schedule are we?
   // 1.0 = on track, >1.0 = behind schedule
-  const urgencyFactor = completionsNeededRatio / Math.max(timeRemainingRatio, 0.1);
+  const urgencyFactor =
+    completionsNeededRatio / Math.max(timeRemainingRatio, 0.1);
 
   // Map urgency to need within our range
   // urgencyFactor 0.5 (ahead) → low end of range
@@ -295,18 +303,22 @@ export function clamp(value: number, min: number, max: number): number {
 
 /**
  * Select session duration for a memo
- * 
+ *
  * Priority:
  * 1. Use explicit sessionDuration if set
  * 2. Fallback: totalDurationExpected / 4
  * 3. Default: 30 minutes
- * 
+ *
  * Always clamped to 15-120 minutes
  */
 export function selectDuration(memo: Memo): number {
   // Use explicit session duration if set
   if (memo.sessionDuration && memo.sessionDuration > 0) {
-    return clamp(memo.sessionDuration, MIN_SESSION_MINUTES, MAX_SESSION_MINUTES);
+    return clamp(
+      memo.sessionDuration,
+      MIN_SESSION_MINUTES,
+      MAX_SESSION_MINUTES,
+    );
   }
 
   // Fallback: estimate from total expected
@@ -359,7 +371,10 @@ export function memoToSuggestion(memo: Memo, score: ScoreOutput): Suggestion {
  * Score a memo and immediately convert to Suggestion
  * Convenience function combining scoreMemo + memoToSuggestion
  */
-export function createSuggestionFromMemo(memo: Memo, currentTime: Date): Suggestion {
+export function createSuggestionFromMemo(
+  memo: Memo,
+  currentTime: Date,
+): Suggestion {
   const score = scoreMemo({ memo, currentTime });
   return memoToSuggestion(memo, score);
 }
@@ -378,4 +393,3 @@ export function isMandatory(suggestion: Suggestion): boolean {
 export function calculatePriority(suggestion: Suggestion): number {
   return suggestion.need * suggestion.importance;
 }
-
