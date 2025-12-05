@@ -2,14 +2,17 @@
  * @fileoverview Svelte stores for reactive data management
  *
  * This module provides centralized state management for the personal assistant application.
- * It includes stores for events, memos, suggestion logs, and derived computed values.
+ * It includes stores for memos, suggestion logs, and derived computed values.
+ * 
+ * NOTE: Calendar events have been migrated to `calendar.ts` which uses
+ * the iCalendar-backed API for persistent storage.
  *
  * @author Personal Assistant Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 
-import { writable, derived } from "svelte/store";
-import type { Event, SuggestionLog } from "../types.js";
+import { writable } from "svelte/store";
+import type { SuggestionLog } from "../types.js";
 
 // Temporary simple memo type (will be replaced with new Memo in Phase 4)
 interface SimpleMemo {
@@ -22,9 +25,6 @@ import { toasts } from "./toast.js";
 /**
  * Core application data stores
  */
-/** @type {import('svelte/store').Writable<Event[]>} Calendar events store */
-export const events = writable<Event[]>([]);
-
 /** @type {import('svelte/store').Writable<Memo[]>} Memos store */
 export const memos = writable<Memo[]>([]);
 
@@ -33,18 +33,6 @@ export const suggestionLogs = writable<SuggestionLog[]>([]);
 
 /** @type {import('svelte/store').Writable<Date>} Currently selected date store */
 export const selectedDate = writable<Date>(new Date());
-
-/**
- * Helper function to create a new event with generated ID
- * @param event - Event data without ID
- * @returns Event with generated UUID
- */
-function createEvent(event: Omit<Event, "id">): Event {
-  return {
-    ...event,
-    id: crypto.randomUUID(),
-  };
-}
 
 /**
  * Helper function to create a new memo with generated ID
@@ -69,92 +57,6 @@ function createSuggestionLog(log: Omit<SuggestionLog, "id">): SuggestionLog {
     id: crypto.randomUUID(),
   };
 }
-
-/**
- * Helper function to sort events by start time (ascending)
- * @param eventsList - Array of events to sort
- * @returns New sorted array of events
- */
-function sortEvents(eventsList: Event[]): Event[] {
-  return [...eventsList].sort((a, b) => a.start.getTime() - b.start.getTime());
-}
-
-/**
- * Event management operations
- * Provides CRUD operations for calendar events with automatic sorting
- */
-export const eventOperations = {
-  create(event: Omit<Event, "id">): Event {
-    const newEvent = createEvent(event);
-    events.update((currentEvents) => sortEvents([...currentEvents, newEvent]));
-    toasts.show("Event created successfully", "success");
-    return newEvent;
-  },
-
-  update(id: string, updates: Partial<Omit<Event, "id">>): Event | null {
-    let updatedEvent: Event | null = null;
-
-    events.update((currentEvents) => {
-      const index = currentEvents.findIndex((e) => e.id === id);
-      if (index === -1) return currentEvents;
-
-      updatedEvent = { ...currentEvents[index], ...updates };
-      const newEvents = [...currentEvents];
-      newEvents[index] = updatedEvent;
-      return sortEvents(newEvents);
-    });
-
-    if (updatedEvent) {
-      toasts.show("Event updated successfully", "success");
-    }
-
-    return updatedEvent;
-  },
-
-  delete(id: string): boolean {
-    let deleted = false;
-
-    events.update((currentEvents) => {
-      const index = currentEvents.findIndex((e) => e.id === id);
-      if (index === -1) return currentEvents;
-
-      deleted = true;
-      const newEvents = [...currentEvents];
-      newEvents.splice(index, 1);
-      return newEvents;
-    });
-
-    if (deleted) {
-      toasts.show("Event deleted", "success");
-    }
-
-    return deleted;
-  },
-
-  getEventsForDate(date: Date): Event[] {
-    let eventsForDate: Event[] = [];
-
-    events.subscribe((currentEvents) => {
-      eventsForDate = currentEvents.filter((event) => {
-        const eventDate = new Date(event.start);
-        return eventDate.toDateString() === date.toDateString();
-      });
-    })();
-
-    return eventsForDate;
-  },
-
-  getNextEventAfter(time: Date): Event | null {
-    let nextEvent: Event | null = null;
-
-    events.subscribe((currentEvents) => {
-      const futureEvents = currentEvents.filter((event) => event.start > time);
-      nextEvent = futureEvents.length > 0 ? futureEvents[0] : null;
-    })();
-
-    return nextEvent;
-  },
-};
 
 /**
  * Memo management operations
@@ -222,30 +124,12 @@ export const suggestionLogOperations = {
 };
 
 /**
- * Derived stores for computed values
- */
-
-/**
- * Events filtered for the currently selected date
- * Automatically updates when events or selectedDate changes
- */
-export const todaysEvents = derived(
-  [events, selectedDate],
-  ([$events, $selectedDate]) => {
-    return $events.filter((event) => {
-      const eventDate = new Date(event.start);
-      return eventDate.toDateString() === $selectedDate.toDateString();
-    });
-  },
-);
-
-/**
- * Utility function to clear all application data
+ * Utility function to clear all application data (memos and suggestion logs)
+ * For events, use calendarActions from calendar.ts
  * Primarily used for testing and development
- * @warning This will permanently delete all user data
+ * @warning This will permanently delete all local user data
  */
 export function clearAllData(): void {
-  events.set([]);
   memos.set([]);
   suggestionLogs.set([]);
 }

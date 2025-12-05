@@ -16,11 +16,11 @@ type Memo = SimpleMemo;
 type Suggestion = SimpleSuggestion;
 import { writable, type Writable, get } from "svelte/store";
 import {
-  eventOperations,
   memoOperations,
   suggestionLogOperations,
   selectedDate,
 } from "../stores/data.js";
+import { calendarActions } from "../stores/calendar.js";
 import { suggestionService } from "../services/suggestion.js";
 import {
   utcToLocalDateTimeString,
@@ -43,7 +43,8 @@ export class AppController {
 
   // Store operations (components will access stores directly)
   getEvents() {
-    return eventOperations;
+    // Events are now managed via calendarActions from calendar.ts
+    return calendarActions;
   }
 
   getMemos() {

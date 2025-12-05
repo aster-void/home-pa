@@ -2,8 +2,11 @@
   import { onMount } from "svelte";
   import type { Event, Recurrence } from "../types.js";
   import {
-    events,
-    eventOperations,
+    calendarEvents,
+    calendarOccurrences,
+    calendarLoading,
+    calendarError,
+    calendarActions,
     selectedDate,
     currentView,
     viewMode,
@@ -14,12 +17,7 @@
     eventFormErrors,
     eventActions,
     uiActions,
-    recurrenceStore,
-    loadOccurrences,
-    getOccurrencesForDate,
-    isForeverRecurring,
-    foreverRecurringEvents,
-    type RecurrenceOccurrence,
+    type ExpandedOccurrence,
   } from "../stores/index.js";
   import {
     localDateStringToUTC,
@@ -199,13 +197,14 @@
       currentMonth.getMonth() + 4,
       0,
     );
-    loadOccurrences($events, windowStart, windowEnd);
+    // Fetch events with automatic occurrence expansion
+    calendarActions.fetchEvents(windowStart, windowEnd, true);
   });
 
   // Reload occurrences when events change or month changes
   $effect(() => {
-    // Access $events synchronously to ensure reactivity tracking
-    const currentEvents = $events;
+    // Access $calendarEvents synchronously to ensure reactivity tracking
+    const currentEvents = $calendarEvents;
     const windowStart = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth() - 3,
@@ -219,7 +218,8 @@
 
     // Debounce to avoid excessive reloads (200ms for better performance)
     const timeout = setTimeout(() => {
-      loadOccurrences(currentEvents, windowStart, windowEnd);
+      // Fetch events with automatic occurrence expansion
+      calendarActions.fetchEvents(windowStart, windowEnd, true);
     }, 200);
 
     return () => clearTimeout(timeout);
@@ -256,11 +256,17 @@
 
         // Debounce to avoid excessive reloads during typing
         const timeout = setTimeout(() => {
-          // Temporarily replace the event in the events array for preview
-          const eventsWithPreview = $events.map((e) =>
+          // For preview, manually expand occurrences with the temporary event
+          const eventsWithPreview = $calendarEvents.map((e) =>
             e.id === currentForm.editingId ? tempEvent : e,
           );
-          loadOccurrences(eventsWithPreview, windowStart, windowEnd);
+          // Use the calendar store's expand function for preview
+          const previewOccurrences = calendarActions.expandRecurringEvents(
+            eventsWithPreview,
+            windowStart,
+            windowEnd
+          );
+          // Note: This is just for preview - the actual store won't update until save
         }, 200);
 
         return () => clearTimeout(timeout);
@@ -270,44 +276,40 @@
 
   // Combine regular events with recurring occurrences for display
   let allDisplayEvents = $derived.by(() => {
-    const regularEvents = $events.filter(
+    const regularEvents = $calendarEvents.filter(
       (e) => !e.recurrence || e.recurrence.type === "NONE",
     );
 
     // Filter occurrences to only include those for events that are still recurring
     const recurringEventIds = new Set(
-      $events
+      $calendarEvents
         .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
         .map((e) => e.id),
     );
 
-    const occurrences = $recurrenceStore.occurrences
-      .filter((occ) => recurringEventIds.has(occ.eventId))
+    const occurrences = $calendarOccurrences
+      .filter((occ) => recurringEventIds.has(occ.masterEventId))
       .map(
-        (occ: RecurrenceOccurrence) =>
+        (occ: ExpandedOccurrence) =>
           ({
             id: occ.id, // Use unique occurrence ID, not the master event ID
-            eventId: occ.eventId, // Keep reference to master event ID
+            eventId: occ.masterEventId, // Keep reference to master event ID
             title: occ.title,
-            start: occ.startUtc,
-            end: occ.endUtc,
+            start: occ.start,
+            end: occ.end,
             description: occ.description,
-            address: occ.address,
+            address: occ.location,
             importance: occ.importance,
             timeLabel: occ.timeLabel,
             isRecurring: true,
-            originalEventId: occ.eventId,
+            originalEventId: occ.masterEventId,
             // New sliding window fields
-            recurrenceGroupId: occ.recurrenceGroupId,
             isForever: occ.isForever,
-            isDuplicate: occ.isDuplicate,
           }) as Event & {
             eventId: string;
             isRecurring: boolean;
             originalEventId: string;
-            recurrenceGroupId?: string;
             isForever?: boolean;
-            isDuplicate?: boolean;
           },
       );
 
@@ -319,7 +321,7 @@
         occurrences: occurrences.length,
         total: regularEvents.length + occurrences.length,
         recurringEventIds: Array.from(recurringEventIds),
-        recurrenceStore: $recurrenceStore,
+        calendarOccurrences: $calendarOccurrences.length,
       });
     }
 
@@ -330,7 +332,7 @@
 
   // Get forever recurring events for special handling
   let foreverEvents = $derived.by(() => {
-    return $foreverRecurringEvents;
+    return $calendarOccurrences.filter((occ) => occ.isForever);
   });
 
   // Debug info
@@ -1021,14 +1023,14 @@
         >
           {showDebugInfo ? "Hide" : "Show"} Debug
         </button>
-        {#if $recurrenceStore.loading}
+        {#if $calendarLoading}
           <div class="recurrence-loading">
             <span class="loading-spinner"></span>
             <span class="loading-text">Loading recurring events...</span>
           </div>
         {/if}
-        {#if $recurrenceStore.error}
-          <div class="recurrence-error" title={$recurrenceStore.error}>
+        {#if $calendarError}
+          <div class="recurrence-error" title={$calendarError}>
             ⚠️ Recurring events unavailable
           </div>
         {/if}
@@ -1056,7 +1058,7 @@
           </div>
           <div class="debug-stat">
             <strong>Total Events:</strong>
-            {$events.length}
+            {$calendarEvents.length}
           </div>
           <div class="debug-stat">
             <strong>Display Events:</strong>
@@ -1067,8 +1069,8 @@
             {foreverEvents.length}
           </div>
           <div class="debug-stat">
-            <strong>Recurrence Store:</strong>
-            Loading: {$recurrenceStore.loading ? "Yes" : "No"}, Error: {$recurrenceStore.error ||
+            <strong>Calendar Store:</strong>
+            Loading: {$calendarLoading ? "Yes" : "No"}, Error: {$calendarError ||
               "None"}
           </div>
         </div>
@@ -1080,7 +1082,7 @@
                 <li>
                   {event.title}
                   <span class="forever-indicator">∞</span>
-                  (Group: {event.recurrenceGroupId})
+                  (Master ID: {(event as any).eventId || event.id})
                 </li>
               {/each}
             </ul>
@@ -1165,8 +1167,8 @@
         <div class="events-list">
           {#each getFullEventsForDate(allDisplayEvents, $selectedDate) as event (event.id)}
             {#snippet eventContent()}
-              {#if $events.find((e) => e.id === (event as any).eventId || e.id === event.id)}
-                {@const masterEvent = $events.find(
+              {#if $calendarEvents.find((e) => e.id === (event as any).eventId || e.id === event.id)}
+                {@const masterEvent = $calendarEvents.find(
                   (e) => e.id === (event as any).eventId || e.id === event.id,
                 )!}
                 <div class="event-content">
@@ -1268,7 +1270,7 @@
               class="event-item"
               onclick={() => {
                 const masterEvent =
-                  $events.find(
+                  $calendarEvents.find(
                     (e) => e.id === (event as any).eventId || e.id === event.id,
                   ) || event;
                 eventActions.editEvent(masterEvent);
@@ -1277,7 +1279,7 @@
               onkeydown={(e) => {
                 if (e.key === "Enter") {
                   const masterEvent =
-                    $events.find(
+                    $calendarEvents.find(
                       (evt) =>
                         evt.id === (event as any).eventId ||
                         evt.id === event.id,
@@ -1295,7 +1297,7 @@
                   onclick={(e) => {
                     e.stopPropagation();
                     const masterEvent =
-                      $events.find(
+                      $calendarEvents.find(
                         (evt) =>
                           evt.id === (event as any).eventId ||
                           evt.id === event.id,
@@ -1372,7 +1374,7 @@
                         onclick={() => {
                           // Find master event if this is a recurring occurrence
                           const masterEvent =
-                            $events.find(
+                            $calendarEvents.find(
                               (e) =>
                                 e.id === (event as any).eventId ||
                                 e.id === event.id,
@@ -1383,7 +1385,7 @@
                         onkeydown={(e) => {
                           if (e.key === "Enter") {
                             const masterEvent =
-                              $events.find(
+                              $calendarEvents.find(
                                 (evt) =>
                                   evt.id === (event as any).eventId ||
                                   evt.id === event.id,

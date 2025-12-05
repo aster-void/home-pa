@@ -10,13 +10,10 @@
 
 // Core data stores
 export {
-  events,
   memos,
   selectedDate,
-  eventOperations,
   memoOperations,
   suggestionLogOperations,
-  todaysEvents,
   clearAllData,
 } from "./data.js";
 
@@ -28,21 +25,6 @@ export {
   gapStats,
   dayBoundaryActions,
 } from "./gaps.js";
-
-export {
-  recurrenceStore,
-  reactiveOccurrences,
-  todaysOccurrences,
-  getDisplayEventsForDate,
-  displayEvents,
-  eventsForSelectedDate,
-  loadOccurrences,
-  getOccurrencesForDate,
-  isForeverRecurring,
-  foreverRecurringEvents,
-  type RecurrenceOccurrence,
-  type RecurrenceState,
-} from "./recurrence.store.js";
 
 export { toasts } from "./toast.js";
 export { formatDate, formatDateTime } from "../utils/date-utils.js";
@@ -132,6 +114,17 @@ export type { TaskFormData, TaskFormErrors } from "./forms/taskForm.js";
 
 // Timezone
 export { timezone, timezoneActions, timezoneLabel } from "./timezone.js";
+
+// Calendar store (iCalendar-based)
+export {
+  calendarStore,
+  calendarEvents,
+  calendarOccurrences,
+  calendarLoading,
+  calendarError,
+  calendarActions,
+  type ExpandedOccurrence,
+} from "./calendar.js";
 
 // Devtools
 export { devtools, devtoolsEnabled } from "./devtools.js";

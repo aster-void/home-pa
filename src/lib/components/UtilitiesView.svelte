@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { TransitCard } from "./util_components/index.js";
 </script>
 
 <div class="utilities-view">
@@ -11,11 +10,6 @@
   </div>
 
   <div class="utilities-content">
-    <!-- Transit Card -->
-    <div class="utility-section">
-      <TransitCard />
-    </div>
-
     <!-- Future utility components will be added here -->
     <div class="coming-soon">
       <div class="coming-soon-icon">🔧</div>
@@ -78,9 +72,6 @@
     gap: var(--space-lg);
   }
 
-  .utility-section {
-    flex-shrink: 0;
-  }
 
   .coming-soon {
     text-align: center;

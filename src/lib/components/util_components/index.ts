@@ -1,6 +1,6 @@
 // Utility Components
-export { default as TransitCard } from "./TransitCard.svelte";
 export { default as BaseCard } from "./BaseCard.svelte";
+export { default as UserSettings } from "./UserSettings.svelte";
 
 // Future utility components can be added here:
 // export { default as WeatherCard } from './WeatherCard.svelte';

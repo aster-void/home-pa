@@ -10,7 +10,8 @@
 
 import { get } from "svelte/store";
 import type { Event } from "../../types.js";
-import { eventOperations, selectedDate } from "../data.js";
+import { selectedDate } from "../data.js";
+import { calendarActions } from "../calendar.js";
 import {
   eventForm,
   eventFormActions,
@@ -76,8 +77,8 @@ export const eventActions = {
         endMs: endDate.getTime(),
       });
 
-      // Create the event
-      const newEvent = eventOperations.create({
+      // Create the event via API
+      const newEvent = await calendarActions.createEvent({
         title: formData.title.trim(),
         start: startDate,
         end: endDate,
@@ -87,6 +88,10 @@ export const eventActions = {
         timeLabel: formData.timeLabel || "all-day",
         recurrence: formData.recurrence,
       });
+      
+      if (!newEvent) {
+        throw new Error("Failed to create event");
+      }
 
       // Reset form and hide it
       eventFormActions.resetForm();
@@ -141,8 +146,8 @@ export const eventActions = {
       // Create UTC dates for storage based on time label
       const { startDate, endDate } = createEventDates(formData);
 
-      // Update the event
-      const updatedEvent = eventOperations.update(formData.editingId, {
+      // Update the event via API
+      const success = await calendarActions.updateEvent(formData.editingId, {
         title: formData.title.trim(),
         start: startDate,
         end: endDate,
@@ -153,8 +158,18 @@ export const eventActions = {
         recurrence: formData.recurrence,
       });
 
-      if (!updatedEvent) {
+      if (!success) {
         eventFormActions.setGeneralError("Event not found");
+        return null;
+      }
+      
+      // Fetch the updated event from the store
+      const { calendarEvents } = await import("../calendar.js");
+      const events = get(calendarEvents);
+      const updatedEvent = events.find(e => e.id === formData.editingId);
+      
+      if (!updatedEvent) {
+        eventFormActions.setGeneralError("Event not found after update");
         return null;
       }
 
@@ -181,7 +196,7 @@ export const eventActions = {
    */
   async delete(eventId: string): Promise<boolean> {
     try {
-      const deleted = eventOperations.delete(eventId);
+      const deleted = await calendarActions.deleteEvent(eventId);
 
       if (deleted) {
         toasts.show("Event deleted", "success");

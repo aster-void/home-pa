@@ -1,0 +1,8 @@
+# 環境ファイル
+.env
+.env.local
+.env.*.local
+
+# 秘密鍵
+*.pem
+*.key

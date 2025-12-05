@@ -1,8 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createEventDispatcher } from "svelte";
-  import { events, selectedDate } from "../../stores/data.js";
+  import { selectedDate } from "../../stores/data.js";
+  import { calendarEvents, calendarOccurrences } from "../../stores/calendar.js";
   import type { Event as MyEvent } from "../../types.js";
+  import type { ExpandedOccurrence } from "../../stores/calendar.js";
 
   // props using Svelte 5 runes
   interface Props {
@@ -30,13 +32,45 @@
     gapSelected: any;
   }>();
 
-  // Subscribe to all events; per-day selection handled in normalize like CalendarView
-  let allEvents = $state<MyEvent[]>([]);
-  const unsubEvents = events.subscribe((v) => (allEvents = v));
+  // Subscribe to master events and expanded occurrences
+  let masterEvents = $state<MyEvent[]>([]);
+  let occurrences = $state<ExpandedOccurrence[]>([]);
+  const unsubEvents = calendarEvents.subscribe((v: MyEvent[]) => (masterEvents = v));
+  const unsubOccurrences = calendarOccurrences.subscribe((v: ExpandedOccurrence[]) => (occurrences = v));
+  
   // Track selected date locally for normalization
   let selectedDateCurrent = $state(new Date());
   const unsubSelected = selectedDate.subscribe((d) => {
     selectedDateCurrent = new Date(d);
+  });
+
+  // Combine regular events (non-recurring) with expanded occurrences
+  // This mirrors the logic in CalendarView.svelte
+  let allEvents = $derived.by(() => {
+    // Non-recurring events
+    const regularEvents = masterEvents.filter(e => !e.recurrence || e.recurrence.type === "NONE");
+    
+    // Get IDs of recurring events
+    const recurringEventIds = new Set(masterEvents
+      .filter(e => e.recurrence && e.recurrence.type !== "NONE")
+      .map(e => e.id)
+    );
+    
+    // Convert occurrences to Event format
+    const occurrenceEvents: MyEvent[] = occurrences
+      .filter(occ => recurringEventIds.has(occ.masterEventId))
+      .map(occ => ({
+        id: occ.id,
+        title: occ.title,
+        start: occ.start,
+        end: occ.end,
+        description: occ.description,
+        address: occ.location,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel as 'all-day' | 'timed' | 'some-timing',
+      }));
+    
+    return [...regularEvents, ...occurrenceEvents];
   });
 
   // Full circle: 360 degrees, centered
@@ -81,6 +115,24 @@
       day: "numeric",
       year: "numeric",
     });
+  }
+
+  /**
+   * Get the effective end date for display purposes.
+   * For all-day events, iCal uses exclusive DTEND (day after the event ends).
+   * This function converts it back to inclusive for internal display logic.
+   */
+  function getEffectiveEndDate(event: MyEvent): Date {
+    const eventEnd = new Date(event.end);
+    // All-day events with midnight end time use exclusive DTEND per iCal standard
+    if (event.timeLabel === 'all-day' && 
+        eventEnd.getHours() === 0 && 
+        eventEnd.getMinutes() === 0 && 
+        eventEnd.getSeconds() === 0) {
+      // Subtract 1ms to make it inclusive (end of previous day)
+      return new Date(eventEnd.getTime() - 1);
+    }
+    return eventEnd;
   }
 
   // Normalized angle delta (0..2π) for SVG arc calculations
@@ -174,7 +226,7 @@
     const truncated = list
       .filter((ev) => {
         const s = new Date(ev.start).getTime();
-        const e = new Date(ev.end).getTime();
+        const e = getEffectiveEndDate(ev).getTime();  // Use helper for iCal-compliant end dates
         return s <= de && e >= ds;
       })
       .map((ev) => {
@@ -299,6 +351,7 @@
         resizeObserver.unobserve(containerElement);
       clearInterval(interval);
       unsubEvents();
+      unsubOccurrences();
       unsubSelected();
     };
   });

@@ -23,7 +23,7 @@ import {
   type TaskFormErrors,
 } from "../forms/taskForm.js";
 import { toasts } from "../toast.js";
-import { enrichMemo } from "../../services/suggestions/llm-enrichment.js";
+import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.js";
 
 // ============================================================================
 // Tasks Store (Rich Memos)
@@ -99,7 +99,8 @@ function createMemoFromForm(formData: TaskFormData): Memo {
     recurrenceGoal,
     locationPreference: formData.locationPreference,
     status,
-    importance: formData.importance || undefined,
+    // Preserve importance if set (empty string becomes undefined, but valid values are preserved)
+    importance: formData.importance && formData.importance !== "" ? (formData.importance as ImportanceLevel) : undefined,
     // LLM will fill these later:
     // genre, sessionDuration, totalDurationExpected
   };
@@ -158,7 +159,7 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
   });
 
   try {
-    // Get the task from store
+    // Get the task from store (get fresh copy to ensure we have latest values)
     const currentTasks = get(tasks);
     const task = currentTasks.find((t) => t.id === taskId);
     if (!task) {
@@ -166,8 +167,32 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
       return;
     }
 
-    // Call LLM enrichment
-    const enrichedTask = await enrichMemo(task);
+    // Call LLM enrichment via API
+    const enrichment = await enrichMemoViaAPI(task);
+
+    // Edge case: If enrichment is undefined/null, use fallback
+    if (!enrichment) {
+      console.warn(`[Enrichment] Received undefined enrichment for task ${taskId}, skipping update`);
+      return;
+    }
+
+    // Get fresh task copy again (in case it was updated while enrichment was running)
+    const latestTasks = get(tasks);
+    const latestTask = latestTasks.find((t) => t.id === taskId);
+    if (!latestTask) {
+      console.warn(`[Enrichment] Task ${taskId} was deleted during enrichment`);
+      return;
+    }
+
+    // Apply enrichment to task (only fill missing fields)
+    // Use latestTask to preserve any changes that happened during enrichment
+    const enrichedTask: Memo = {
+      ...latestTask,
+      genre: latestTask.genre ?? enrichment.genre,
+      importance: latestTask.importance ?? enrichment.importance,
+      sessionDuration: latestTask.sessionDuration ?? enrichment.sessionDuration,
+      totalDurationExpected: latestTask.totalDurationExpected ?? enrichment.totalDurationExpected,
+    };
 
     // Update task in store with enriched data
     tasks.update((currentTasks) => {
@@ -301,7 +326,7 @@ export const taskActions = {
                 }
               : undefined,
           locationPreference: formData.locationPreference,
-          importance: formData.importance || undefined,
+          importance: formData.importance && formData.importance !== "" ? (formData.importance as ImportanceLevel) : undefined,
         };
 
         const newTasks = [...currentTasks];

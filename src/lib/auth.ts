@@ -13,4 +13,7 @@ export const auth = betterAuth({
   // Only use BETTER_AUTH_URL in production
   ...(dev ? {} : { baseURL: process.env.BETTER_AUTH_URL }),
   plugins: [bearer(), sveltekitCookies(getRequestEvent)],
+  emailAndPassword: {
+    enabled: true,
+  },
 });

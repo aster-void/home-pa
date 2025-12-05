@@ -4,6 +4,7 @@
 - Always push to `fork dev` branch by default: `git push fork dev`
 - Use `fork` remote for personal development work
 - Use `origin` remote only when specifically requested
+- Add debugs
 
 ## Project Context
 - This is a SvelteKit + Prisma (MongoDB) + better-auth project

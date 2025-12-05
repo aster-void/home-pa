@@ -1,5 +1,5 @@
 // Suggestion service for gap time detection and proposal
-import type { SuggestionLog, Gap } from "../types.js";
+import type { SuggestionLog, Gap, Event } from "../types.js";
 
 // Temporary type (will be replaced in Phase 4)
 interface SimpleSuggestion {
@@ -11,10 +11,11 @@ interface SimpleSuggestion {
 type Suggestion = SimpleSuggestion;
 import { get } from "svelte/store";
 import {
-  events,
   suggestionLogs,
   suggestionLogOperations,
 } from "../stores/data.js";
+import { calendarEvents, calendarOccurrences } from "../stores/calendar.js";
+import type { ExpandedOccurrence } from "../stores/calendar.js";
 
 export class SuggestionService {
   private readonly GAP_THRESHOLD_MINUTES = 15; // Minimum gap to show suggestion
@@ -97,12 +98,40 @@ export class SuggestionService {
    * Check for gap time and generate suggestion if applicable
    */
   checkForSuggestion(currentTime: Date = new Date()): Suggestion | null {
-    // Get current events from store synchronously
-    const currentEvents = get(events);
-
-    const futureEvents = currentEvents.filter(
-      (event) => event.start > currentTime,
+    // Get master events and occurrences
+    const masterEvents = get(calendarEvents);
+    const occurrences = get(calendarOccurrences);
+    
+    // Combine regular events (non-recurring) with expanded occurrences
+    const recurringEventIds = new Set(masterEvents
+      .filter(e => e.recurrence && e.recurrence.type !== "NONE")
+      .map(e => e.id)
     );
+    
+    // Convert occurrences to Event format
+    const occurrenceEvents: Event[] = occurrences
+      .filter(occ => recurringEventIds.has(occ.masterEventId))
+      .map(occ => ({
+        id: occ.id,
+        title: occ.title,
+        start: occ.start,
+        end: occ.end,
+        description: occ.description,
+        address: occ.location,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel as 'all-day' | 'timed' | 'some-timing',
+      }));
+    
+    // Combine all events
+    const allEvents: Event[] = [
+      ...masterEvents.filter(e => !e.recurrence || e.recurrence.type === "NONE"),
+      ...occurrenceEvents
+    ];
+
+    // Sort by start time and find next event
+    const futureEvents = allEvents
+      .filter((event) => event.start > currentTime)
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
     const nextEvent = futureEvents.length > 0 ? futureEvents[0] : null;
 
     let gapMinutes: number;

@@ -13,7 +13,7 @@ import { writable, derived } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.js";
 import { GapFinder } from "../services/gap-finder.js";
 import { selectedDate } from "./data.js";
-import { eventsForSelectedDate } from "./recurrence.store.js";
+import { calendarOccurrences } from "./calendar.js";
 import type { Event as CalendarEvent } from "../types.js";
 import {
   enrichGapsWithLocation,
@@ -37,7 +37,7 @@ export const dayBoundaries = writable<DayBoundaries>({
  * @returns Gap-finder event or null if not applicable to target date
  */
 function convertCalendarEventToGapEvent(
-  calendarEvent: CalendarEvent,
+  calendarEvent: CalendarEvent | { start: Date; end: Date; id: string; title: string; timeLabel?: string },
   targetDate: Date,
 ): Event | null {
   const eventStartDate = new Date(calendarEvent.start);
@@ -113,9 +113,16 @@ function convertCalendarEventToGapEvent(
  * Automatically converts and filters events when calendar or date changes
  */
 export const events = derived(
-  [eventsForSelectedDate, selectedDate],
-  ([$displayEvents, $selectedDate]) => {
-    return $displayEvents
+  [calendarOccurrences, selectedDate],
+  ([$occurrences, $selectedDate]) => {
+    // Filter occurrences for the selected date
+    const selectedDateStr = $selectedDate.toISOString().split('T')[0];
+    const eventsForDate = $occurrences.filter(occ => {
+      const occDateStr = occ.start.toISOString().split('T')[0];
+      return occDateStr === selectedDateStr;
+    });
+    
+    return eventsForDate
       .map((event: any) => convertCalendarEventToGapEvent(event, $selectedDate))
       .filter((event): event is Event => event !== null);
   },

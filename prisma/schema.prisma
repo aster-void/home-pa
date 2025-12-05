@@ -16,15 +16,16 @@ datasource db {
 // better-auth fields
 
 model User {
-  id            String    @id @map("_id")
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id             String          @id @map("_id")
+  name           String
+  email          String
+  emailVerified  Boolean         @default(false)
+  image          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  calendarEvents CalendarEvent[]
 
   @@unique([email])
   @@map("user")
@@ -73,4 +74,46 @@ model Verification {
   updatedAt  DateTime @default(now()) @updatedAt
 
   @@map("verification")
+}
+
+// iCalendar-based calendar events
+model CalendarEvent {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // iCalendar core fields (extracted for querying)
+  uid           String   @unique // iCal UID for deduplication
+  summary       String            // SUMMARY (title)
+  dtstart       DateTime          // Start time (UTC)
+  dtend         DateTime?         // End time (UTC, null for all-day single events)
+  dtstartTzid   String?           // Original timezone (IANA)
+  isAllDay      Boolean  @default(false)
+
+  // Full iCalendar data for round-trip fidelity
+  icalData      String            // Raw VEVENT component
+
+  // Recurrence fields (extracted for efficient queries)
+  rrule         String?           // RRULE string
+  hasRecurrence Boolean  @default(false)
+  recurrenceId  String?           // RECURRENCE-ID for exception instances
+  masterEventId String?  @db.ObjectId // Reference to master for exceptions
+
+  // Optional metadata
+  description   String?
+  location      String?
+  
+  // Sync metadata (for future CalDAV integration)
+  calendarId    String?           // External calendar ID
+  etag          String?           // For sync conflict detection
+  syncStatus    String   @default("local") // local | synced | modified | deleted
+  lastSyncedAt  DateTime?
+
+  // Housekeeping
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, dtstart])
+  @@index([userId, hasRecurrence])
+  @@map("calendar_event")
 }

@@ -35,7 +35,7 @@ export interface EnrichmentResult {
 export interface LLMEnrichmentConfig {
   /** Gemini API key (if not set, uses fallback) */
   apiKey?: string;
-  /** Model to use (default: gemini-1.5-flash) */
+  /** Model to use (default: gemini-2.5-flash-lite - most cost-effective) */
   model?: string;
   /** Max concurrent requests (default: 2) */
   maxConcurrent?: number;
@@ -71,7 +71,7 @@ const VALID_IMPORTANCE: ImportanceLevel[] = ["low", "medium", "high"];
 
 const DEFAULT_CONFIG: Required<LLMEnrichmentConfig> = {
   apiKey: "",
-  model: "gemini-1.5-flash",
+  model: "gemini-2.5-flash-lite", // Most cost-effective model
   maxConcurrent: 2,
   requestDelayMs: 500,
   enableCache: true,
@@ -474,6 +474,74 @@ export function getCacheStats(): { size: number; entries: string[] } {
     size: enrichmentCache.size,
     entries: Array.from(enrichmentCache.keys()),
   };
+}
+
+// ============================================================================
+// Client-Side API Integration
+// ============================================================================
+
+/**
+ * Enrich a memo via the server-side API endpoint
+ * 
+ * This is the browser-safe way to enrich memos. The API key stays on the server.
+ * Falls back to rule-based enrichment if the API is unavailable.
+ * 
+ * @param memo - Memo to enrich
+ * @returns EnrichmentResult with suggested fields
+ */
+export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
+  try {
+    // Use absolute URL if available (for SSR/test environments), otherwise relative
+    const baseUrl = typeof window !== "undefined" ? "" : "http://localhost:3000";
+    const url = `${baseUrl}/api/enrich`;
+    
+    // Use global fetch (works in both browser and Node.js test environments)
+    const fetchFn = typeof global !== "undefined" && (global as any).fetch ? (global as any).fetch : fetch;
+    const response = await fetchFn(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: memo.id,
+        title: memo.title,
+        type: memo.type,
+        deadline: memo.deadline?.toISOString(),
+        createdAt: memo.createdAt.toISOString(),
+        locationPreference: memo.locationPreference,
+        status: memo.status,
+        // Include existing values so server can respect them
+        genre: memo.genre,
+        importance: memo.importance,
+        sessionDuration: memo.sessionDuration,
+        totalDurationExpected: memo.totalDurationExpected,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      console.warn(
+        `[LLM Enrichment] API error (${response.status}): ${errorText}, using fallback`
+      );
+      return getFallbackEnrichment(memo);
+    }
+
+    const enrichment = await response.json();
+    
+    // Validate response structure
+    if (
+      typeof enrichment.genre === "string" &&
+      typeof enrichment.importance === "string" &&
+      typeof enrichment.sessionDuration === "number" &&
+      typeof enrichment.totalDurationExpected === "number"
+    ) {
+      return enrichment as EnrichmentResult;
+    } else {
+      console.warn("[LLM Enrichment] Invalid API response format, using fallback");
+      return getFallbackEnrichment(memo);
+    }
+  } catch (error) {
+    console.warn("[LLM Enrichment] Network error, using fallback:", error);
+    return getFallbackEnrichment(memo);
+  }
 }
 
 // ============================================================================
