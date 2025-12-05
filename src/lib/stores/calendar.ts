@@ -139,6 +139,18 @@ export const calendarActions = {
       const response = await fetch(`/api/calendar/events?${params}`);
       
       if (!response.ok) {
+        // Handle 401 (Unauthorized) gracefully - user not logged in
+        if (response.status === 401) {
+          calendarStore.update(s => ({
+            ...s,
+            events: [],
+            occurrences: [],
+            loading: false,
+            error: null, // Don't show error for unauthenticated users
+          }));
+          return;
+        }
+        
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `HTTP ${response.status}`);
       }

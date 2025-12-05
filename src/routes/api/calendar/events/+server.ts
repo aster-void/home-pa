@@ -97,7 +97,11 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     return json(jsonEvents);
   } catch (err) {
     console.error('[calendar/events GET] Error:', err);
-    throw error(500, 'Failed to fetch events');
+    // Log the full error for debugging
+    if (err instanceof Error) {
+      console.error('[calendar/events GET] Error details:', err.message, err.stack);
+    }
+    throw error(500, `Failed to fetch events: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
 };
 
