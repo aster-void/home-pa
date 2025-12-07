@@ -51,9 +51,9 @@ export interface ExpandedOccurrence {
 }
 
 interface CalendarState {
-  /** All fetched events (masters) */
+  /** All fetched events (masters) - cached across multiple windows */
   events: Event[];
-  /** Expanded recurring event occurrences */
+  /** Expanded recurring event occurrences for current display window */
   occurrences: ExpandedOccurrence[];
   /** Loading state */
   loading: boolean;
@@ -63,6 +63,8 @@ interface CalendarState {
   lastFetched: Date | null;
   /** Current window for occurrence expansion */
   currentWindow: { start: Date; end: Date } | null;
+  /** Cached window - the date range we've actually fetched events for */
+  cachedWindow: { start: Date; end: Date } | null;
 }
 
 interface ImportResult {
@@ -82,6 +84,7 @@ const initialState: CalendarState = {
   error: null,
   lastFetched: null,
   currentWindow: null,
+  cachedWindow: null,
 };
 
 // ============================================================================
@@ -128,6 +131,75 @@ export const calendarActions = {
    * @param expandRecurring - Whether to expand recurring events
    */
   async fetchEvents(start: Date, end: Date, expandRecurring = true): Promise<void> {
+    // Prevent duplicate fetches - don't fetch if already loading
+    const currentState = get(calendarStore);
+    if (currentState.loading) {
+      return; // Already loading, skip
+    }
+    
+    // Smart caching: Check if we already have events that cover this window
+    if (currentState.cachedWindow && currentState.events.length > 0 && currentState.lastFetched) {
+      const cachedStart = currentState.cachedWindow.start;
+      const cachedEnd = currentState.cachedWindow.end;
+      
+      // Check if cached window fully covers the requested window
+      const fullyCovers = 
+        cachedStart.getTime() <= start.getTime() &&
+        cachedEnd.getTime() >= end.getTime();
+      
+      if (fullyCovers) {
+        // Just re-expand occurrences for the new display window from cached events
+        const occurrences = expandRecurring 
+          ? calendarActions.expandRecurringEvents(currentState.events, start, end)
+          : [];
+        
+        calendarStore.update(s => ({
+          ...s,
+          occurrences,
+          currentWindow: { start, end },
+          // Keep cachedWindow as-is, don't set loading - NO LOADING INDICATOR!
+        }));
+        
+        return;
+      }
+      
+      // Check if requested window overlaps significantly with cached window
+      // If most of the requested window is already cached, use cache for now
+      const overlapStart = Math.max(cachedStart.getTime(), start.getTime());
+      const overlapEnd = Math.min(cachedEnd.getTime(), end.getTime());
+      const overlapDuration = Math.max(0, overlapEnd - overlapStart);
+      const requestedDuration = end.getTime() - start.getTime();
+      const overlapRatio = requestedDuration > 0 ? overlapDuration / requestedDuration : 0;
+      
+      // If 80%+ of requested window overlaps with cache, use cache (no loading indicator)
+      if (overlapRatio >= 0.8) {
+        // Use cache for immediate display
+        const occurrences = expandRecurring 
+          ? calendarActions.expandRecurringEvents(currentState.events, start, end)
+          : [];
+        
+        calendarStore.update(s => ({
+          ...s,
+          occurrences,
+          currentWindow: { start, end },
+          // Don't set loading - use cache immediately
+        }));
+        
+        // Optionally: Fetch missing parts in background (non-blocking)
+        // But for now, just use cache to avoid flickering
+        
+        return;
+      }
+    }
+    
+    // Check if this is the exact same window we already loaded
+    if (currentState.currentWindow && 
+        currentState.currentWindow.start.getTime() === start.getTime() &&
+        currentState.currentWindow.end.getTime() === end.getTime() &&
+        currentState.lastFetched) {
+      return; // Exact window already loaded
+    }
+    
     calendarStore.update(s => ({ ...s, loading: true, error: null }));
     
     try {
@@ -172,13 +244,25 @@ export const calendarActions = {
         occurrences = calendarActions.expandRecurringEvents(events, start, end);
       }
       
+      // Merge with existing events (deduplicate by id)
+      const existingEventIds = new Set(currentState.events.map(e => e.id));
+      const newEvents = events.filter(e => !existingEventIds.has(e.id));
+      const mergedEvents = [...currentState.events, ...newEvents].sort(
+        (a, b) => a.start.getTime() - b.start.getTime()
+      );
+      
       calendarStore.update(s => ({
         ...s,
-        events,
+        events: mergedEvents,
         occurrences,
         loading: false,
         lastFetched: new Date(),
         currentWindow: { start, end },
+        // Update cached window to be the union of old and new windows
+        cachedWindow: currentState.cachedWindow ? {
+          start: new Date(Math.min(currentState.cachedWindow.start.getTime(), start.getTime())),
+          end: new Date(Math.max(currentState.cachedWindow.end.getTime(), end.getTime())),
+        } : { start, end },
       }));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to fetch events';
@@ -434,8 +518,10 @@ export const calendarActions = {
         continue;
       }
       
-      // Check if this is a forever-recurring event
-      const isForever = !event.recurrence.until && !event.recurrence.count;
+      // Check if this is a forever-recurring event (no UNTIL or COUNT in RRULE)
+      const isForever = event.recurrence.type === 'RRULE' && event.recurrence.rrule
+        ? !event.recurrence.rrule.includes('UNTIL=') && !event.recurrence.rrule.includes('COUNT=')
+        : false;
       
       if (event.recurrence.type === 'RRULE' && event.recurrence.rrule) {
         try {

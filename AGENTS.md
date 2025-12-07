@@ -103,3 +103,92 @@ export const create = command(async ({ name }: { name: string }) => {
   {#each await list() as u}<p>{u.name}</p>{/each}
 </svelte:boundary>
 ```
+
+## Schedule Generation Flow
+
+The schedule generation system automatically creates task schedules for today when the assistant tab is opened.
+
+### How It Works
+
+1. **Trigger**: When `PersonalAssistantView` mounts and today is selected, `scheduleActions.regenerate()` is called
+2. **Caching**: Generated schedule is compared with cached version using stable serialization
+3. **UI Update**: Only updates store (and UI) if the new schedule differs from cached version
+4. **Display**: Scheduled blocks are converted to `Event` format and rendered on `CircularTimeline` alongside calendar events
+
+### Key Files
+
+- `src/lib/stores/schedule.ts` - Schedule store with caching logic (`stableSerializeSchedule()`)
+- `src/lib/components/PersonalAssistantView.svelte` - Auto-triggers generation on mount
+- `src/lib/components/pa_components/CircularTimeline.svelte` - Renders scheduled blocks as events via `extraEvents` prop
+
+### Schedule Caching
+
+The caching system prevents unnecessary UI updates:
+
+```typescript
+// In scheduleActions.regenerate()
+const previous = get(scheduleResult);
+const previousKey = previous ? stableSerializeSchedule(previous) : null;
+
+// Generate new schedule
+const { schedule } = await engine.generateSchedule(memos, gaps);
+const nextKey = stableSerializeSchedule(schedule);
+
+// Only update if different
+if (previousKey !== nextKey) {
+  scheduleResult.set(schedule); // UI updates
+} else {
+  // Skip UI update (background only)
+}
+```
+
+The `stableSerializeSchedule()` function creates a deterministic JSON string from the schedule, sorting arrays for consistent comparison.
+
+### Scheduled Events on Timeline
+
+Scheduled blocks are converted to `Event` objects with:
+- `timeLabel: "timed"` - Always timed events
+- `start/end` - Calculated from block's `startTime/endTime` and selected date
+- `id: scheduled-{suggestionId}` - Unique identifier prefixed with "scheduled-"
+
+These appear on the timeline with the same visual style as calendar events.
+
+## Task Enrichment Process
+
+Tasks are automatically enriched with LLM-suggested metadata after creation.
+
+### Enrichment Flow
+
+1. **User creates task** → `taskActions.create()` is called
+2. **Task added to store** with minimal fields (title, type, location, etc.)
+3. **Background enrichment** → `enrichTaskInBackground()` is triggered asynchronously
+4. **LLM API call** → Server endpoint `/api/enrich` enriches the task
+5. **Store update** → Task is updated with enrichment results (genre, importance, sessionDuration, totalDurationExpected)
+
+### Enrichment Fields
+
+The LLM fills these optional fields:
+- `genre` - Task category (e.g., "勉強", "運動", "家事")
+- `importance` - Low/medium/high priority
+- `sessionDuration` - Recommended minutes per session
+- `totalDurationExpected` - Total expected time to complete
+
+### Key Files
+
+- `src/lib/stores/actions/taskActions.ts` - Triggers enrichment after task creation
+- `src/routes/api/enrich/+server.ts` - Server endpoint for LLM enrichment
+- `src/lib/services/suggestions/llm-enrichment.ts` - Client-side API wrapper with fallback
+
+### Enrichment States
+
+Tasks show an "AI analyzing..." overlay while enriching:
+- `enrichingTaskIds` store tracks which tasks are being enriched
+- UI displays spinner overlay on enriching tasks
+- Updates happen automatically when enrichment completes
+
+### Fallback Behavior
+
+If LLM enrichment fails (API unavailable, network error, etc.):
+- Fallback values are used (sensible defaults based on task type)
+- Task remains fully functional without enrichment
+- No error shown to user (graceful degradation)

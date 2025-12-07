@@ -58,6 +58,29 @@
 | **--ui-border** | `#E5E7EB` | Borders, dividers            |
 | **--ui-empty**  | `#F1F3F5` | Empty states                 |
 | **--danger**    | `#EF4444` | Error states, delete actions |
+| **--success**   | `#22C55E` | Success states               |
+
+### Glass/Frosted Effects
+
+| Variable            | Value                    | Usage                    |
+| ------------------- | ------------------------ | ------------------------ |
+| **--glass-bg**      | `rgba(255, 255, 255, 0.8)` | Glass panel backgrounds  |
+| **--glass-border**  | `rgba(0, 0, 0, 0.06)`    | Glass panel borders      |
+| **--glass-shadow**  | `0 4px 16px rgba(0,0,0,0.06)` | Glass panel shadows     |
+
+### Legacy Compatibility Colors
+
+| Variable      | Value/Alias              | Usage                    |
+| ------------- | ------------------------ | ------------------------ |
+| **--white**   | `#FFFFFF`                | White color (legacy)     |
+| **--navy-900**| `#1A1A1A`                | Dark text (legacy alias) |
+| **--muted**   | `var(--text-secondary)`  | Secondary text (alias)   |
+| **--primary** | `#0066CC`                | Primary accent (blue)    |
+| **--text**    | `var(--text-primary)`    | Text color (alias)       |
+| **--panel**   | `var(--bg-secondary)`    | Panel background (alias) |
+| **--bg**      | `var(--bg-secondary)`    | Page background (alias)  |
+
+**Note:** Prefer using the primary variable names (e.g., `--text-primary` over `--text`, `--bg-secondary` over `--panel`).
 
 ### Rules
 
@@ -333,7 +356,197 @@ padding: var(--space-md);
 
 ---
 
-## 11. Implementation Checklist
+## 11. Popups & Modals
+
+**Purpose:** Consistent overlay patterns for forms, dialogs, and information displays.
+
+### Standard Popup Structure
+
+All popups follow this pattern:
+
+```css
+/* Backdrop */
+.popup-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: [appropriate level];
+  animation: fadeIn 0.2s ease;
+}
+
+/* Content Container */
+.popup-content {
+  position: fixed;
+  background: var(--bg-card);
+  border: 1px solid var(--ui-border);
+  border-radius: 16px 16px 0 0; /* Mobile: bottom sheet */
+  padding: var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+  margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 500px;
+  max-height: calc(90vh - var(--bottom-nav-height, 80px));
+  overflow-y: auto;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  animation: slideUp 0.3s ease;
+  z-index: [backdrop z-index + 1];
+}
+
+/* Desktop: Centered Modal */
+@media (min-width: 768px) {
+  .popup-content {
+    border-radius: var(--radius-lg);
+    max-height: 80vh;
+    margin-bottom: 0;
+    padding-bottom: var(--space-lg);
+  }
+}
+```
+
+### Header Pattern
+
+```css
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--font-weight-normal);
+  color: var(--text-primary);
+}
+
+.popup-header .close-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-header .close-button:hover {
+  background: var(--danger);
+  color: white;
+}
+```
+
+### Form Actions Pattern
+
+```css
+.form-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--ui-border);
+}
+
+.cancel-btn,
+.submit-btn {
+  flex: 1;
+  padding: 12px var(--space-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--font-weight-normal);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancel-btn {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--ui-border);
+}
+
+.cancel-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-tertiary);
+}
+
+.submit-btn {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+```
+
+### Animations
+
+```css
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+```
+
+### Z-Index Hierarchy
+
+| Level | Z-Index | Usage |
+|-------|---------|-------|
+| **Modals/Popups** | `2100` | Event form, task form, timeline popup |
+| **Bottom Navigation** | `2000` | Fixed bottom navigation bar |
+| **Settings Panel** | `500` | Settings bottom sheet |
+| **Suggestion Card** | `1000` | Suggestion popup cards |
+| **Backdrop** | `[modal z-index - 1]` | Backdrop overlays |
+
+### Popup Rules
+
+- **Mobile:** Bottom sheet style (slides up from bottom)
+- **Desktop:** Centered modal (slides up, then centers)
+- **Backdrop:** Always clickable to close (unless explicitly disabled)
+- **Escape Key:** Always closes popup (add `onkeydown` handler)
+- **Navigation Clearance:** Always account for `--bottom-nav-height` on mobile
+- **Safe Area:** Use `env(safe-area-inset-bottom)` for devices with notches
+- **Scrollbar:** Custom styled scrollbars for popup content
+- **Accessibility:** Always include `role="dialog"`, `aria-modal="true"`, and proper ARIA labels
+
+### Examples
+
+**Task Form, Event Form, Timeline Popup** all follow this pattern.
+
+---
+
+## 13. Implementation Checklist
 
 When creating new components:
 
@@ -349,7 +562,7 @@ When creating new components:
 
 ---
 
-## 12. Color Usage Examples
+## 14. Color Usage Examples
 
 ### Text Hierarchy
 
@@ -399,4 +612,35 @@ When creating new components:
 
 ---
 
-_Last updated: [Current Date]_
+## 15. Layout & Responsive Design
+
+### Breakpoints
+
+| Breakpoint | Value | Usage |
+|------------|-------|-------|
+| **Mobile** | `< 768px` | Bottom sheets, full-width layouts |
+| **Desktop** | `≥ 768px` | Centered modals, side-by-side layouts |
+
+### Mobile-First Approach
+
+- Default styles target mobile
+- Use `@media (min-width: 768px)` for desktop enhancements
+- Bottom navigation always visible (fixed position)
+- Popups slide up from bottom on mobile, center on desktop
+
+### Navigation Clearance
+
+Always account for bottom navigation on mobile:
+
+```css
+padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+```
+
+### Safe Area Insets
+
+Use `env(safe-area-inset-bottom)` for devices with notches/home indicators to prevent content from being hidden.
+
+---
+
+_Last updated: December 2025_

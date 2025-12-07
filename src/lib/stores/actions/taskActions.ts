@@ -100,7 +100,7 @@ function createMemoFromForm(formData: TaskFormData): Memo {
     locationPreference: formData.locationPreference,
     status,
     // Preserve importance if set (empty string becomes undefined, but valid values are preserved)
-    importance: formData.importance && formData.importance !== "" ? (formData.importance as ImportanceLevel) : undefined,
+    importance: formData.importance && formData.importance.length > 0 ? (formData.importance as ImportanceLevel) : undefined,
     // LLM will fill these later:
     // genre, sessionDuration, totalDurationExpected
   };
@@ -326,7 +326,7 @@ export const taskActions = {
                 }
               : undefined,
           locationPreference: formData.locationPreference,
-          importance: formData.importance && formData.importance !== "" ? (formData.importance as ImportanceLevel) : undefined,
+          importance: formData.importance && formData.importance.length > 0 ? (formData.importance as ImportanceLevel) : undefined,
         };
 
         const newTasks = [...currentTasks];

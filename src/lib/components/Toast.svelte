@@ -54,7 +54,7 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    background: var(--card);
+    background: var(--bg-card);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     border-left: 4px solid;
@@ -70,7 +70,7 @@
     background: linear-gradient(
       135deg,
       rgba(16, 185, 129, 0.1) 0%,
-      var(--card) 100%
+      var(--bg-card) 100%
     );
   }
 
@@ -79,7 +79,7 @@
     background: linear-gradient(
       135deg,
       rgba(239, 68, 68, 0.1) 0%,
-      var(--card) 100%
+      var(--bg-card) 100%
     );
   }
 
@@ -88,7 +88,7 @@
     background: linear-gradient(
       135deg,
       rgba(59, 130, 246, 0.1) 0%,
-      var(--card) 100%
+      var(--bg-card) 100%
     );
   }
 

@@ -11,6 +11,10 @@
  *   1. Call scheduleActions.regenerate() when you want a new schedule
  *   2. Read $scheduleResult to display scheduled blocks
  *   3. Use $nextScheduledBlock for quick access to the next task
+ *
+ * Suggestion States:
+ *   - Pending: Generated suggestions not yet accepted (shown with Accept/Skip UI)
+ *   - Accepted: User-accepted suggestions that act as fixed events in gap calculation
  */
 
 import { writable, derived, get } from "svelte/store";
@@ -22,6 +26,28 @@ import type {
 } from "../services/suggestions/index.js";
 import { createEngine } from "../services/suggestions/index.js";
 import { enrichedGaps } from "./gaps.js";
+
+// ============================================================================
+// Types for Suggestion Management
+// ============================================================================
+
+/**
+ * An accepted suggestion that acts as a fixed event
+ * Extends ScheduledBlock with acceptance metadata
+ */
+export interface AcceptedSuggestion extends ScheduledBlock {
+  acceptedAt: Date;
+  /** Original duration before any resizing */
+  originalDuration: number;
+}
+
+/**
+ * A pending suggestion awaiting user action
+ */
+export interface PendingSuggestion extends ScheduledBlock {
+  /** Reason/explanation for the suggestion */
+  reason?: string;
+}
 
 // ============================================================================
 // Engine Instance (Singleton)
@@ -68,6 +94,22 @@ export const lastPipelineSummary = writable<PipelineSummary | null>(null);
 export const lastScheduleTime = writable<Date | null>(null);
 
 // ============================================================================
+// Suggestion State Stores
+// ============================================================================
+
+/**
+ * Accepted suggestions that act as fixed events
+ * These block their time slots from future suggestions
+ */
+export const acceptedSuggestions = writable<AcceptedSuggestion[]>([]);
+
+/**
+ * Set of suggestion IDs that have been skipped
+ * Used to exclude from regeneration
+ */
+export const skippedSuggestionIds = writable<Set<string>>(new Set());
+
+// ============================================================================
 // Derived Stores
 // ============================================================================
 
@@ -78,6 +120,21 @@ export const lastScheduleTime = writable<Date | null>(null);
 export const scheduledBlocks = derived(
   scheduleResult,
   ($result) => $result?.scheduled ?? [],
+);
+
+/**
+ * Pending suggestions (generated but not yet accepted/skipped)
+ * Excludes blocks that are already accepted
+ */
+export const pendingSuggestions = derived(
+  [scheduleResult, acceptedSuggestions, skippedSuggestionIds],
+  ([$result, $accepted, $skipped]): PendingSuggestion[] => {
+    if (!$result?.scheduled) return [];
+    const acceptedIds = new Set($accepted.map((a) => a.suggestionId));
+    return $result.scheduled
+      .filter((block) => !acceptedIds.has(block.suggestionId) && !$skipped.has(block.suggestionId))
+      .map((block) => ({ ...block }));
+  },
 );
 
 /**
@@ -138,6 +195,106 @@ export const hasMandatoryDropped = derived(
 // ============================================================================
 
 /**
+ * Convert HH:mm time string to minutes since midnight
+ */
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+/**
+ * Convert minutes since midnight to HH:mm time string
+ */
+function minutesToTime(minutes: number): string {
+  const hours = Math.floor(minutes / 60) % 24;
+  const mins = Math.floor(minutes % 60);
+  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
+}
+
+/**
+ * Subtract accepted suggestions from gaps to get remaining available gaps
+ */
+function subtractAcceptedFromGaps(gaps: Gap[], accepted: AcceptedSuggestion[]): Gap[] {
+  if (accepted.length === 0) return gaps;
+
+  // Group accepted by gapId
+  const acceptedByGap = new Map<string, AcceptedSuggestion[]>();
+  for (const a of accepted) {
+    const list = acceptedByGap.get(a.gapId) || [];
+    list.push(a);
+    acceptedByGap.set(a.gapId, list);
+  }
+
+  const result: Gap[] = [];
+  let gapCounter = 0;
+
+  for (const gap of gaps) {
+    const blockers = acceptedByGap.get(gap.gapId) || [];
+    if (blockers.length === 0) {
+      result.push(gap);
+      continue;
+    }
+
+    // Sort blockers by start time
+    blockers.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+    // Find remaining gaps between/around blockers
+    let currentStart = timeToMinutes(gap.start);
+    const gapEnd = timeToMinutes(gap.end);
+
+    for (const blocker of blockers) {
+      const blockerStart = timeToMinutes(blocker.startTime);
+      const blockerEnd = timeToMinutes(blocker.endTime);
+
+      // Gap before this blocker
+      if (blockerStart > currentStart) {
+        const duration = blockerStart - currentStart;
+        if (duration >= 5) { // Minimum 5 minutes for a viable gap
+          result.push({
+            gapId: `${gap.gapId}-sub-${gapCounter++}`,
+            start: minutesToTime(currentStart),
+            end: minutesToTime(blockerStart),
+            duration,
+            locationLabel: gap.locationLabel,
+          });
+        }
+      }
+      currentStart = Math.max(currentStart, blockerEnd);
+    }
+
+    // Gap after all blockers
+    if (currentStart < gapEnd) {
+      const duration = gapEnd - currentStart;
+      if (duration >= 5) {
+        result.push({
+          gapId: `${gap.gapId}-sub-${gapCounter++}`,
+          start: minutesToTime(currentStart),
+          end: minutesToTime(gapEnd),
+          duration,
+          locationLabel: gap.locationLabel,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Check if two time ranges overlap
+ */
+function rangesOverlap(
+  start1: string, end1: string,
+  start2: string, end2: string,
+): boolean {
+  const s1 = timeToMinutes(start1);
+  const e1 = timeToMinutes(end1);
+  const s2 = timeToMinutes(start2);
+  const e2 = timeToMinutes(end2);
+  return s1 < e2 && s2 < e1;
+}
+
+/**
  * Schedule management actions
  */
 export const scheduleActions = {
@@ -164,13 +321,29 @@ export const scheduleActions = {
     scheduleError.set(null);
 
     try {
-      // Get gaps (use provided or from store)
-      const gaps = options.gaps ?? get(enrichedGaps);
+      const previous = get(scheduleResult);
+      const previousKey = previous ? stableSerializeSchedule(previous) : null;
 
-      // Call engine
-      const { schedule, summary } = await engine.generateSchedule(memos, gaps, {
+      // Get gaps and subtract accepted suggestions
+      const rawGaps = options.gaps ?? get(enrichedGaps);
+      const accepted = get(acceptedSuggestions);
+      const availableGaps = subtractAcceptedFromGaps(rawGaps, accepted);
+
+      // Call engine with available gaps
+      const { schedule, summary } = await engine.generateSchedule(memos, availableGaps, {
         skipLLMEnrichment: options.skipLLMEnrichment,
       });
+
+      const nextKey = stableSerializeSchedule(schedule);
+      const isSameAsPrevious = previousKey === nextKey;
+
+      if (isSameAsPrevious) {
+        // No state change if identical to cached schedule
+        console.log("[Schedule] Regeneration skipped (no change)");
+        lastScheduleTime.set(new Date());
+        lastPipelineSummary.set(summary);
+        return schedule;
+      }
 
       // Update stores
       scheduleResult.set(schedule);
@@ -182,6 +355,7 @@ export const scheduleActions = {
         scheduled: schedule.scheduled.length,
         dropped: schedule.dropped.length,
         mandatoryDropped: schedule.mandatoryDropped.length,
+        acceptedFixed: accepted.length,
         executionMs: summary.executionTimeMs,
       });
 
@@ -197,6 +371,133 @@ export const scheduleActions = {
   },
 
   /**
+   * Accept a suggestion, converting it to a fixed event
+   *
+   * @param suggestionId - ID of the suggestion to accept
+   * @param memos - Current memos for regeneration
+   */
+  async accept(suggestionId: string, memos: Memo[]): Promise<void> {
+    const result = get(scheduleResult);
+    if (!result) return;
+
+    const block = result.scheduled.find((b) => b.suggestionId === suggestionId);
+    if (!block) {
+      console.warn("[Schedule] Cannot accept: suggestion not found", suggestionId);
+      return;
+    }
+
+    // Move to accepted
+    const accepted: AcceptedSuggestion = {
+      ...block,
+      acceptedAt: new Date(),
+      originalDuration: block.duration,
+    };
+
+    acceptedSuggestions.update((list) => [...list, accepted]);
+
+    console.log("[Schedule] Accepted suggestion:", suggestionId);
+
+    // Regenerate to fill remaining gaps
+    await scheduleActions.regenerate(memos);
+  },
+
+  /**
+   * Skip a suggestion, requesting a new one for that gap
+   *
+   * @param suggestionId - ID of the suggestion to skip
+   * @param memos - Current memos for regeneration
+   */
+  async skip(suggestionId: string, memos: Memo[]): Promise<void> {
+    // Add to skipped set
+    skippedSuggestionIds.update((set) => {
+      const next = new Set(set);
+      next.add(suggestionId);
+      return next;
+    });
+
+    console.log("[Schedule] Skipped suggestion:", suggestionId);
+
+    // Regenerate to get new suggestion for the gap
+    await scheduleActions.regenerate(memos);
+  },
+
+  /**
+   * Update the duration of an accepted suggestion (drag-to-resize)
+   *
+   * @param suggestionId - ID of the accepted suggestion
+   * @param newDuration - New duration in minutes (must be multiple of 5)
+   * @param memos - Current memos for regeneration
+   * @returns true if update was successful
+   */
+  async updateAcceptedDuration(
+    suggestionId: string,
+    newDuration: number,
+    memos: Memo[],
+  ): Promise<boolean> {
+    const accepted = get(acceptedSuggestions);
+    const idx = accepted.findIndex((a) => a.suggestionId === suggestionId);
+    if (idx === -1) {
+      console.warn("[Schedule] Cannot resize: accepted suggestion not found", suggestionId);
+      return false;
+    }
+
+    const suggestion = accepted[idx];
+    
+    // Snap to 5-minute increments
+    const snappedDuration = Math.round(newDuration / 5) * 5;
+    if (snappedDuration < 5) {
+      console.warn("[Schedule] Cannot resize: duration too small");
+      return false;
+    }
+
+    // Calculate new end time
+    const newEndTime = minutesToTime(timeToMinutes(suggestion.startTime) + snappedDuration);
+
+    // Check for overlaps with other accepted suggestions
+    const otherAccepted = accepted.filter((_, i) => i !== idx);
+    for (const other of otherAccepted) {
+      if (rangesOverlap(suggestion.startTime, newEndTime, other.startTime, other.endTime)) {
+        console.warn("[Schedule] Cannot resize: would overlap with another accepted suggestion");
+        return false;
+      }
+    }
+
+    // Update the suggestion
+    acceptedSuggestions.update((list) => {
+      const updated = [...list];
+      updated[idx] = {
+        ...suggestion,
+        duration: snappedDuration,
+        endTime: newEndTime,
+      };
+      return updated;
+    });
+
+    console.log("[Schedule] Resized accepted suggestion:", suggestionId, "to", snappedDuration, "min");
+
+    // Regenerate to reflow other suggestions
+    await scheduleActions.regenerate(memos);
+    return true;
+  },
+
+  /**
+   * Delete an accepted suggestion, freeing up the gap
+   *
+   * @param suggestionId - ID of the accepted suggestion to delete
+   * @param memos - Current memos for regeneration
+   */
+  async deleteAccepted(suggestionId: string, memos: Memo[]): Promise<void> {
+    acceptedSuggestions.update((list) => 
+      list.filter((a) => a.suggestionId !== suggestionId)
+    );
+
+    console.log("[Schedule] Deleted accepted suggestion:", suggestionId);
+
+    // Regenerate to fill the freed gap
+    await scheduleActions.regenerate(memos);
+  },
+
+  /**
    * Clear the current schedule
    * Useful for resetting state
    */
@@ -204,6 +505,17 @@ export const scheduleActions = {
     scheduleResult.set(null);
     scheduleError.set(null);
     lastPipelineSummary.set(null);
+    acceptedSuggestions.set([]);
+    skippedSuggestionIds.set(new Set());
+  },
+
+  /**
+   * Clear only accepted and skipped state (keep schedule result)
+   * Useful for daily reset
+   */
+  clearAcceptedAndSkipped(): void {
+    acceptedSuggestions.set([]);
+    skippedSuggestionIds.set(new Set());
   },
 
   /**
@@ -241,6 +553,30 @@ export const scheduleActions = {
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+function stableSerializeSchedule(schedule: ScheduleResult): string {
+  const scheduled = [...schedule.scheduled].sort((a, b) => {
+    const idCompare = a.suggestionId.localeCompare(b.suggestionId);
+    if (idCompare !== 0) return idCompare;
+    return a.startTime.localeCompare(b.startTime);
+  });
+
+  const dropped = [...schedule.dropped].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  );
+
+  const mandatoryDropped = [...schedule.mandatoryDropped].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  );
+
+  return JSON.stringify({
+    scheduled,
+    dropped,
+    mandatoryDropped,
+    totalScheduledMinutes: schedule.totalScheduledMinutes,
+    totalDroppedMinutes: schedule.totalDroppedMinutes,
+  });
+}
 
 /**
  * Find a scheduled block by memo ID

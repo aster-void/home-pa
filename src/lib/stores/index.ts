@@ -37,6 +37,9 @@ export {
   lastPipelineSummary,
   lastScheduleTime,
   scheduledBlocks,
+  pendingSuggestions,
+  acceptedSuggestions,
+  skippedSuggestionIds,
   droppedSuggestions,
   droppedMandatory,
   nextScheduledBlock,
@@ -47,6 +50,8 @@ export {
   findBlockByMemoId,
   isMemoScheduled,
   getBlocksForGap,
+  type AcceptedSuggestion,
+  type PendingSuggestion,
 } from "./schedule.js";
 
 // UI state stores

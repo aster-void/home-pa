@@ -69,6 +69,20 @@
     return { spent, total, percent: Math.min(100, (spent / total) * 100) };
   });
 
+  // Enriched per-session time (minutes)
+  let sessionDurationLabel = $derived(() => {
+    if (task.sessionDuration && task.sessionDuration > 0) {
+      return `${task.sessionDuration} min session`;
+    }
+    return null;
+  });
+
+  // Genre/category label
+  let genreLabel = $derived(() => {
+    if (!task.genre) return null;
+    return task.genre;
+  });
+
   // Location label
   let locationLabel = $derived(
     task.locationPreference === "home/near_home"
@@ -108,12 +122,16 @@
   <div class="task-header">
     <div class="task-title-row">
       <h3 class="task-title">{task.title}</h3>
-      <span class="task-type">{typeLabel}</span>
+      <div class="pills">
+        <span class="task-type">{typeLabel}</span>
+        {#if genreLabel()}
+          <span class="pill pill-genre">{genreLabel()}</span>
+        {/if}
+        {#if sessionDurationLabel()}
+          <span class="pill pill-time">{sessionDurationLabel()}</span>
+        {/if}
+      </div>
     </div>
-
-    {#if task.genre}
-      <span class="task-genre">{task.genre}</span>
-    {/if}
   </div>
 
   <div class="task-meta">
@@ -135,6 +153,7 @@
     {/if}
 
     <div class="meta-item">
+      <span class="meta-icon">📍</span>
       <span class="meta-text location">{locationLabel}</span>
     </div>
   </div>
@@ -149,13 +168,15 @@
           style="width: {prog?.percent}%"
         ></div>
       </div>
-      <span class="progress-label">{prog?.done}/{prog?.goal}</span>
+      <span class="progress-label">Progress: {prog?.done}/{prog?.goal}</span>
     {:else}
       {@const prog = timeProgress()}
       <div class="progress-bar">
         <div class="progress-fill time" style="width: {prog.percent}%"></div>
       </div>
-      <span class="progress-label">{prog.spent}/{prog.total} min</span>
+      <span class="progress-label"
+        >Progress: {prog.spent}/{prog.total} min</span
+      >
     {/if}
   </div>
 
@@ -288,17 +309,36 @@
     font-weight: 500;
   }
 
-  .task-genre {
+  .pills {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .pill {
+    padding: 4px 8px;
+    border-radius: 6px;
     font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 4px;
-    display: inline-block;
+    font-weight: 600;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+  }
+
+  .pill-time {
+    background: rgba(0, 102, 204, 0.1);
+    color: var(--primary);
+  }
+
+  .pill-genre {
+    background: rgba(139, 92, 246, 0.1);
+    color: rgb(139, 92, 246);
+    font-weight: 500;
   }
 
   .task-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
+    flex-direction: column;
+    gap: 6px;
     margin-bottom: var(--space-sm);
   }
 

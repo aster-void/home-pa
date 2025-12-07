@@ -74,6 +74,27 @@ interface AllocationState {
 const DEFAULT_PERMUTATION_LIMIT = 8;
 const TOLERANCE = 1e-6;
 
+/**
+ * Configuration for duration extension when extra gap time is available
+ */
+export interface DurationExtensionConfig {
+  /** Enable duration extension (default: true) */
+  enabled: boolean;
+  /** Minimum extra minutes to add before extension kicks in (default: 15) */
+  minExtensionMinutes: number;
+  /** Maximum multiplier for session duration (default: 2.0 = double) */
+  maxExtensionFactor: number;
+  /** Extension step size in minutes (default: 15) */
+  extensionStepMinutes: number;
+}
+
+export const DEFAULT_EXTENSION_CONFIG: DurationExtensionConfig = {
+  enabled: true,
+  minExtensionMinutes: 15,
+  maxExtensionFactor: 2.0,
+  extensionStepMinutes: 15,
+};
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -358,12 +379,55 @@ function totalRemainingCapacity(gaps: MutableGap[]): number {
 }
 
 /**
+ * Calculate extended duration based on available gap time
+ *
+ * @param baseDuration - Original session duration in minutes
+ * @param availableTime - Remaining gap time in minutes
+ * @param config - Extension configuration
+ * @returns Extended duration (or base if extension not applicable)
+ */
+export function calculateExtendedDuration(
+  baseDuration: number,
+  availableTime: number,
+  config: DurationExtensionConfig = DEFAULT_EXTENSION_CONFIG,
+): number {
+  if (!config.enabled) return baseDuration;
+
+  // Check if there's enough extra time for extension
+  const extraTime = availableTime - baseDuration;
+  if (extraTime < config.minExtensionMinutes) {
+    return baseDuration;
+  }
+
+  // Calculate max extended duration based on factor
+  const maxExtended = Math.floor(baseDuration * config.maxExtensionFactor);
+
+  // Calculate how many extension steps we can add
+  const extensionSteps = Math.floor(extraTime / config.extensionStepMinutes);
+  const extension = extensionSteps * config.extensionStepMinutes;
+
+  // Return extended duration, capped at max and available time
+  const extended = Math.min(
+    baseDuration + extension,
+    maxExtended,
+    availableTime,
+  );
+
+  return extended;
+}
+
+/**
  * Assign an ordered list of suggestions to gaps
  * Returns scheduled blocks and updated gaps
+ *
+ * @param orderedSuggestions - Suggestions in order to assign
+ * @param gaps - Mutable gaps to assign into
+ * @param extensionConfig - Optional config for duration extension
  */
 export function assignOrderToGaps(
   orderedSuggestions: Suggestion[],
   gaps: MutableGap[],
+  extensionConfig: DurationExtensionConfig = DEFAULT_EXTENSION_CONFIG,
 ): { blocks: ScheduledBlock[]; dropped: Suggestion[] } {
   const blocks: ScheduledBlock[] = [];
   const dropped: Suggestion[] = [];
@@ -389,9 +453,16 @@ export function assignOrderToGaps(
         continue;
       }
 
+      // Calculate extended duration if extra gap time available
+      const effectiveDuration = calculateExtendedDuration(
+        suggestion.duration,
+        gap.remaining,
+        extensionConfig,
+      );
+
       // Allocate!
       const startTime = gap.currentStartTime;
-      const endTime = addMinutesToTime(startTime, suggestion.duration);
+      const endTime = addMinutesToTime(startTime, effectiveDuration);
 
       blocks.push({
         suggestionId: suggestion.id,
@@ -399,11 +470,11 @@ export function assignOrderToGaps(
         gapId: gap.gapId,
         startTime,
         endTime,
-        duration: suggestion.duration,
+        duration: effectiveDuration,
       });
 
       // Update gap
-      gap.remaining -= suggestion.duration;
+      gap.remaining -= effectiveDuration;
       gap.currentStartTime = endTime;
       allocated = true;
       break;
@@ -420,6 +491,16 @@ export function assignOrderToGaps(
 // ============================================================================
 // MAIN SCHEDULER
 // ============================================================================
+
+/**
+ * Scheduler options
+ */
+export interface SchedulerOptions {
+  permutationLimit?: number;
+  resolutionMinutes?: number;
+  /** Duration extension config (extend sessions when extra gap time available) */
+  durationExtension?: Partial<DurationExtensionConfig>;
+}
 
 /**
  * Schedule suggestions into gaps
@@ -439,15 +520,19 @@ export function assignOrderToGaps(
 export function scheduleSuggestions(
   suggestions: Suggestion[],
   gaps: Gap[],
-  options: {
-    permutationLimit?: number;
-    resolutionMinutes?: number;
-  } = {},
+  options: SchedulerOptions = {},
 ): ScheduleResult {
   const {
     permutationLimit = DEFAULT_PERMUTATION_LIMIT,
     resolutionMinutes = 1.0,
+    durationExtension = {},
   } = options;
+
+  // Merge extension config with defaults
+  const extensionConfig: DurationExtensionConfig = {
+    ...DEFAULT_EXTENSION_CONFIG,
+    ...durationExtension,
+  };
 
   // Initialize result
   const result: ScheduleResult = {
@@ -491,7 +576,7 @@ export function scheduleSuggestions(
     result.permutationsEvaluated += permutationsChecked;
 
     // Assign to gaps
-    const { blocks, dropped } = assignOrderToGaps(mandatoryOrder, mutableGaps);
+    const { blocks, dropped } = assignOrderToGaps(mandatoryOrder, mutableGaps, extensionConfig);
     result.scheduled.push(...blocks);
     result.mandatoryDropped.push(...dropped);
     result.dropped.push(...dropped);
@@ -522,6 +607,7 @@ export function scheduleSuggestions(
         const { blocks, dropped } = assignOrderToGaps(
           optionalOrder,
           mutableGaps,
+          extensionConfig,
         );
         result.scheduled.push(...blocks);
         result.dropped.push(...dropped);
@@ -564,4 +650,9 @@ export function scheduleSuggestions(
 // UTILITY EXPORTS
 // ============================================================================
 
-export { calculateScore, timeToMinutes, minutesToTime, addMinutesToTime };
+export { 
+  calculateScore, 
+  timeToMinutes, 
+  minutesToTime, 
+  addMinutesToTime,
+};

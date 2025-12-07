@@ -6,7 +6,7 @@
    * Uses ical.js-backed API endpoints
    */
   
-  import { calendarActions, eventActionsConfig } from '../../stores/index.js';
+  import { calendarActions } from '../../stores/index.js';
   import { UserSettings } from '../util_components/index.js';
   
   // State
@@ -16,8 +16,8 @@
   let showAdvanced = $state(false);
   let exportName = $state('Home-PA Calendar');
   
-  // Check if API mode is available
-  const isApiEnabled = $derived(eventActionsConfig.useApi);
+  // API mode is always enabled when using calendarActions (API-based store)
+  const isApiEnabled = $state(true);
   
   async function handleFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -68,10 +68,6 @@
   function clearImportResult() {
     importResult = null;
   }
-  
-  function enableApiMode() {
-    eventActionsConfig.useApi = true;
-  }
 </script>
 
 <div class="calendar-settings">
@@ -80,18 +76,6 @@
     <h3>👤 Account</h3>
     <UserSettings />
   </section>
-  
-  {#if !isApiEnabled}
-    <div class="api-notice">
-      <p>
-        <strong>Note:</strong> Import/export requires API mode.
-        Events are currently stored in memory only.
-      </p>
-      <button class="enable-api-btn" onclick={enableApiMode}>
-        Enable Database Storage
-      </button>
-    </div>
-  {/if}
   
   <!-- Import Section -->
   <section class="settings-section">

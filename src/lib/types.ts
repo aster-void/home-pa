@@ -43,6 +43,7 @@ export interface Event {
   isDuplicate?: boolean; // True for auto-generated duplicates
   originalEventId?: string; // Reference to original event for duplicates
   isForever?: boolean; // True for events with no end date
+  icalData?: string; // Raw iCalendar VEVENT component string for recurrence expansion
 }
 
 // ============================================================================

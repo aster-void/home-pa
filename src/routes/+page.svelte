@@ -20,8 +20,20 @@
 
 <style>
   .main-content {
-    height: calc(100vh - 80px); /* Account for bottom navigation */
+    display: flex;
+    flex-direction: column;
+    height: calc(
+      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
+    ); /* Account for bottom nav + safe area */
+    max-height: calc(
+      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
+    );
+    min-height: calc(
+      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
+    );
+    width: 100%;
     background: var(--bg-card);
     overflow: hidden;
+    box-sizing: border-box;
   }
 </style>

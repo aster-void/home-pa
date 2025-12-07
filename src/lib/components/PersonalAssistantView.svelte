@@ -1,10 +1,22 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   // LogsView removed from header; settings panel is minimal
   import LogsView from "./LogsView.svelte";
-  import { CircularTimeline, SchedulePanel } from "./pa_components/index.js";
-  import { events, selectedDate } from "../stores/data.js";
+  import { CircularTimelineCss } from "./pa_components/index.js";
+  import {
+    calendarEvents,
+    calendarOccurrences,
+    selectedDate,
+    scheduleActions,
+    scheduledBlocks,
+    pendingSuggestions,
+    acceptedSuggestions,
+    tasks,
+  } from "../stores/index.js";
+  import { enrichedGaps } from "../stores/gaps.js";
   import type { Event, Gap } from "../types.js";
   import { GapFinder } from "../services/gap-finder.js";
+  import { get } from "svelte/store";
 
   // Local state
   // Settings panel toggle (replaces top header controls)
@@ -18,45 +30,213 @@
 
   // Computed gaps using GapFinder for the selected day
   let computedGaps = $state<Gap[]>([]);
+  let selectedDayEvents = $state<Event[]>([]);
+  let lastAutoScheduleKey = $state<string | null>(null);
+  let taskList = $state(get(tasks));
+
+  function startOfDay(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  function dateKey(date: Date): string {
+    return startOfDay(date).toISOString().slice(0, 10);
+  }
+
+  function sortEventsByStart(events: Event[]): Event[] {
+    return [...events].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+    );
+  }
+
+  function formatEventTime(event: Event): string {
+    if (event.timeLabel === "all-day") return "終日";
+    if (event.timeLabel === "some-timing") return "どこかのタイミングで";
+
+    const toTime = (value: Date) => value.toTimeString().slice(0, 5);
+    return `${toTime(new Date(event.start))} - ${toTime(new Date(event.end))}`;
+  }
+
+  function formatDateLabel(date: Date): string {
+    return startOfDay(date).toLocaleDateString("ja-JP");
+  }
+
+  onMount(() => {
+    selectedDate.set(startOfDay(new Date()));
+  });
+
+  $effect(() => {
+    const unsubscribeTasks = tasks.subscribe((value) => (taskList = value));
+    return () => unsubscribeTasks();
+  });
+
+  function buildScheduleSignature(date: Date): string {
+    const taskList = get(tasks);
+    const gapsList = get(enrichedGaps);
+    return `${dateKey(date)}|t${taskList.length}|g${gapsList.length}`;
+  }
+
+  async function maybeAutoGenerateSchedule() {
+    const todayKey = dateKey(new Date());
+    const currentDate = startOfDay(get(selectedDate));
+    if (dateKey(currentDate) !== todayKey) {
+      return;
+    }
+
+    const signature = buildScheduleSignature(currentDate);
+    if (signature === lastAutoScheduleKey) return;
+
+    lastAutoScheduleKey = signature;
+    await scheduleActions.regenerate(get(tasks), { gaps: get(enrichedGaps) });
+  }
+
+  function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
+    const dayStart = new Date(day);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day);
+    dayEnd.setHours(23, 59, 59, 999);
+    return eventStart.getTime() <= dayEnd.getTime() && eventEnd.getTime() >= dayStart.getTime();
+  }
+
+  function toGapEventForDay(e: Event, day: Date) {
+    const dayStart = "00:00";
+    const dayEnd = "23:59";
+
+    if (e.timeLabel === "all-day") {
+      return { id: e.id, title: e.title, start: dayStart, end: dayEnd };
+    }
+
+    const targetDay = new Date(day);
+    targetDay.setHours(0, 0, 0, 0);
+    const startDay = new Date(e.start);
+    startDay.setHours(0, 0, 0, 0);
+    const endDay = new Date(e.end);
+    endDay.setHours(0, 0, 0, 0);
+
+    const startsToday = startDay.getTime() === targetDay.getTime();
+    const endsToday = endDay.getTime() === targetDay.getTime();
+
+    const startTime = startsToday
+      ? new Date(e.start).toTimeString().slice(0, 5)
+      : dayStart;
+    const endTime = endsToday ? new Date(e.end).toTimeString().slice(0, 5) : dayEnd;
+
+    return {
+      id: e.id,
+      title: e.title,
+      start: startTime,
+      end: endTime,
+    };
+  }
 
   function recomputeGaps() {
     const gf = new GapFinder({ dayStart: activeStart, dayEnd: activeEnd });
-    let todaysEvents: Event[] = [];
-    events.subscribe(($events) => {
-      selectedDate.subscribe(($date) => {
-        todaysEvents = $events.filter(
-          (ev) =>
-            new Date(ev.start).toDateString() ===
-            new Date($date).toDateString(),
-        );
-      })();
-    })();
-    // Map to GapFinder.Event (HH:mm strings)
-    const mapped = todaysEvents.map((e) => {
-      // Handle all-day events specially: span full day (00:00 to 23:59)
-      if (e.timeLabel === "all-day") {
-        return {
-          id: e.id,
-          title: e.title,
-          start: "00:00",
-          end: "23:59",
-        };
-      }
-      // For timed events, use actual times
-      return {
-        id: e.id,
-        title: e.title,
-        start: new Date(e.start).toTimeString().slice(0, 5),
-        end: new Date(e.end).toTimeString().slice(0, 5),
-      };
-    });
+    const events = get(calendarEvents) as Event[];
+    const occurrences = get(calendarOccurrences);
+    const currentDate = startOfDay(get(selectedDate));
+    
+    const combined: Event[] = [
+      ...events,
+      ...occurrences.map((occ) => ({
+        id: occ.id,
+        title: occ.title,
+        start: occ.start,
+        end: occ.end,
+        description: occ.description,
+        address: occ.location,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel,
+      }) as Event),
+    ];
+
+    const todaysEvents = combined.filter((e) => overlapsDay(new Date(e.start), new Date(e.end), currentDate));
+    const mapped = todaysEvents.map((e) => toGapEventForDay(e, currentDate));
+
+    selectedDayEvents = sortEventsByStart(todaysEvents);
     computedGaps = gf.findGaps(mapped);
   }
 
   // Recompute gaps when active hours, events, or date change
   $effect(() => {
+    // Subscribe to reactive stores and recompute on change
+    const unsubscribeEvents = calendarEvents.subscribe(() => recomputeGaps());
+    const unsubscribeOccurrences = calendarOccurrences.subscribe(() => recomputeGaps());
+    const unsubscribeDate = selectedDate.subscribe(() => recomputeGaps());
+    
     recomputeGaps();
+    
+    return () => {
+      unsubscribeEvents();
+      unsubscribeOccurrences();
+      unsubscribeDate();
+    };
   });
+
+  // Auto-generate schedule for today only
+  $effect(() => {
+    void maybeAutoGenerateSchedule();
+  });
+
+  function parseTimeOnDate(base: Date, time: string): Date {
+    const [hours, minutes] = time.split(":").map(Number);
+    const next = new Date(base);
+    next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
+    return next;
+  }
+
+  // Helper to get task title from memoId
+  function getTaskTitle(memoId: string): string {
+    const task = taskList.find((t) => t.id === memoId);
+    return task?.title ?? "Task";
+  }
+
+  // Convert accepted suggestions to Event format for display list
+  let acceptedEvents = $derived.by(() => {
+    const isTodaySelected = dateKey($selectedDate) === dateKey(new Date());
+    if (!isTodaySelected) return [];
+
+    const base = startOfDay($selectedDate);
+    return $acceptedSuggestions.map((block) => {
+      const title = getTaskTitle(block.memoId);
+
+      return {
+        id: `accepted-${block.suggestionId}`,
+        title,
+        start: parseTimeOnDate(base, block.startTime),
+        end: parseTimeOnDate(base, block.endTime),
+        description: "Accepted suggestion",
+        timeLabel: "timed",
+      } as Event;
+    });
+  });
+
+  let displayEvents = $derived.by(() =>
+    [...selectedDayEvents, ...acceptedEvents].sort(
+      (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
+    ),
+  );
+
+  // Suggestion event handlers
+  async function handleSuggestionAccept(event: CustomEvent<string>) {
+    const suggestionId = event.detail;
+    await scheduleActions.accept(suggestionId, taskList);
+  }
+
+  async function handleSuggestionSkip(event: CustomEvent<string>) {
+    const suggestionId = event.detail;
+    await scheduleActions.skip(suggestionId, taskList);
+  }
+
+  async function handleSuggestionDelete(event: CustomEvent<string>) {
+    const suggestionId = event.detail;
+    await scheduleActions.deleteAccepted(suggestionId, taskList);
+  }
+
+  async function handleSuggestionResize(event: CustomEvent<{ suggestionId: string; newDuration: number }>) {
+    const { suggestionId, newDuration } = event.detail;
+    await scheduleActions.updateAcceptedDuration(suggestionId, newDuration, taskList);
+  }
 
   // Component-level event handling is wired directly on the child via on: handlers below
 </script>
@@ -71,18 +251,41 @@
   <main class="pa-main">
     <!-- Timeline Section - Takes majority of space -->
     <section class="timeline-section">
+      <div class="timeline-stack">
       <div class="timeline-container">
-        <CircularTimeline
+        <CircularTimelineCss
           externalGaps={computedGaps}
-          on:eventSelected={(e) => (selectedEvent = e.detail)}
-          on:gapSelected={(e) => (selectedGap = e.detail)}
+          pendingSuggestions={$pendingSuggestions}
+          acceptedSuggestions={$acceptedSuggestions}
+          {getTaskTitle}
+          on:eventSelected={(e: any) => (selectedEvent = e.detail)}
+          on:gapSelected={(e: any) => (selectedGap = e.detail)}
+          on:suggestionAccept={handleSuggestionAccept}
+          on:suggestionSkip={handleSuggestionSkip}
+          on:suggestionDelete={handleSuggestionDelete}
+          on:suggestionResize={handleSuggestionResize}
         />
-      </div>
-    </section>
+        </div>
 
-    <!-- Schedule Section - Shows scheduled tasks -->
-    <section class="schedule-section">
-      <SchedulePanel />
+        <div class="event-list-panel">
+          <div class="event-list-header">
+            <h3>Events</h3>
+            <span class="event-list-date">{formatDateLabel($selectedDate)}</span>
+          </div>
+          {#if displayEvents.length === 0}
+            <p class="event-empty">この日の予定はありません</p>
+          {:else}
+            <ul class="event-list">
+              {#each displayEvents as event (event.id)}
+                <li class="event-row">
+                  <div class="event-row-title">{event.title}</div>
+                  <div class="event-row-time">{formatEventTime(event)}</div>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
+      </div>
     </section>
 
     <!-- Content Section (legacy, commented out)
@@ -118,11 +321,27 @@
 
   <!-- Settings Panel (bottom sheet) -->
   {#if showSettings}
-    <section class="settings-section">
+    <div
+      class="settings-backdrop"
+      onclick={() => (showSettings = false)}
+      onkeydown={(e) => e.key === "Escape" && (showSettings = false)}
+      role="button"
+      tabindex="-1"
+      aria-label="Close settings"
+    ></div>
+    <section
+      class="settings-section"
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
       <div class="settings-header">
-        <span>Settings</span>
-        <button class="settings-close" onclick={() => (showSettings = false)}
-          >close</button
+        <h3>Settings</h3>
+        <button
+          class="settings-close"
+          onclick={() => (showSettings = false)}
+          aria-label="Close"
+          >✕</button
         >
       </div>
       <div class="settings-content">
@@ -157,6 +376,9 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
   }
 
   /* Settings trigger (minimal, bottom-left) */
@@ -180,35 +402,130 @@
     height: 100%;
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    flex: 1;
   }
 
   /* Timeline Section - Takes ~60% on desktop */
   .timeline-section {
     flex: 1 1 60%;
     min-width: 0; /* Allow shrinking */
-    height: 100%;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     z-index: 10;
+    padding: var(--space-md);
+    overflow-y: visible;
+  }
+
+  .timeline-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    width: 100%;
+    min-height: 0;
+    flex: 1;
+    align-items: center;
+    overflow-y: visible;
   }
 
   .timeline-container {
     width: 100%;
+    flex: 1;
     height: 100%;
+    min-height: 70vh;
     max-width: 90vh;
-    max-height: 95vh;
+    max-height: none;
+    flex-shrink: 0;
     position: relative;
     overflow: visible;
   }
 
-  /* Schedule Section - Takes ~40% on desktop */
-  .schedule-section {
-    flex: 0 0 320px;
-    max-width: 400px;
-    height: 100%;
-    z-index: 5;
+  .event-list-panel {
+    width: 100%;
+    max-width: 720px;
+    background: var(--bg-card);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-soft);
+    margin-bottom: calc(var(--bottom-nav-height, 80px) + var(--space-md));
+  }
+
+  .event-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  .event-list-header h3 {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: var(--font-weight-normal);
+    color: var(--text-primary);
+  }
+
+  .event-list-date {
+    color: var(--accent-primary);
+    font-size: var(--fs-sm);
+    font-weight: var(--font-weight-normal);
+    background: rgba(240, 138, 119, 0.1);
+    padding: 4px 12px;
+    border-radius: var(--radius-full, 20px);
+  }
+
+  .event-empty {
+    margin: 0;
+    color: var(--text-tertiary);
+    font-size: var(--fs-sm);
+    text-align: center;
+    padding: var(--space-lg) 0;
+  }
+
+  .event-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--bg-secondary);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: all 0.15s ease;
+  }
+
+  .event-row:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--ui-border);
+  }
+
+  .event-row-title {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-normal);
+    font-size: var(--fs-sm);
+  }
+
+  .event-row-time {
+    color: var(--text-secondary);
+    font-size: var(--fs-xs);
+    font-family: var(--font-sans);
+    background: var(--bg-card);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
   }
 
   /* Content Section 
@@ -332,37 +649,87 @@
     transform: translateY(-2px);
   }*/
   /* Settings Panel (bottom sheet) */
+  .settings-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 499;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   .settings-section {
     position: fixed;
-    bottom: 0;
+    bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
     left: 0;
     right: 0;
-    height: 50vh;
-    background: var(--white);
+    max-height: calc(50vh - var(--bottom-nav-height, 80px));
+    background: var(--bg-card);
     border-top: 1px solid var(--ui-border);
-    padding: var(--space-md);
-    box-shadow: 0 -4px 20px rgba(15, 34, 48, 0.08);
-    z-index: 220;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-lg);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+    z-index: 500;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   .settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 13px;
-    color: var(--text-secondary);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  .settings-header h3 {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: var(--font-weight-normal);
+    color: var(--text-primary);
   }
 
   .settings-close {
-    background: transparent;
+    width: 32px;
+    height: 32px;
     border: none;
-    font-size: 12px;
-    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
     cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .settings-close:hover {
+    background: var(--danger);
+    color: white;
   }
 
   .settings-content {
@@ -399,12 +766,6 @@
       flex: 1 1 55%;
       width: 100%;
       min-height: 0;
-    }
-
-    .schedule-section {
-      flex: 1 1 45%;
-      max-width: none;
-      width: 100%;
     }
 
     .timeline-container {

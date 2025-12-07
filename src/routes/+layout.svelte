@@ -23,11 +23,11 @@
 
 <style>
   .app-container {
+    height: 100vh;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background-color: var(--bg-primary);
-    /* Reserve space for bottom navigation including safe area */
-    padding-bottom: calc(
-      var(--bottom-nav-height) + env(safe-area-inset-bottom)
-    );
+    overflow: hidden;
   }
 </style>

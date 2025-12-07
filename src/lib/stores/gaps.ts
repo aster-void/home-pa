@@ -13,7 +13,7 @@ import { writable, derived } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.js";
 import { GapFinder } from "../services/gap-finder.js";
 import { selectedDate } from "./data.js";
-import { calendarOccurrences } from "./calendar.js";
+import { calendarEvents, calendarOccurrences } from "./calendar.js";
 import type { Event as CalendarEvent } from "../types.js";
 import {
   enrichGapsWithLocation,
@@ -42,14 +42,19 @@ function convertCalendarEventToGapEvent(
 ): Event | null {
   const eventStartDate = new Date(calendarEvent.start);
   const eventEndDate = new Date(calendarEvent.end);
-  const targetDateString = targetDate.toDateString();
-
-  // Include events that either start OR end on the target date
-  const startsOnTarget = eventStartDate.toDateString() === targetDateString;
-  const endsOnTarget = eventEndDate.toDateString() === targetDateString;
-
-  if (!startsOnTarget && !endsOnTarget) {
-    return null;
+  
+  // Calculate day boundaries for target date
+  const targetDayStart = new Date(targetDate);
+  targetDayStart.setHours(0, 0, 0, 0);
+  const targetDayEnd = new Date(targetDate);
+  targetDayEnd.setHours(23, 59, 59, 999);
+  
+  // Check if event overlaps with target date (handles multi-day events)
+  const eventStartsBeforeDayEnd = eventStartDate.getTime() <= targetDayEnd.getTime();
+  const eventEndsAfterDayStart = eventEndDate.getTime() >= targetDayStart.getTime();
+  
+  if (!eventStartsBeforeDayEnd || !eventEndsAfterDayStart) {
+    return null; // Event doesn't overlap with target date at all
   }
 
   // Handle all-day events specially: they span the full day (00:00 to 23:59)
@@ -63,40 +68,47 @@ function convertCalendarEventToGapEvent(
     };
   }
 
-  // For events that cross midnight and end on the target date,
-  // we need to create a modified version that starts at day boundary
+  // For timed events, determine the actual time range on this specific day
   let startTime: string = "";
   let endTime: string = "";
 
-  if (startsOnTarget && endsOnTarget) {
-    // Event starts and ends on the same day - use actual times
+  // Normalize dates for comparison (ignore time component)
+  const normalizedTargetDate = new Date(targetDate);
+  normalizedTargetDate.setHours(0, 0, 0, 0);
+  const normalizedEventStart = new Date(eventStartDate);
+  normalizedEventStart.setHours(0, 0, 0, 0);
+  const normalizedEventEnd = new Date(eventEndDate);
+  normalizedEventEnd.setHours(0, 0, 0, 0);
+
+  // Determine start time: use event start if it's on this day, otherwise use 00:00
+  const eventStartsOnTarget = normalizedEventStart.getTime() === normalizedTargetDate.getTime();
+  if (eventStartsOnTarget) {
+    // Event starts on target date - use actual start time
     startTime = calendarEvent.start.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     });
+  } else {
+    // Event started before target date - starts at beginning of day
+    startTime = "00:00";
+  }
+
+  // Determine end time: use event end if it's on this day, otherwise use 23:59
+  // Check if event ends on the target date by comparing normalized dates
+  const eventEndsOnTarget = normalizedEventEnd.getTime() === normalizedTargetDate.getTime();
+  
+  if (eventEndsOnTarget) {
+    // Event ends on target date - use actual end time
     endTime = calendarEvent.end.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
     });
-  } else if (startsOnTarget && !endsOnTarget) {
-    // Event starts on target date but ends next day - truncate at end of day
-    startTime = calendarEvent.start.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    endTime = "23:59"; // Truncate at end of day
-  } else if (!startsOnTarget && endsOnTarget) {
-    // Event ends on target date but started yesterday - start at day boundary
-    // The gap finder will adjust this to the actual day start time
-    startTime = "00:00"; // This will be adjusted by the gap finder to day start
-    endTime = calendarEvent.end.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
+  } else {
+    // Event doesn't end on target date - it continues through this day, so use end of day
+    // This handles both: events that end after target date AND events that started before
+    endTime = "23:59";
   }
 
   return {
@@ -113,17 +125,35 @@ function convertCalendarEventToGapEvent(
  * Automatically converts and filters events when calendar or date changes
  */
 export const events = derived(
-  [calendarOccurrences, selectedDate],
-  ([$occurrences, $selectedDate]) => {
-    // Filter occurrences for the selected date
-    const selectedDateStr = $selectedDate.toISOString().split('T')[0];
-    const eventsForDate = $occurrences.filter(occ => {
-      const occDateStr = occ.start.toISOString().split('T')[0];
-      return occDateStr === selectedDateStr;
-    });
-    
-    return eventsForDate
-      .map((event: any) => convertCalendarEventToGapEvent(event, $selectedDate))
+  [calendarEvents, calendarOccurrences, selectedDate],
+  ([$events, $occurrences, $selectedDate]) => {
+    // Combine master events and expanded recurring occurrences
+    const allEvents: Array<CalendarEvent | {
+      id: string;
+      title: string;
+      start: Date;
+      end: Date;
+      description?: string;
+      address?: string;
+      importance?: "low" | "medium" | "high";
+      timeLabel?: string;
+    }> = [
+      ...$events,
+      ...$occurrences.map((occ) => ({
+        id: occ.id,
+        title: occ.title,
+        start: occ.start,
+        end: occ.end,
+        description: occ.description,
+        address: occ.location,
+        importance: occ.importance,
+        timeLabel: occ.timeLabel,
+      })),
+    ];
+
+    // Let convertCalendarEventToGapEvent handle overlap detection and day clipping
+    return allEvents
+      .map((event) => convertCalendarEventToGapEvent(event, $selectedDate))
       .filter((event): event is Event => event !== null);
   },
 );

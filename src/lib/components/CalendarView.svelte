@@ -185,8 +185,14 @@
     });
   });
 
-  // Load recurring event occurrences on mount
-  onMount(() => {
+  // Track previous month to only fetch when month actually changes
+  let previousMonthKey = $state<string | null>(null);
+  
+  function getMonthKey(month: Date): string {
+    return `${month.getFullYear()}-${month.getMonth()}`;
+  }
+
+  function fetchEventsForCurrentMonth() {
     const windowStart = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth() - 3,
@@ -197,32 +203,25 @@
       currentMonth.getMonth() + 4,
       0,
     );
-    // Fetch events with automatic occurrence expansion
     calendarActions.fetchEvents(windowStart, windowEnd, true);
+  }
+
+  // Load events on mount
+  onMount(() => {
+    const monthKey = getMonthKey(currentMonth);
+    previousMonthKey = monthKey;
+    fetchEventsForCurrentMonth();
   });
 
-  // Reload occurrences when events change or month changes
+  // Reload events when month actually changes (not on every render)
   $effect(() => {
-    // Access $calendarEvents synchronously to ensure reactivity tracking
-    const currentEvents = $calendarEvents;
-    const windowStart = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() - 3,
-      1,
-    );
-    const windowEnd = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + 4,
-      0,
-    );
-
-    // Debounce to avoid excessive reloads (200ms for better performance)
-    const timeout = setTimeout(() => {
-      // Fetch events with automatic occurrence expansion
-      calendarActions.fetchEvents(windowStart, windowEnd, true);
-    }, 200);
-
-    return () => clearTimeout(timeout);
+    const monthKey = getMonthKey(currentMonth);
+    
+    // Only fetch if month actually changed (skip initial render/mount)
+    if (previousMonthKey !== null && previousMonthKey !== monthKey) {
+      previousMonthKey = monthKey;
+      fetchEventsForCurrentMonth();
+    }
   });
 
   // Also reload occurrences when form data changes (for real-time preview)
@@ -569,6 +568,16 @@
     }
   }
 
+  function parseFreqFromRrule(rrule: string | undefined): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null {
+    if (!rrule) return null;
+    const match = rrule.match(/FREQ=([A-Z]+)/);
+    if (match) {
+      const freq = match[1] as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
+      return freq;
+    }
+    return null;
+  }
+
   function formatRecurrenceText(recurrence: any): string {
     if (!recurrence || recurrence.type === "NONE") {
       return "";
@@ -587,7 +596,10 @@
     }
 
     if (recurrence.type === "RRULE") {
-      const freq = recurrence.frequency || "DAILY";
+      const freq =
+        recurrence.frequency ||
+        parseFreqFromRrule(recurrence.rrule) ||
+        "DAILY";
       const freqMap: Record<string, string> = {
         DAILY: "毎日",
         WEEKLY: "毎週",
@@ -829,25 +841,6 @@
     });
   }
 
-  // Helper function to get full events for event list (no truncation)
-  function getFullEventsForDate(events: Event[], targetDate: Date): Event[] {
-    // Compute start of day (00:00:00) and end of day (23:59:59.999) for target date
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    return events.filter((event) => {
-      // Parse event start and end dates
-      const eventStart = new Date(event.start);
-      const eventEnd = new Date(event.end);
-
-      // Return events where eventStart <= endOfDay && eventEnd >= startOfDay
-      // This includes multi-day events that span the target date
-      return eventStart <= endOfDay && eventEnd >= startOfDay;
-    });
-  }
-
   function getEventColumns(events: Event[]): Event[][] {
     if (events.length === 0) return [];
 
@@ -1001,337 +994,181 @@
 </script>
 
 <div class="calendar-view">
-  <div class="calendar-main">
-    <!-- Calendar Header (inside the same scrollable container as grid) -->
-    <div class="calendar-header">
-      <div class="month-navigation">
-        <button onclick={() => navigateMonth(-1)}>←</button>
-        <h2>
-          {currentMonth.toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "long",
-          })}
-        </h2>
-        <button onclick={() => navigateMonth(1)}>→</button>
-      </div>
-
-      <div class="header-actions">
-        <button
-          class="debug-toggle"
-          onclick={() => (showDebugInfo = !showDebugInfo)}
-          title="Toggle debug information"
-        >
-          {showDebugInfo ? "Hide" : "Show"} Debug
-        </button>
-        {#if $calendarLoading}
-          <div class="recurrence-loading">
-            <span class="loading-spinner"></span>
-            <span class="loading-text">Loading recurring events...</span>
-          </div>
-        {/if}
-        {#if $calendarError}
-          <div class="recurrence-error" title={$calendarError}>
-            ⚠️ Recurring events unavailable
-          </div>
-        {/if}
-        <button class="add-event-button" onclick={createEvent}>+</button>
-      </div>
+  <!-- Calendar Header -->
+  <div class="calendar-header">
+    <div class="month-navigation">
+      <button onclick={() => navigateMonth(-1)}>←</button>
+      <h2>
+        {currentMonth.toLocaleDateString("ja-JP", {
+          year: "numeric",
+          month: "long",
+        })}
+      </h2>
+      <button onclick={() => navigateMonth(1)}>→</button>
     </div>
 
-    <!-- Debug Information -->
-    {#if showDebugInfo}
-      <div class="debug-info">
-        <h3>Sliding Window Debug Info</h3>
-        <div class="debug-stats">
-          <div class="debug-stat">
-            <strong>Window:</strong>
-            {new Date(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth() - 3,
-              1,
-            ).toLocaleDateString()} -
-            {new Date(
-              currentMonth.getFullYear(),
-              currentMonth.getMonth() + 4,
-              0,
-            ).toLocaleDateString()}
-          </div>
-          <div class="debug-stat">
-            <strong>Total Events:</strong>
-            {$calendarEvents.length}
-          </div>
-          <div class="debug-stat">
-            <strong>Display Events:</strong>
-            {allDisplayEvents.length}
-          </div>
-          <div class="debug-stat">
-            <strong>Forever Events:</strong>
-            {foreverEvents.length}
-          </div>
-          <div class="debug-stat">
-            <strong>Calendar Store:</strong>
-            Loading: {$calendarLoading ? "Yes" : "No"}, Error: {$calendarError ||
-              "None"}
-          </div>
-        </div>
-        {#if foreverEvents.length > 0}
-          <div class="forever-events-list">
-            <h4>Forever Recurring Events:</h4>
-            <ul>
-              {#each foreverEvents as event}
-                <li>
-                  {event.title}
-                  <span class="forever-indicator">∞</span>
-                  (Master ID: {(event as any).eventId || event.id})
-                </li>
-              {/each}
-            </ul>
-          </div>
-        {/if}
-      </div>
-    {/if}
-
-    <!-- Calendar Grid -->
-    <div class="calendar-grid">
-      <div class="calendar-weekdays">
-        <div class="weekday">日</div>
-        <div class="weekday">月</div>
-        <div class="weekday">火</div>
-        <div class="weekday">水</div>
-        <div class="weekday">木</div>
-        <div class="weekday">金</div>
-        <div class="weekday">土</div>
-      </div>
-
-      <div class="calendar-days">
-        {#each getCalendarDays() as day (day.getTime())}
-          <div
-            class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day)
-              ? 'selected'
-              : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
-            onclick={() => selectDate(day)}
-            onkeydown={(e) => e.key === "Enter" && selectDate(day)}
-            role="button"
-            tabindex="0"
-          >
-            <div class="day-number">{day.getDate()}</div>
-            <div class="day-events">
-              {#each getEventsForDate(allDisplayEvents, day) as truncatedEvent (truncatedEvent.id)}
-                {@const originalEvent =
-                  allDisplayEvents.find((e) => e.id === truncatedEvent.id) ||
-                  truncatedEvent}
-                {@const barPosition = getEventBarPosition(
-                  originalEvent.start,
-                  originalEvent.end,
-                  day,
-                )}
-                {@const showLabel = isFirstDayOfEvent(originalEvent, day)}
-                {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
-                <div
-                  class="event-bar {barPosition}"
-                  style="background-color: {getEventColor(
-                    truncatedEvent,
-                  )}; top: {rowIndex * 18}px;"
-                >
-                  {#if showLabel}
-                    <span class="event-label">
-                      {truncatedEvent.title}
-                      {#if (truncatedEvent as any).isForever}
-                        <span
-                          class="forever-indicator"
-                          title="Forever recurring">∞</span
-                        >
-                      {/if}
-                      {#if (truncatedEvent as any).isDuplicate}
-                        <span
-                          class="duplicate-indicator"
-                          title="Auto-generated duplicate">↻</span
-                        >
-                      {/if}
-                    </span>
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          </div>
-        {/each}
-      </div>
-    </div>
-
-    <!-- Selected Date Events - Always Visible -->
-    <div class="selected-date-events">
-      <h3>予定 - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
-      {#if getFullEventsForDate(allDisplayEvents, $selectedDate).length === 0}
-        <p class="empty-state">この日の予定はありません</p>
-      {:else}
-        <div class="events-list">
-          {#each getFullEventsForDate(allDisplayEvents, $selectedDate) as event (event.id)}
-            {#snippet eventContent()}
-              {#if $calendarEvents.find((e) => e.id === (event as any).eventId || e.id === event.id)}
-                {@const masterEvent = $calendarEvents.find(
-                  (e) => e.id === (event as any).eventId || e.id === event.id,
-                )!}
-                <div class="event-content">
-                  <div class="event-header">
-                    <div class="event-title">
-                      {event.title}
-                      {#if (event as any).isForever}
-                        <span
-                          class="forever-indicator"
-                          title="Forever recurring">∞</span
-                        >
-                      {/if}
-                      {#if (event as any).isDuplicate}
-                        <span
-                          class="duplicate-indicator"
-                          title="Auto-generated duplicate">↻</span
-                        >
-                      {/if}
-                    </div>
-                    {#if masterEvent.importance && masterEvent.importance !== "medium"}
-                      <div
-                        class="importance-indicator {masterEvent.importance}"
-                      >
-                        {masterEvent.importance === "high" ? "🔴" : "🟡"}
-                      </div>
-                    {/if}
-                  </div>
-                  {#if masterEvent.timeLabel === "some-timing"}
-                    <div class="event-time some-timing">
-                      どこかのタイミングで
-                    </div>
-                  {:else if masterEvent.timeLabel === "timed"}
-                    <div class="event-time timed">
-                      {formatTime(event.start)} - {formatTime(event.end)}
-                    </div>
-                  {:else}
-                    <div class="event-time all-day">終日</div>
-                  {/if}
-                  {#if event.description}
-                    <div class="event-description">{event.description}</div>
-                  {/if}
-                  {#if masterEvent.address}
-                    <div class="event-address">📍 {masterEvent.address}</div>
-                  {/if}
-                  {#if masterEvent.recurrence && masterEvent.recurrence.type !== "NONE"}
-                    <div class="event-recurrence">
-                      <span class="recurrence-icon">🔄</span>
-                      <span class="recurrence-text"
-                        >{formatRecurrenceText(masterEvent.recurrence)}</span
-                      >
-                    </div>
-                  {/if}
-                </div>
-              {:else}
-                <div class="event-content">
-                  <div class="event-header">
-                    <div class="event-title">
-                      {event.title}
-                      {#if (event as any).isForever}
-                        <span
-                          class="forever-indicator"
-                          title="Forever recurring">∞</span
-                        >
-                      {/if}
-                      {#if (event as any).isDuplicate}
-                        <span
-                          class="duplicate-indicator"
-                          title="Auto-generated duplicate">↻</span
-                        >
-                      {/if}
-                    </div>
-                    {#if event.importance && event.importance !== "medium"}
-                      <div class="importance-indicator {event.importance}">
-                        {event.importance === "high" ? "🔴" : "🟡"}
-                      </div>
-                    {/if}
-                  </div>
-                  {#if event.timeLabel === "some-timing"}
-                    <div class="event-time some-timing">
-                      どこかのタイミングで
-                    </div>
-                  {:else if event.timeLabel === "timed"}
-                    <div class="event-time timed">
-                      {formatTime(event.start)} - {formatTime(event.end)}
-                    </div>
-                  {:else}
-                    <div class="event-time all-day">終日</div>
-                  {/if}
-                  {#if event.description}
-                    <div class="event-description">{event.description}</div>
-                  {/if}
-                  {#if event.address}
-                    <div class="event-address">📍 {event.address}</div>
-                  {/if}
-                </div>
-              {/if}
-            {/snippet}
-            <div
-              class="event-item"
-              onclick={() => {
-                const masterEvent =
-                  $calendarEvents.find(
-                    (e) => e.id === (event as any).eventId || e.id === event.id,
-                  ) || event;
-                eventActions.editEvent(masterEvent);
-                parseRecurrenceForEdit(masterEvent);
-              }}
-              onkeydown={(e) => {
-                if (e.key === "Enter") {
-                  const masterEvent =
-                    $calendarEvents.find(
-                      (evt) =>
-                        evt.id === (event as any).eventId ||
-                        evt.id === event.id,
-                    ) || event;
-                  eventActions.editEvent(masterEvent);
-                  parseRecurrenceForEdit(masterEvent);
-                }
-              }}
-              role="button"
-              tabindex="0"
-            >
-              {@render eventContent()}
-              <div class="event-actions">
-                <button
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    const masterEvent =
-                      $calendarEvents.find(
-                        (evt) =>
-                          evt.id === (event as any).eventId ||
-                          evt.id === event.id,
-                      ) || event;
-                    eventActions.editEvent(masterEvent);
-                    parseRecurrenceForEdit(masterEvent);
-                  }}>編集</button
-                >
-                <button
-                  onclick={(e) => {
-                    e.stopPropagation();
-                    // For occurrences, delete the master event, not the occurrence
-                    const eventIdToDelete = (event as any).eventId || event.id;
-                    eventActions.delete(eventIdToDelete);
-                  }}
-                  class="danger">削除</button
-                >
-              </div>
-            </div>
-          {/each}
+    <div class="header-actions">
+      <button
+        class="debug-toggle"
+        onclick={() => (showDebugInfo = !showDebugInfo)}
+        title="Toggle debug information"
+      >
+        {showDebugInfo ? "Hide" : "Show"} Debug
+      </button>
+      {#if $calendarError}
+        <div class="recurrence-error" title={$calendarError}>
+          ⚠️ Recurring events unavailable
         </div>
       {/if}
+      <button class="add-event-button" onclick={createEvent}>+</button>
+    </div>
+  </div>
+
+  <!-- Debug Information -->
+  {#if showDebugInfo}
+    <div class="debug-info">
+      <h3>Sliding Window Debug Info</h3>
+      <div class="debug-stats">
+        <div class="debug-stat">
+          <strong>Window:</strong>
+          {new Date(
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() - 3,
+            1,
+          ).toLocaleDateString()} -
+          {new Date(
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() + 4,
+            0,
+          ).toLocaleDateString()}
+        </div>
+        <div class="debug-stat">
+          <strong>Total Events:</strong>
+          {$calendarEvents.length}
+        </div>
+        <div class="debug-stat">
+          <strong>Display Events:</strong>
+          {allDisplayEvents.length}
+        </div>
+        <div class="debug-stat">
+          <strong>Forever Events:</strong>
+          {foreverEvents.length}
+        </div>
+        <div class="debug-stat">
+          <strong>Calendar Store:</strong>
+          Loading: {$calendarLoading ? "Yes" : "No"}, Error: {$calendarError ||
+            "None"}
+        </div>
+      </div>
+      {#if foreverEvents.length > 0}
+        <div class="forever-events-list">
+          <h4>Forever Recurring Events:</h4>
+          <ul>
+            {#each foreverEvents as event}
+              <li>
+                {event.title}
+                <span class="forever-indicator">∞</span>
+                (Master ID: {(event as any).eventId || event.id})
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+    </div>
+  {/if}
+
+  <!-- Calendar Grid -->
+  <div class="calendar-grid">
+    <div class="calendar-weekdays">
+      <div class="weekday">日</div>
+      <div class="weekday">月</div>
+      <div class="weekday">火</div>
+      <div class="weekday">水</div>
+      <div class="weekday">木</div>
+      <div class="weekday">金</div>
+      <div class="weekday">土</div>
+    </div>
+
+    <div class="calendar-days">
+      {#each getCalendarDays() as day (day.getTime())}
+        <div
+          class="calendar-day {isToday(day) ? 'today' : ''} {isSelected(day)
+            ? 'selected'
+            : ''} {!isCurrentMonth(day) ? 'other-month' : ''}"
+          onclick={() => selectDate(day)}
+          onkeydown={(e) => e.key === "Enter" && selectDate(day)}
+          role="button"
+          tabindex="0"
+        >
+          <div class="day-number">{day.getDate()}</div>
+          <div class="day-events">
+            {#each getEventsForDate(allDisplayEvents, day) as truncatedEvent (truncatedEvent.id)}
+              {@const originalEvent =
+                allDisplayEvents.find((e) => e.id === truncatedEvent.id) ||
+                truncatedEvent}
+              {@const barPosition = getEventBarPosition(
+                originalEvent.start,
+                originalEvent.end,
+                day,
+              )}
+              {@const showLabel = isFirstDayOfEvent(originalEvent, day)}
+              {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}
+              <div
+                class="event-bar {barPosition}"
+                style="background-color: {getEventColor(
+                  truncatedEvent,
+                )}; top: {rowIndex * 18}px;"
+              >
+                {#if showLabel}
+                  <span class="event-label">
+                    {truncatedEvent.title}
+                    {#if (truncatedEvent as any).isForever}
+                      <span
+                        class="forever-indicator"
+                        title="Forever recurring">∞</span
+                      >
+                    {/if}
+                    {#if (truncatedEvent as any).isDuplicate}
+                      <span
+                        class="duplicate-indicator"
+                        title="Auto-generated duplicate">↻</span
+                      >
+                    {/if}
+                  </span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/each}
     </div>
   </div>
 
   <!-- Timeline Popup -->
   {#if $showTimelinePopup}
-    <div class="timeline-popup">
-      <div class="popup-content">
+    <div
+      class="timeline-popup"
+      onclick={() => uiActions.hideTimelinePopup()}
+      onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+      role="button"
+      tabindex="-1"
+      aria-label="Close timeline"
+    >
+      <div
+        class="popup-content"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+      >
         <div class="popup-header">
           <h3>タイムライン - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
           <button
             class="close-button"
-            onclick={() => uiActions.hideTimelinePopup()}>✕</button
+            onclick={() => uiActions.hideTimelinePopup()}
+            aria-label="Close"
+            >✕</button
           >
         </div>
 
@@ -1428,11 +1265,28 @@
 
   <!-- Event Form Modal -->
   {#if $showEventForm}
-    <div class="event-form-modal">
-      <div class="modal-content">
+    <div
+      class="event-form-modal"
+      onclick={() => uiActions.hideEventForm()}
+      onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+      role="button"
+      tabindex="-1"
+      aria-label="Close event form"
+    >
+      <div
+        class="modal-content"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+        role="dialog"
+        aria-modal="true"
+        tabindex="-1"
+      >
         <div class="modal-header">
           <h3>{isEventEditing ? "予定を編集" : "新しい予定"}</h3>
-          <button class="close-button" onclick={() => uiActions.hideEventForm()}
+          <button
+            class="close-button"
+            onclick={() => uiActions.hideEventForm()}
+            aria-label="Close"
             >✕</button
           >
         </div>
@@ -1796,23 +1650,32 @@
         <div class="form-actions">
           {#if isEventEditing}
             <button
-              onclick={() => {
-                eventActions.submitEventForm();
-              }}>更新</button
-            >
-            <button
+              type="button"
+              class="cancel-btn"
               onclick={() => {
                 eventActions.cancelEventForm();
               }}>キャンセル</button
             >
+            <button
+              type="button"
+              class="submit-btn"
+              onclick={() => {
+                eventActions.submitEventForm();
+              }}>更新</button
+            >
           {:else}
             <button
+              type="button"
+              class="cancel-btn"
+              onclick={() => eventActions.cancelEventForm()}
+              >キャンセル</button
+            >
+            <button
+              type="button"
+              class="submit-btn"
               onclick={() => {
                 eventActions.submitEventForm();
               }}>作成</button
-            >
-            <button onclick={() => eventActions.cancelEventForm()}
-              >キャンセル</button
             >
           {/if}
         </div>
@@ -1834,31 +1697,25 @@
 
   .calendar-view {
     height: 100%;
+    max-height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--panel);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     backdrop-filter: blur(6px) saturate(110%);
-    box-shadow: var(--glow);
     overflow: hidden;
     min-height: 0;
-  }
-
-  .calendar-main {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    scroll-behavior: smooth;
+    box-sizing: border-box;
   }
 
   .calendar-grid {
     display: flex;
     flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 600px; /* Increased from 400px to make calendar taller */
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
   }
 
   .calendar-header {
@@ -1998,6 +1855,7 @@
     grid-template-columns: repeat(7, 1fr);
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
   }
 
   .weekday {
@@ -2128,71 +1986,6 @@
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 
-  .selected-date-events {
-    padding: var(--space-md);
-    border-top: 1px solid var(--glass-border);
-    background: var(--bg-tertiary);
-    flex: 0 0 auto;
-    max-height: 200px; /* Limit event list height */
-    overflow-y: auto; /* Enable scrolling if needed */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-  }
-
-  .selected-date-events::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
-  }
-
-  .selected-date-events h3 {
-    margin: 0 0 var(--space-md) 0;
-    color: var(--text-primary);
-    font-size: 1rem;
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    letter-spacing: 0.05em;
-  }
-
-  .events-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .event-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-sm);
-    background: rgba(0, 200, 255, 0.08);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.18s ease;
-  }
-
-  .event-item:hover {
-    background: rgba(0, 200, 255, 0.12);
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 0 12px rgba(0, 200, 255, 0.15);
-  }
-
-  .event-content {
-    flex: 1;
-    margin-right: var(--space-md);
-  }
-
-  .event-title {
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: var(--space-xs);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
   .forever-indicator {
     color: #ff9800;
     font-weight: bold;
@@ -2283,48 +2076,6 @@
     font-family: var(--font-display);
   }
 
-  .event-actions {
-    display: flex;
-    gap: var(--space-xs);
-    opacity: 0;
-    transition: opacity 0.18s ease;
-  }
-
-  .event-item:hover .event-actions {
-    opacity: 1;
-  }
-
-  .event-actions button {
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--primary);
-    background: transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    color: var(--primary);
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: all 0.18s ease;
-  }
-
-  .event-actions button.danger {
-    color: var(--danger);
-    border-color: var(--danger);
-  }
-
-  .event-actions button:hover {
-    background: var(--primary);
-    color: var(--bg);
-    box-shadow: 0 0 8px rgba(0, 200, 255, 0.2);
-  }
-
-  .event-actions button.danger:hover {
-    background: var(--danger);
-    color: var(--bg);
-    box-shadow: 0 0 8px rgba(255, 59, 59, 0.2);
-  }
-
   .empty-state {
     text-align: center;
     color: var(--muted);
@@ -2335,64 +2086,144 @@
   /* Timeline Popup Styles */
   .timeline-popup {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 34, 48, 0.8);
-    backdrop-filter: blur(4px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 2100;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    z-index: 1000;
+    animation: fadeIn 0.2s ease;
   }
 
   .popup-content {
-    background: var(--card);
-    border: 1px solid rgba(15, 34, 48, 0.05);
-    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    border: 1px solid var(--ui-border);
+    border-radius: 16px 16px 0 0;
     padding: var(--space-md);
-    width: 90%;
+    width: 100%;
     max-width: 600px;
-    max-height: 80vh;
+    max-height: calc(90vh - var(--bottom-nav-height, 80px));
     overflow-y: auto;
-    box-shadow: var(--shadow-soft);
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+    animation: slideUp 0.3s ease;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) transparent;
+    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    padding-bottom: var(--space-md);
+  }
+
+  @media (max-width: 768px) {
+    .popup-content {
+      padding-left: var(--space-sm);
+      padding-right: var(--space-sm);
+      padding-top: var(--space-md);
+      padding-bottom: var(--space-md);
+      margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    }
   }
 
   .popup-content::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
+    width: 6px;
+  }
+
+  .popup-content::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: var(--radius-md);
+  }
+
+  .popup-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  @media (min-width: 768px) {
+    .timeline-popup {
+      align-items: center;
+    }
+
+    .popup-content {
+      border-radius: var(--radius-lg);
+      max-height: 80vh;
+      margin-bottom: 0;
+      padding: var(--space-lg);
+      padding-bottom: var(--space-lg);
+    }
+
+    .popup-header {
+      margin-bottom: var(--space-lg);
+      padding-bottom: var(--space-md);
+    }
   }
 
   .timeline-container {
     height: 70vh;
+    max-height: calc(90vh - 200px);
     overflow: hidden;
     position: relative;
+  }
+
+  @media (max-width: 768px) {
+    .timeline-container {
+      height: calc(100vh - 180px);
+      max-height: calc(100vh - 180px);
+      min-height: 300px;
+    }
+
+    .timeline-view {
+      height: 100%;
+    }
   }
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--space-sm);
-    padding-bottom: var(--space-xs);
-    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--ui-border);
+  }
+
+  @media (max-width: 768px) {
+    .popup-header {
+      margin-bottom: var(--space-sm);
+      padding-bottom: var(--space-xs);
+    }
   }
 
   .popup-header h3 {
     margin: 0;
-    color: var(--navy-900);
+    color: var(--text-primary);
     font-size: var(--fs-lg);
     font-family: var(--font-family);
-    font-weight: 600;
+    font-weight: var(--font-weight-normal);
+  }
+
+  .popup-header .close-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup-header .close-button:hover {
+    background: var(--danger);
+    color: white;
   }
 
   .timeline-view {
     position: relative;
-    height: 70vh;
+    height: 100%;
+    min-height: 400px;
     background: var(--bg-card);
-    border: 1px solid rgba(15, 34, 48, 0.1);
+    border: 1px solid var(--ui-border);
     border-radius: var(--radius-md);
     overflow: hidden;
   }
@@ -2440,10 +2271,10 @@
     left: 0;
     right: 0;
     height: 2px;
-    background: var(--accent);
+    background: var(--accent-primary);
     z-index: 10;
     pointer-events: none;
-    box-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+    box-shadow: 0 0 8px rgba(240, 138, 119, 0.5);
   }
 
   .current-time-line::before {
@@ -2453,7 +2284,7 @@
     top: -4px;
     width: 0;
     height: 0;
-    border-left: 6px solid var(--accent);
+    border-left: 6px solid var(--accent-primary);
     border-top: 5px solid transparent;
     border-bottom: 5px solid transparent;
   }
@@ -2521,47 +2352,95 @@
   /* Modal Styles */
   .event-form-modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 34, 48, 0.8);
-    backdrop-filter: blur(4px);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 2100;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .modal-content {
     background: var(--bg-card);
-    border: 1px solid rgba(15, 34, 48, 0.05);
-    border-radius: var(--radius-lg);
-    padding: 0;
-    width: 90%;
+    border: 1px solid var(--ui-border);
+    border-radius: 16px 16px 0 0;
+    padding: var(--space-lg);
+    padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    width: 100%;
     max-width: 500px;
-    max-height: 75vh;
+    max-height: calc(90vh - var(--bottom-nav-height, 80px));
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow-soft);
-    margin: var(--space-lg) 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .event-form-modal {
+      align-items: center;
+    }
+
+    .modal-content {
+      border-radius: var(--radius-lg);
+      max-height: 80vh;
+      margin-bottom: 0;
+      padding-bottom: var(--space-lg);
+    }
   }
 
   .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--space-md) var(--space-lg);
-    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--ui-border);
     flex-shrink: 0;
   }
 
   .modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: var(--space-md);
+    padding: 0;
     scrollbar-width: thin;
-    scrollbar-color: var(--primary) transparent;
+    scrollbar-color: var(--accent-primary) transparent;
+  }
+
+  .modal-body > * {
+    padding-left: var(--space-lg);
+    padding-right: var(--space-lg);
+  }
+
+  .modal-body > .form-group {
+    margin-bottom: var(--space-md);
+  }
+
+  .modal-body > .form-group:first-child {
+    padding-top: 0;
   }
 
   .modal-body::-webkit-scrollbar {
@@ -2569,7 +2448,7 @@
   }
 
   .modal-body::-webkit-scrollbar-thumb {
-    background: var(--primary);
+    background: var(--accent-primary);
     border-radius: var(--radius-md);
   }
 
@@ -2581,31 +2460,29 @@
     margin: 0;
     color: var(--text-primary);
     font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-normal);
     font-size: var(--fs-lg);
-    letter-spacing: 1px;
+    letter-spacing: 0;
   }
 
   .close-button {
-    width: 2rem;
-    height: 2rem;
-    border: 1px solid #dc3545;
-    background: transparent;
-    color: #dc3545;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.15s ease;
   }
 
   .close-button:hover {
-    background: #dc3545;
-    color: var(--white);
-    box-shadow: 0 4px 14px rgba(220, 53, 69, 0.3);
-    transform: scale(1.1);
+    background: var(--danger);
+    color: white;
   }
 
   .form-group {
@@ -2631,38 +2508,49 @@
   .form-actions {
     display: flex;
     gap: var(--space-sm);
-    justify-content: flex-end;
-    padding: var(--space-md) var(--space-lg);
-    border-top: 1px solid rgba(15, 34, 48, 0.08);
+    margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--ui-border);
     flex-shrink: 0;
-    background: var(--bg-card);
-    border-bottom-left-radius: var(--radius-lg);
-    border-bottom-right-radius: var(--radius-lg);
   }
 
-  .form-actions button {
-    padding: 10px 18px;
+  .cancel-btn,
+  .submit-btn {
+    flex: 1;
+    padding: 12px var(--space-md);
+    border: none;
     border-radius: var(--radius-md);
-    border: 1px solid var(--coral);
-    background: transparent;
-    color: var(--coral);
-    font-weight: 600;
-    font-family: var(--font-family);
     font-size: var(--fs-sm);
+    font-weight: var(--font-weight-normal);
     cursor: pointer;
-    transition: all 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+    transition: all 0.15s ease;
   }
 
-  .form-actions button:first-child {
-    background: var(--coral);
+  .cancel-btn {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--ui-border);
+  }
+
+  .cancel-btn:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
+  }
+
+  .submit-btn {
+    background: var(--accent-primary);
     color: white;
   }
 
-  .form-actions button:hover {
-    background: var(--coral);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(240, 138, 119, 0.3);
+  .submit-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   /* Error Styling */
@@ -3158,52 +3046,6 @@
     border-color: var(--coral);
   }
 
-  /* Event Display Styles */
-  .event-header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-    margin-bottom: var(--space-xs);
-  }
-
-  .importance-indicator {
-    font-size: var(--fs-xs);
-    margin-left: auto;
-  }
-
-  .event-time.all-day {
-    font-weight: 500;
-    color: var(--coral);
-  }
-
-  .event-time.some-timing {
-    font-weight: 500;
-    color: var(--navy-500);
-    font-style: italic;
-  }
-
-  .event-time.timed {
-    font-weight: 500;
-    color: var(--primary);
-    font-family: var(--font-mono, monospace);
-  }
-
-  .event-description {
-    font-size: var(--fs-xs);
-    color: var(--muted);
-    margin-top: var(--space-xs);
-    line-height: 1.4;
-  }
-
-  .event-address {
-    font-size: var(--fs-xs);
-    color: var(--muted);
-    margin-top: var(--space-xs);
-    display: flex;
-    align-items: center;
-    gap: var(--space-xs);
-  }
-
   .form-actions {
     display: flex;
     gap: var(--space-sm);
@@ -3304,10 +3146,6 @@
 
     .event-label {
       font-size: 0.5rem;
-    }
-
-    .selected-date-events {
-      max-height: 150px;
     }
 
     .form-row {

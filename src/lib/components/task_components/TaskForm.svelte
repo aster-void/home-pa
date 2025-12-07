@@ -68,8 +68,10 @@
     <div
       class="form-sheet"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.key === "Escape" && handleClose()}
       role="dialog"
       aria-modal="true"
+      tabindex="-1"
     >
       <div class="form-header">
         <h2>{$taskForm.isEditing ? "Edit Task" : "New Task"}</h2>
@@ -215,9 +217,9 @@
   .form-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 2100;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -226,10 +228,12 @@
   .form-sheet {
     width: 100%;
     max-width: 500px;
-    max-height: 90vh;
+    max-height: calc(90vh - var(--bottom-nav-height, 80px));
     background: var(--bg-card);
     border-radius: 16px 16px 0 0;
     padding: var(--space-lg);
+    padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
     overflow-y: auto;
     animation: slideUp 0.3s ease;
   }
@@ -253,6 +257,8 @@
     .form-sheet {
       border-radius: 16px;
       max-height: 80vh;
+      margin-bottom: 0;
+      padding-bottom: var(--space-lg);
     }
   }
 
@@ -261,13 +267,15 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--ui-border);
   }
 
   .form-header h2 {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text);
+    font-size: var(--fs-lg);
+    font-weight: var(--font-weight-normal);
+    color: var(--text-primary);
   }
 
   .close-btn {
@@ -275,11 +283,14 @@
     height: 32px;
     border: none;
     background: var(--bg-secondary);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    font-size: 1rem;
-    color: var(--muted);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
     transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .close-btn:hover {
@@ -451,16 +462,18 @@
     display: flex;
     gap: var(--space-sm);
     margin-top: var(--space-lg);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--ui-border);
   }
 
   .cancel-btn,
   .submit-btn {
     flex: 1;
-    padding: var(--space-sm) var(--space-md);
+    padding: 12px var(--space-md);
     border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 500;
+    border-radius: var(--radius-md);
+    font-size: var(--fs-sm);
+    font-weight: var(--font-weight-normal);
     cursor: pointer;
     transition: all 0.15s ease;
   }
@@ -468,21 +481,23 @@
   .cancel-btn {
     background: var(--bg-secondary);
     color: var(--text-secondary);
+    border: 1px solid var(--ui-border);
   }
 
   .cancel-btn:hover {
-    background: var(--muted);
-    color: var(--bg);
+    background: var(--bg-tertiary);
+    border-color: var(--text-tertiary);
   }
 
   .submit-btn {
-    background: var(--primary);
-    color: var(--bg);
+    background: var(--accent-primary);
+    color: white;
   }
 
   .submit-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 224, 255, 0.3);
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
   }
 
   .submit-btn:disabled {

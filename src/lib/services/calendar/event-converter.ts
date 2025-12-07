@@ -42,11 +42,41 @@ export function dbEventToAppEvent(dbEvent: CalendarEvent): Event {
     recurrence = { type: "NONE" };
   }
   
+  // Convert end date: For all-day events, DB stores exclusive DTEND (iCal standard)
+  // App uses inclusive end dates, so we need to subtract 1 day for multi-day events
+  let appEndDate: Date;
+  if (dbEvent.isAllDay && dbEvent.dtend) {
+    // For all-day events, dtend is exclusive (day after event ends)
+    // Convert to inclusive: subtract 1 day (or 1ms before midnight of previous day)
+    const exclusiveEnd = new Date(dbEvent.dtend);
+    const startDate = new Date(dbEvent.dtstart);
+    startDate.setHours(0, 0, 0, 0);
+    exclusiveEnd.setHours(0, 0, 0, 0);
+    
+    // Check if it's multi-day (exclusive end > start)
+    if (exclusiveEnd.getTime() > startDate.getTime()) {
+      // Multi-day event: convert exclusive to inclusive
+      const inclusiveEnd = new Date(exclusiveEnd);
+      inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+      inclusiveEnd.setHours(23, 59, 59, 999); // End of the last day
+      appEndDate = inclusiveEnd;
+    } else {
+      // Single-day event: end = start
+      appEndDate = dbEvent.dtstart;
+    }
+  } else if (dbEvent.dtend) {
+    // Timed events: use dtend as-is (not exclusive)
+    appEndDate = dbEvent.dtend;
+  } else {
+    // No end date: use start as end
+    appEndDate = dbEvent.dtstart;
+  }
+  
   return {
     id: dbEvent.id,
     title: dbEvent.summary,
     start: dbEvent.dtstart,
-    end: dbEvent.dtend || dbEvent.dtstart,
+    end: appEndDate,
     description: dbEvent.description || undefined,
     address: dbEvent.location || undefined,
     timeLabel,

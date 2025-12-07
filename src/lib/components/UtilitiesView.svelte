@@ -1,23 +1,19 @@
 <script lang="ts">
+  import CalendarSettings from "./calendar_components/CalendarSettings.svelte";
+
+  const {} = $props();
 </script>
 
 <div class="utilities-view">
   <div class="utilities-header">
     <h2>Utilities</h2>
     <p class="utilities-subtitle">
-      Helpful tools and widgets for your daily tasks
+      Account settings, calendar import/export, and other tools
     </p>
   </div>
 
   <div class="utilities-content">
-    <!-- Future utility components will be added here -->
-    <div class="coming-soon">
-      <div class="coming-soon-icon">🔧</div>
-      <h3>More Utilities Coming Soon</h3>
-      <p>
-        Weather, News, Calculator, and more utility widgets will be added here.
-      </p>
-    </div>
+    <CalendarSettings />
   </div>
 </div>
 
@@ -72,35 +68,6 @@
     gap: var(--space-lg);
   }
 
-
-  .coming-soon {
-    text-align: center;
-    padding: 3rem 2rem;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    color: var(--muted);
-  }
-
-  .coming-soon-icon {
-    font-size: 3rem;
-    margin-bottom: var(--space-md);
-  }
-
-  .coming-soon h3 {
-    margin: 0 0 var(--space-sm) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--text);
-  }
-
-  .coming-soon p {
-    margin: 0;
-    font-size: var(--fs-md);
-    line-height: 1.5;
-  }
-
   /* Responsive Design */
   @media (max-width: 768px) {
     .utilities-view {
@@ -113,10 +80,6 @@
 
     .utilities-content {
       gap: var(--space-md);
-    }
-
-    .coming-soon {
-      padding: 2rem 1rem;
     }
   }
 </style>

@@ -32,6 +32,8 @@ import { createSuggestionFromMemo } from "./suggestion-scoring.js";
 import {
   scheduleSuggestions,
   type ScheduleResult,
+  type DurationExtensionConfig,
+  DEFAULT_EXTENSION_CONFIG,
 } from "./suggestion-scheduler.js";
 import {
   enrichGapsWithLocation,
@@ -59,6 +61,17 @@ export interface EngineConfig {
     permutationLimit?: number;
     resolutionMinutes?: number;
   };
+
+  /**
+   * Duration extension config (optional)
+   * Controls how suggestion durations are extended when extra gap time is available
+   *
+   * - enabled: Whether to extend durations (default: true)
+   * - minExtensionMinutes: Minimum extra gap time before extending (default: 15)
+   * - maxExtensionFactor: Maximum multiplier for base duration (default: 2.0)
+   * - extensionStepMinutes: Extension granularity (default: 15)
+   */
+  durationExtension?: Partial<DurationExtensionConfig>;
 
   /** Enable LLM enrichment (default: true, but gracefully skips if not configured) */
   enableLLMEnrichment?: boolean;
@@ -140,6 +153,7 @@ const DEFAULT_ENGINE_CONFIG: Required<EngineConfig> = {
   llm: {},
   gapEnrichment: {},
   scheduler: {},
+  durationExtension: DEFAULT_EXTENSION_CONFIG,
   enableLLMEnrichment: true,
   getCurrentTime: () => new Date(),
 };
@@ -296,7 +310,10 @@ export class SuggestionEngine {
     const schedule = scheduleSuggestions(
       suggestions,
       enrichedGaps,
-      this.config.scheduler,
+      {
+        ...this.config.scheduler,
+        durationExtension: this.config.durationExtension,
+      },
     );
 
     // Build summary

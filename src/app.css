@@ -30,6 +30,12 @@
   --ui-border: #e5e7eb; /* Borders, dividers */
   --ui-empty: #f1f3f5; /* Empty states */
   --danger: #ef4444; /* Error states, delete actions */
+  --success: #22c55e; /* Success states */
+
+  /* Glass/Frosted Effects */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 
   /* Legacy Compatibility Colors */
   --white: #ffffff;
@@ -89,6 +95,9 @@
 html,
 body {
   height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-family);

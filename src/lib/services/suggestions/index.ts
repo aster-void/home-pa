@@ -74,12 +74,19 @@ export {
   assignOrderToGaps,
   scheduleSuggestions,
   calculateScore,
+  calculateExtendedDuration,
   timeToMinutes,
   minutesToTime,
   addMinutesToTime,
+  DEFAULT_EXTENSION_CONFIG,
 } from "./suggestion-scheduler.js";
 
-export type { ScheduledBlock, ScheduleResult } from "./suggestion-scheduler.js";
+export type { 
+  ScheduledBlock, 
+  ScheduleResult,
+  DurationExtensionConfig,
+  SchedulerOptions,
+} from "./suggestion-scheduler.js";
 
 // LLM Enrichment
 export {
