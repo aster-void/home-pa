@@ -409,15 +409,16 @@
     flex: 1;
   }
 
-  /* Timeline Section - Takes ~60% on desktop */
+  /* Timeline Section - Takes full width with margins */
   .timeline-section {
-    flex: 1 1 60%;
+    flex: 1;
+    width: 100%;
     min-width: 0; /* Allow shrinking */
     display: flex;
     align-items: stretch;
     justify-content: center;
     z-index: 10;
-    padding: var(--space-md);
+    margin: var(--space-md);
     overflow-y: visible;
   }
 
@@ -433,12 +434,8 @@
   }
 
   .timeline-container {
-    width: 100%;
-    flex: 1;
-    height: 100%;
-    min-height: 70vh;
-    max-width: 90vh;
-    max-height: none;
+    width: min(70vw, 60vh);
+    height: min(70vw, 60vh);
     flex-shrink: 0;
     position: relative;
     overflow: visible;
@@ -760,12 +757,24 @@
   @media (max-width: 768px) {
     .pa-main {
       flex-direction: column;
+      overflow-x: hidden;
     }
 
     .timeline-section {
-      flex: 1 1 55%;
-      width: 100%;
+      flex: 1;
+      width: calc(100% - 2 * var(--space-md));
       min-height: 0;
+      margin: var(--space-md);
+    }
+
+    .timeline-stack {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .event-list-panel {
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .timeline-container {

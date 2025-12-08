@@ -2185,8 +2185,8 @@
 
   @media (max-width: 768px) {
     .popup-header {
-      margin-bottom: var(--space-sm);
-      padding-bottom: var(--space-xs);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-xs);
     }
   }
 
