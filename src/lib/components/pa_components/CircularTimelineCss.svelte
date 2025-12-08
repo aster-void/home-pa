@@ -68,7 +68,7 @@
   // Constants
   const TWO_PI = Math.PI * 2;
   const center = 50; // SVG viewBox center
-  const outerRadius = 47; // Outermost ring
+  const outerRadius = 42; // Outermost ring (reduced to make room for time indicators)
   const laneWidth = 5; // Width per lane
   const laneGap = 1; // Gap between lanes
 
@@ -226,10 +226,10 @@
     return [...pending, ...accepted];
   });
 
-  // Ring radii
-  const gapRingRadius = outerRadius - 28;
-  const suggestionRingRadius = outerRadius - 20;
-  const eventBaseRadius = outerRadius - 3;
+  // Ring radii - gap arcs on outermost, then events, then suggestions
+  const gapRingRadius = outerRadius - 1; // Outermost ring for gaps
+  const eventBaseRadius = outerRadius - 6; // Events next layer in
+  const suggestionRingRadius = outerRadius - 12; // Suggestions inner layer
 
   // Current time
   let currentTime = $state(new Date());
@@ -402,40 +402,24 @@
     </defs>
 
     <!-- Background rings -->
-    <circle cx={center} cy={center} r={outerRadius} fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.3"/>
-    <circle cx={center} cy={center} r={gapRingRadius} fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.2"/>
-    <circle cx={center} cy={center} r={suggestionRingRadius} fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.2"/>
+    <circle cx={center} cy={center} r={outerRadius} fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.3"/>
+    <circle cx={center} cy={center} r={eventBaseRadius} fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="0.2"/>
+    <circle cx={center} cy={center} r={suggestionRingRadius} fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="0.2"/>
 
     <!-- Hour markers -->
     {#each [0, 6, 12, 18] as hour}
       {@const angle = (hour / 24) * TWO_PI - Math.PI / 2}
-      {@const x1 = center + (outerRadius - 1) * Math.cos(angle)}
-      {@const y1 = center + (outerRadius - 1) * Math.sin(angle)}
-      {@const x2 = center + (outerRadius + 1) * Math.cos(angle)}
-      {@const y2 = center + (outerRadius + 1) * Math.sin(angle)}
-      {@const lx = center + (outerRadius + 3) * Math.cos(angle)}
-      {@const ly = center + (outerRadius + 3) * Math.sin(angle)}
-      <line {x1} {y1} {x2} {y2} stroke="rgba(255,255,255,0.3)" stroke-width="0.3"/>
-      <text x={lx} y={ly} font-size="2.5" fill="rgba(255,255,255,0.5)" text-anchor="middle" dominant-baseline="middle">
+      {@const x1 = center + (outerRadius - 0.5) * Math.cos(angle)}
+      {@const y1 = center + (outerRadius - 0.5) * Math.sin(angle)}
+      {@const x2 = center + (outerRadius + 1.5) * Math.cos(angle)}
+      {@const y2 = center + (outerRadius + 1.5) * Math.sin(angle)}
+      {@const lx = center + (outerRadius + 5) * Math.cos(angle)}
+      {@const ly = center + (outerRadius + 5) * Math.sin(angle)}
+      <line {x1} {y1} {x2} {y2} stroke="rgba(0,0,0,0.4)" stroke-width="0.5"/>
+      <circle cx={lx} cy={ly} r="2.5" fill="rgba(255,255,255,0.95)" stroke="rgba(0,0,0,0.2)" stroke-width="0.3"/>
+      <text x={lx} y={ly} font-size="3" font-weight="600" fill="rgba(0,0,0,0.8)" text-anchor="middle" dominant-baseline="middle">
         {String(hour).padStart(2, "0")}
       </text>
-    {/each}
-
-    <!-- Gap arcs -->
-    {#each normalizedGaps as gap (gap.start + gap.end)}
-      <path
-        d={arcPath(gap.startAngle, gap.endAngle, gapRingRadius)}
-        fill="none"
-        stroke="url(#gapGrad)"
-        stroke-width="3"
-        stroke-linecap="round"
-        class="gap-arc"
-        filter="url(#softGlow)"
-        onmouseenter={(e) => hoverGap(gap, e)}
-        onmousemove={updateMouse}
-        onmouseleave={clearHover}
-        onclick={() => dispatch("gapSelected", gap)}
-      />
     {/each}
 
     <!-- Suggestion arcs -->
@@ -461,7 +445,7 @@
           cy={handlePos.y}
           r="1.2"
           fill="#38EF7D"
-          stroke="white"
+          stroke="rgba(255,255,255,0.9)"
           stroke-width="0.3"
           class="resize-handle"
           onmousedown={(e) => startResize(s.data.suggestionId, s.data.duration, e)}
@@ -490,25 +474,42 @@
       />
     {/each}
 
+    <!-- Gap arcs (outermost, rendered last to appear on top) -->
+    {#each normalizedGaps as gap (gap.start + gap.end)}
+      <path
+        d={arcPath(gap.startAngle, gap.endAngle, gapRingRadius)}
+        fill="none"
+        stroke="url(#gapGrad)"
+        stroke-width="3"
+        stroke-linecap="round"
+        class="gap-arc"
+        filter="url(#softGlow)"
+        onmouseenter={(e) => hoverGap(gap, e)}
+        onmousemove={updateMouse}
+        onmouseleave={clearHover}
+        onclick={() => dispatch("gapSelected", gap)}
+      />
+    {/each}
+
     <!-- Current time indicator -->
     {#if true}
-      {@const timeX = center + (outerRadius - 5) * Math.cos(currentTimeAngle - Math.PI / 2)}
-      {@const timeY = center + (outerRadius - 5) * Math.sin(currentTimeAngle - Math.PI / 2)}
+      {@const timeX = center + (outerRadius - 2) * Math.cos(currentTimeAngle - Math.PI / 2)}
+      {@const timeY = center + (outerRadius - 2) * Math.sin(currentTimeAngle - Math.PI / 2)}
       <line
         x1={center}
         y1={center}
         x2={timeX}
         y2={timeY}
         stroke="#FF6B6B"
-        stroke-width="0.4"
+        stroke-width="0.5"
         stroke-linecap="round"
         filter="url(#glow)"
       />
-      <circle cx={timeX} cy={timeY} r="1" fill="#FF6B6B" filter="url(#glow)"/>
+      <circle cx={timeX} cy={timeY} r="1.2" fill="#FF6B6B" filter="url(#glow)"/>
     {/if}
 
     <!-- Center circle -->
-    <circle cx={center} cy={center} r="15" fill="rgba(20, 20, 30, 0.9)" stroke="rgba(255,255,255,0.1)" stroke-width="0.3"/>
+    <circle cx={center} cy={center} r="15" fill="rgba(255, 255, 255, 0.95)" stroke="rgba(0,0,0,0.1)" stroke-width="0.3"/>
   </svg>
 
   <!-- Center display -->
@@ -576,7 +577,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    background: transparent;
     border-radius: 50%;
     overflow: visible;
   }
@@ -644,13 +645,13 @@
   .date-text {
     font-size: clamp(10px, 3vw, 16px);
     font-weight: 300;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(0, 0, 0, 0.8);
     letter-spacing: 0.05em;
   }
 
   .date-label {
     font-size: clamp(6px, 1.5vw, 8px);
-    color: rgba(255, 255, 255, 0.4);
+    color: rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-top: 2px;
@@ -664,14 +665,15 @@
 
   .tooltip {
     position: fixed;
-    background: rgba(30, 30, 50, 0.95);
+    background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 107, 107, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     padding: 10px 14px;
     z-index: 1000;
     pointer-events: none;
     max-width: 220px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     animation: fadeIn 0.15s ease;
   }
 
@@ -682,25 +684,25 @@
   .tooltip-title {
     font-size: 13px;
     font-weight: 500;
-    color: white;
+    color: rgba(0, 0, 0, 0.9);
     margin-bottom: 4px;
   }
 
   .tooltip-time {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(0, 0, 0, 0.7);
   }
 
   .tooltip-desc {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(0, 0, 0, 0.6);
     margin-top: 4px;
     font-style: italic;
   }
 
   .tooltip-duration {
     font-size: 11px;
-    color: #38EF7D;
+    color: #11998E;
     margin-top: 2px;
   }
 
@@ -709,7 +711,7 @@
     bottom: 4px;
     left: 4px;
     font-size: 8px;
-    color: rgba(255,255,255,0.4);
+    color: rgba(0,0,0,0.4);
     pointer-events: none;
   }
 
