@@ -43,9 +43,15 @@ END:VEVENT
 
     const occurrences = expandRecurrences(vevent, windowStart, windowEnd);
     expect(occurrences.length).toBe(3);
-    expect(occurrences[0].startDate.toISOString()).toBe("2025-12-04T00:00:00.000Z");
-    expect(occurrences[1].startDate.toISOString()).toBe("2025-12-11T00:00:00.000Z");
-    expect(occurrences[2].startDate.toISOString()).toBe("2025-12-18T00:00:00.000Z");
+    expect(occurrences[0].startDate.toISOString()).toBe(
+      "2025-12-04T00:00:00.000Z",
+    );
+    expect(occurrences[1].startDate.toISOString()).toBe(
+      "2025-12-11T00:00:00.000Z",
+    );
+    expect(occurrences[2].startDate.toISOString()).toBe(
+      "2025-12-18T00:00:00.000Z",
+    );
   });
 
   it("generates ICS with VEVENT entries", () => {
@@ -85,4 +91,3 @@ END:VEVENT
     expect(ics).toContain("END:VCALENDAR");
   });
 });
-

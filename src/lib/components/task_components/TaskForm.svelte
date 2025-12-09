@@ -232,8 +232,13 @@
     background: var(--bg-card);
     border-radius: 16px 16px 0 0;
     padding: var(--space-lg);
-    padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    padding-bottom: calc(
+      var(--space-lg) + var(--bottom-nav-height, 80px) +
+        env(safe-area-inset-bottom)
+    );
+    margin-bottom: calc(
+      var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+    );
     overflow-y: auto;
     animation: slideUp 0.3s ease;
   }

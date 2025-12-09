@@ -576,7 +576,11 @@ export function scheduleSuggestions(
     result.permutationsEvaluated += permutationsChecked;
 
     // Assign to gaps
-    const { blocks, dropped } = assignOrderToGaps(mandatoryOrder, mutableGaps, extensionConfig);
+    const { blocks, dropped } = assignOrderToGaps(
+      mandatoryOrder,
+      mutableGaps,
+      extensionConfig,
+    );
     result.scheduled.push(...blocks);
     result.mandatoryDropped.push(...dropped);
     result.dropped.push(...dropped);
@@ -650,9 +654,4 @@ export function scheduleSuggestions(
 // UTILITY EXPORTS
 // ============================================================================
 
-export { 
-  calculateScore, 
-  timeToMinutes, 
-  minutesToTime, 
-  addMinutesToTime,
-};
+export { calculateScore, timeToMinutes, minutesToTime, addMinutesToTime };

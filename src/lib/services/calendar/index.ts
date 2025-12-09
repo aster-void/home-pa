@@ -1,6 +1,6 @@
 /**
  * Calendar Services
- * 
+ *
  * iCalendar-based event management using ical.js
  */
 
@@ -19,7 +19,7 @@ export {
   type ParsedEvent,
   type VEventInput,
   type ExpandedOccurrence,
-} from './ical-service.js';
+} from "./ical-service.js";
 
 // Type conversions
 export {
@@ -34,5 +34,4 @@ export {
   eventToJSON,
   eventFromJSON,
   eventsFromJSON,
-} from './event-converter.js';
-
+} from "./event-converter.js";

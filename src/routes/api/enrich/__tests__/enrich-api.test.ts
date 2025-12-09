@@ -1,9 +1,9 @@
 /**
  * Server-Side LLM Enrichment API Tests
- * 
+ *
  * Note: Full endpoint testing requires SvelteKit's test utilities or integration tests.
  * These tests verify the core logic and error handling patterns.
- * 
+ *
  * For full endpoint testing, consider using:
  * - SvelteKit's test utilities
  * - Integration tests with a test server
@@ -11,7 +11,11 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { buildPrompt, parseResponse, getFallbackEnrichment } from "$lib/services/suggestions/llm-enrichment.js";
+import {
+  buildPrompt,
+  parseResponse,
+  getFallbackEnrichment,
+} from "$lib/services/suggestions/llm-enrichment.js";
 import type { Memo } from "$lib/types.js";
 
 describe("Enrichment API Logic", () => {
@@ -59,12 +63,15 @@ describe("Enrichment API Logic", () => {
   });
 
   it("should parse responses with markdown code blocks", () => {
-    const responseWithMarkdown = "```json\n" + JSON.stringify({
-      genre: "運動",
-      importance: "medium",
-      sessionDuration: 45,
-      totalDurationExpected: 90,
-    }) + "\n```";
+    const responseWithMarkdown =
+      "```json\n" +
+      JSON.stringify({
+        genre: "運動",
+        importance: "medium",
+        sessionDuration: 45,
+        totalDurationExpected: 90,
+      }) +
+      "\n```";
 
     const result = parseResponse(responseWithMarkdown);
     expect(result).not.toBeNull();
@@ -101,6 +108,8 @@ describe("Enrichment API Logic", () => {
     expect(result?.genre).toBe("その他");
     expect(result?.importance).toBe("medium");
     expect(result?.sessionDuration).toBeLessThanOrEqual(120);
-    expect(result?.totalDurationExpected).toBeGreaterThanOrEqual(result!.sessionDuration);
+    expect(result?.totalDurationExpected).toBeGreaterThanOrEqual(
+      result!.sessionDuration,
+    );
   });
 });

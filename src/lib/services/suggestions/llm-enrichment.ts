@@ -482,21 +482,25 @@ export function getCacheStats(): { size: number; entries: string[] } {
 
 /**
  * Enrich a memo via the server-side API endpoint
- * 
+ *
  * This is the browser-safe way to enrich memos. The API key stays on the server.
  * Falls back to rule-based enrichment if the API is unavailable.
- * 
+ *
  * @param memo - Memo to enrich
  * @returns EnrichmentResult with suggested fields
  */
 export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
   try {
     // Use absolute URL if available (for SSR/test environments), otherwise relative
-    const baseUrl = typeof window !== "undefined" ? "" : "http://localhost:3000";
+    const baseUrl =
+      typeof window !== "undefined" ? "" : "http://localhost:3000";
     const url = `${baseUrl}/api/enrich`;
-    
+
     // Use global fetch (works in both browser and Node.js test environments)
-    const fetchFn = typeof global !== "undefined" && (global as any).fetch ? (global as any).fetch : fetch;
+    const fetchFn =
+      typeof global !== "undefined" && (global as any).fetch
+        ? (global as any).fetch
+        : fetch;
     const response = await fetchFn(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -519,13 +523,13 @@ export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
       console.warn(
-        `[LLM Enrichment] API error (${response.status}): ${errorText}, using fallback`
+        `[LLM Enrichment] API error (${response.status}): ${errorText}, using fallback`,
       );
       return getFallbackEnrichment(memo);
     }
 
     const enrichment = await response.json();
-    
+
     // Validate response structure
     if (
       typeof enrichment.genre === "string" &&
@@ -535,7 +539,9 @@ export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
     ) {
       return enrichment as EnrichmentResult;
     } else {
-      console.warn("[LLM Enrichment] Invalid API response format, using fallback");
+      console.warn(
+        "[LLM Enrichment] Invalid API response format, using fallback",
+      );
       return getFallbackEnrichment(memo);
     }
   } catch (error) {

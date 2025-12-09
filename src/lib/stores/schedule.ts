@@ -132,7 +132,11 @@ export const pendingSuggestions = derived(
     if (!$result?.scheduled) return [];
     const acceptedIds = new Set($accepted.map((a) => a.suggestionId));
     return $result.scheduled
-      .filter((block) => !acceptedIds.has(block.suggestionId) && !$skipped.has(block.suggestionId))
+      .filter(
+        (block) =>
+          !acceptedIds.has(block.suggestionId) &&
+          !$skipped.has(block.suggestionId),
+      )
       .map((block) => ({ ...block }));
   },
 );
@@ -214,7 +218,10 @@ function minutesToTime(minutes: number): string {
 /**
  * Subtract accepted suggestions from gaps to get remaining available gaps
  */
-function subtractAcceptedFromGaps(gaps: Gap[], accepted: AcceptedSuggestion[]): Gap[] {
+function subtractAcceptedFromGaps(
+  gaps: Gap[],
+  accepted: AcceptedSuggestion[],
+): Gap[] {
   if (accepted.length === 0) return gaps;
 
   // Group accepted by gapId
@@ -236,7 +243,9 @@ function subtractAcceptedFromGaps(gaps: Gap[], accepted: AcceptedSuggestion[]): 
     }
 
     // Sort blockers by start time
-    blockers.sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+    blockers.sort(
+      (a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime),
+    );
 
     // Find remaining gaps between/around blockers
     let currentStart = timeToMinutes(gap.start);
@@ -249,7 +258,8 @@ function subtractAcceptedFromGaps(gaps: Gap[], accepted: AcceptedSuggestion[]): 
       // Gap before this blocker
       if (blockerStart > currentStart) {
         const duration = blockerStart - currentStart;
-        if (duration >= 5) { // Minimum 5 minutes for a viable gap
+        if (duration >= 5) {
+          // Minimum 5 minutes for a viable gap
           result.push({
             gapId: `${gap.gapId}-sub-${gapCounter++}`,
             start: minutesToTime(currentStart),
@@ -284,8 +294,10 @@ function subtractAcceptedFromGaps(gaps: Gap[], accepted: AcceptedSuggestion[]): 
  * Check if two time ranges overlap
  */
 function rangesOverlap(
-  start1: string, end1: string,
-  start2: string, end2: string,
+  start1: string,
+  end1: string,
+  start2: string,
+  end2: string,
 ): boolean {
   const s1 = timeToMinutes(start1);
   const e1 = timeToMinutes(end1);
@@ -330,9 +342,13 @@ export const scheduleActions = {
       const availableGaps = subtractAcceptedFromGaps(rawGaps, accepted);
 
       // Call engine with available gaps
-      const { schedule, summary } = await engine.generateSchedule(memos, availableGaps, {
-        skipLLMEnrichment: options.skipLLMEnrichment,
-      });
+      const { schedule, summary } = await engine.generateSchedule(
+        memos,
+        availableGaps,
+        {
+          skipLLMEnrichment: options.skipLLMEnrichment,
+        },
+      );
 
       const nextKey = stableSerializeSchedule(schedule);
       const isSameAsPrevious = previousKey === nextKey;
@@ -382,7 +398,10 @@ export const scheduleActions = {
 
     const block = result.scheduled.find((b) => b.suggestionId === suggestionId);
     if (!block) {
-      console.warn("[Schedule] Cannot accept: suggestion not found", suggestionId);
+      console.warn(
+        "[Schedule] Cannot accept: suggestion not found",
+        suggestionId,
+      );
       return;
     }
 
@@ -437,12 +456,15 @@ export const scheduleActions = {
     const accepted = get(acceptedSuggestions);
     const idx = accepted.findIndex((a) => a.suggestionId === suggestionId);
     if (idx === -1) {
-      console.warn("[Schedule] Cannot resize: accepted suggestion not found", suggestionId);
+      console.warn(
+        "[Schedule] Cannot resize: accepted suggestion not found",
+        suggestionId,
+      );
       return false;
     }
 
     const suggestion = accepted[idx];
-    
+
     // Snap to 5-minute increments
     const snappedDuration = Math.round(newDuration / 5) * 5;
     if (snappedDuration < 5) {
@@ -451,13 +473,24 @@ export const scheduleActions = {
     }
 
     // Calculate new end time
-    const newEndTime = minutesToTime(timeToMinutes(suggestion.startTime) + snappedDuration);
+    const newEndTime = minutesToTime(
+      timeToMinutes(suggestion.startTime) + snappedDuration,
+    );
 
     // Check for overlaps with other accepted suggestions
     const otherAccepted = accepted.filter((_, i) => i !== idx);
     for (const other of otherAccepted) {
-      if (rangesOverlap(suggestion.startTime, newEndTime, other.startTime, other.endTime)) {
-        console.warn("[Schedule] Cannot resize: would overlap with another accepted suggestion");
+      if (
+        rangesOverlap(
+          suggestion.startTime,
+          newEndTime,
+          other.startTime,
+          other.endTime,
+        )
+      ) {
+        console.warn(
+          "[Schedule] Cannot resize: would overlap with another accepted suggestion",
+        );
         return false;
       }
     }
@@ -473,7 +506,13 @@ export const scheduleActions = {
       return updated;
     });
 
-    console.log("[Schedule] Resized accepted suggestion:", suggestionId, "to", snappedDuration, "min");
+    console.log(
+      "[Schedule] Resized accepted suggestion:",
+      suggestionId,
+      "to",
+      snappedDuration,
+      "min",
+    );
 
     // Regenerate to reflow other suggestions
     await scheduleActions.regenerate(memos);
@@ -487,8 +526,8 @@ export const scheduleActions = {
    * @param memos - Current memos for regeneration
    */
   async deleteAccepted(suggestionId: string, memos: Memo[]): Promise<void> {
-    acceptedSuggestions.update((list) => 
-      list.filter((a) => a.suggestionId !== suggestionId)
+    acceptedSuggestions.update((list) =>
+      list.filter((a) => a.suggestionId !== suggestionId),
     );
 
     console.log("[Schedule] Deleted accepted suggestion:", suggestionId);

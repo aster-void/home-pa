@@ -174,8 +174,7 @@
       <div class="progress-bar">
         <div class="progress-fill time" style="width: {prog.percent}%"></div>
       </div>
-      <span class="progress-label"
-        >Progress: {prog.spent}/{prog.total} min</span
+      <span class="progress-label">Progress: {prog.spent}/{prog.total} min</span
       >
     {/if}
   </div>

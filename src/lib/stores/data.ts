@@ -3,7 +3,7 @@
  *
  * This module provides centralized state management for the personal assistant application.
  * It includes stores for memos, suggestion logs, and derived computed values.
- * 
+ *
  * NOTE: Calendar events have been migrated to `calendar.ts` which uses
  * the iCalendar-backed API for persistent storage.
  *

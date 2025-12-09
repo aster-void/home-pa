@@ -1,6 +1,6 @@
 /**
  * Client-Side LLM Enrichment API Tests
- * 
+ *
  * Tests the enrichMemoViaAPI function:
  * - Successful API calls
  * - Network error handling
@@ -57,9 +57,12 @@ describe("enrichMemoViaAPI", () => {
 
     // Verify fetch was called
     expect(global.fetch).toHaveBeenCalled();
-    
+
     // In test environment, URL will be absolute
-    const expectedUrl = typeof window === "undefined" ? "http://localhost:3000/api/enrich" : "/api/enrich";
+    const expectedUrl =
+      typeof window === "undefined"
+        ? "http://localhost:3000/api/enrich"
+        : "/api/enrich";
     const fetchCall = (global.fetch as any).mock.calls[0];
     expect(fetchCall[0]).toBe(expectedUrl);
     expect(fetchCall[1].method).toBe("POST");

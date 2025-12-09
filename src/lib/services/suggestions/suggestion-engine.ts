@@ -307,14 +307,10 @@ export class SuggestionEngine {
     }
 
     // Step 6: Schedule suggestions into gaps
-    const schedule = scheduleSuggestions(
-      suggestions,
-      enrichedGaps,
-      {
-        ...this.config.scheduler,
-        durationExtension: this.config.durationExtension,
-      },
-    );
+    const schedule = scheduleSuggestions(suggestions, enrichedGaps, {
+      ...this.config.scheduler,
+      durationExtension: this.config.durationExtension,
+    });
 
     // Build summary
     const endTime = performance.now();

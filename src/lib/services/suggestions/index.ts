@@ -81,8 +81,8 @@ export {
   DEFAULT_EXTENSION_CONFIG,
 } from "./suggestion-scheduler.js";
 
-export type { 
-  ScheduledBlock, 
+export type {
+  ScheduledBlock,
   ScheduleResult,
   DurationExtensionConfig,
   SchedulerOptions,

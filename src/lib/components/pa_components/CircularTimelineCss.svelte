@@ -2,15 +2,25 @@
   import { onMount, onDestroy } from "svelte";
   import { createEventDispatcher } from "svelte";
   import { selectedDate } from "../../stores/data.js";
-  import { calendarEvents, calendarOccurrences } from "../../stores/calendar.js";
+  import {
+    calendarEvents,
+    calendarOccurrences,
+  } from "../../stores/calendar.js";
   import type { Event as MyEvent } from "../../types.js";
   import type { ExpandedOccurrence } from "../../stores/calendar.js";
-  import type { PendingSuggestion, AcceptedSuggestion } from "../../stores/schedule.js";
+  import type {
+    PendingSuggestion,
+    AcceptedSuggestion,
+  } from "../../stores/schedule.js";
   import SuggestionCard from "./SuggestionCard.svelte";
 
   interface Props {
     showLog?: boolean;
-    externalGaps?: Array<{ start: string; end: string; duration: number }> | null;
+    externalGaps?: Array<{
+      start: string;
+      end: string;
+      duration: number;
+    }> | null;
     extraEvents?: MyEvent[] | null;
     pendingSuggestions?: PendingSuggestion[];
     acceptedSuggestions?: AcceptedSuggestion[];
@@ -44,23 +54,38 @@
   let masterEvents = $state<MyEvent[]>([]);
   let occurrences = $state<ExpandedOccurrence[]>([]);
   let selectedDateCurrent = $state(new Date());
-  
+
   const unsubEvents = calendarEvents.subscribe((v) => (masterEvents = v));
-  const unsubOccurrences = calendarOccurrences.subscribe((v) => (occurrences = v));
-  const unsubSelected = selectedDate.subscribe((d) => (selectedDateCurrent = new Date(d)));
+  const unsubOccurrences = calendarOccurrences.subscribe(
+    (v) => (occurrences = v),
+  );
+  const unsubSelected = selectedDate.subscribe(
+    (d) => (selectedDateCurrent = new Date(d)),
+  );
 
   let centerDateInput: HTMLInputElement | null = null;
 
   // Combine events
   let allEvents = $derived.by(() => {
-    const regular = masterEvents.filter(e => !e.recurrence || e.recurrence.type === "NONE");
-    const recurringIds = new Set(masterEvents.filter(e => e.recurrence && e.recurrence.type !== "NONE").map(e => e.id));
+    const regular = masterEvents.filter(
+      (e) => !e.recurrence || e.recurrence.type === "NONE",
+    );
+    const recurringIds = new Set(
+      masterEvents
+        .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
+        .map((e) => e.id),
+    );
     const expanded: MyEvent[] = occurrences
-      .filter(o => recurringIds.has(o.masterEventId))
-      .map(o => ({
-        id: o.id, title: o.title, start: o.start, end: o.end,
-        description: o.description, address: o.location, importance: o.importance,
-        timeLabel: o.timeLabel as 'all-day' | 'timed' | 'some-timing',
+      .filter((o) => recurringIds.has(o.masterEventId))
+      .map((o) => ({
+        id: o.id,
+        title: o.title,
+        start: o.start,
+        end: o.end,
+        description: o.description,
+        address: o.location,
+        importance: o.importance,
+        timeLabel: o.timeLabel as "all-day" | "timed" | "some-timing",
       }));
     return [...regular, ...expanded, ...(extraEvents ?? [])];
   });
@@ -87,29 +112,41 @@
   }
 
   function formatDate(d: Date): string {
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   }
 
   function getEffectiveEnd(ev: MyEvent): Date {
     const end = new Date(ev.end);
-    if (ev.timeLabel === 'all-day' && end.getHours() === 0 && end.getMinutes() === 0) {
+    if (
+      ev.timeLabel === "all-day" &&
+      end.getHours() === 0 &&
+      end.getMinutes() === 0
+    ) {
       return new Date(end.getTime() - 1);
     }
     return end;
   }
 
   // Build arc path
-  function arcPath(startAngle: number, endAngle: number, radius: number): string {
+  function arcPath(
+    startAngle: number,
+    endAngle: number,
+    radius: number,
+  ): string {
     if (endAngle < startAngle) endAngle += TWO_PI;
     const delta = endAngle - startAngle;
     const largeArc = delta > Math.PI ? 1 : 0;
-    
+
     // Rotate -90deg so 0 is at top
     const x1 = center + radius * Math.cos(startAngle - Math.PI / 2);
     const y1 = center + radius * Math.sin(startAngle - Math.PI / 2);
     const x2 = center + radius * Math.cos(endAngle - Math.PI / 2);
     const y2 = center + radius * Math.sin(endAngle - Math.PI / 2);
-    
+
     return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
   }
 
@@ -131,12 +168,12 @@
 
     // Filter and map events
     const events = allEvents
-      .filter(ev => {
+      .filter((ev) => {
         const s = new Date(ev.start).getTime();
         const e = getEffectiveEnd(ev).getTime();
         return s <= de && e >= ds;
       })
-      .map(ev => {
+      .map((ev) => {
         if (ev.timeLabel === "all-day") {
           return { ref: ev, startAngle: 0, endAngle: TWO_PI * 0.9999 };
         }
@@ -144,13 +181,17 @@
         let e = new Date(ev.end);
         if (s.getTime() < ds) s = dayStart;
         if (e.getTime() > de) e = dayEnd;
-        return { ref: ev, startAngle: dateToAngle(s), endAngle: dateToAngle(e) };
+        return {
+          ref: ev,
+          startAngle: dateToAngle(s),
+          endAngle: dateToAngle(e),
+        };
       })
       .sort((a, b) => a.startAngle - b.startAngle);
 
     // Separate timed and all-day
-    const timed = events.filter(e => e.ref.timeLabel !== "all-day");
-    const allDay = events.filter(e => e.ref.timeLabel === "all-day");
+    const timed = events.filter((e) => e.ref.timeLabel !== "all-day");
+    const allDay = events.filter((e) => e.ref.timeLabel === "all-day");
 
     // Lane packing for timed events
     const laneEnds: number[] = [];
@@ -158,8 +199,9 @@
 
     for (const ev of timed) {
       let lane = 0;
-      const endAdj = ev.endAngle < ev.startAngle ? ev.endAngle + TWO_PI : ev.endAngle;
-      
+      const endAdj =
+        ev.endAngle < ev.startAngle ? ev.endAngle + TWO_PI : ev.endAngle;
+
       for (let i = 0; i < laneEnds.length; i++) {
         if (ev.startAngle >= laneEnds[i]) {
           lane = i;
@@ -167,18 +209,20 @@
         }
         lane = laneEnds.length;
       }
-      
+
       if (lane === laneEnds.length) laneEnds.push(endAdj);
       else laneEnds[lane] = Math.max(laneEnds[lane], endAdj);
-      
+
       placed.push({ ...ev, endAngle: endAdj, lane });
     }
 
     // All-day events go to inner lanes
-    const maxLane = placed.length > 0 ? Math.max(...placed.map(p => p.lane)) : -1;
+    const maxLane =
+      placed.length > 0 ? Math.max(...placed.map((p) => p.lane)) : -1;
     const allDayPlaced = allDay.map((ev, i) => ({
       ...ev,
-      endAngle: ev.endAngle < ev.startAngle ? ev.endAngle + TWO_PI : ev.endAngle,
+      endAngle:
+        ev.endAngle < ev.startAngle ? ev.endAngle + TWO_PI : ev.endAngle,
       lane: maxLane + 1 + i,
     }));
 
@@ -195,7 +239,7 @@
   }
 
   let normalizedGaps = $derived.by((): NormalizedGap[] => {
-    return (externalGaps ?? []).map(g => ({
+    return (externalGaps ?? []).map((g) => ({
       ...g,
       startAngle: timeToAngle(g.start),
       endAngle: timeToAngle(g.end),
@@ -211,13 +255,13 @@
   }
 
   let normalizedSuggestions = $derived.by((): NormalizedSuggestion[] => {
-    const pending = pendingSuggestions.map(s => ({
+    const pending = pendingSuggestions.map((s) => ({
       data: s,
       startAngle: timeToAngle(s.startTime),
       endAngle: timeToAngle(s.endTime),
       isAccepted: false,
     }));
-    const accepted = acceptedSuggestions.map(s => ({
+    const accepted = acceptedSuggestions.map((s) => ({
       data: s,
       startAngle: timeToAngle(s.startTime),
       endAngle: timeToAngle(s.endTime),
@@ -295,14 +339,36 @@
     }
   }
 
-  function onSuggestionClick(s: PendingSuggestion | AcceptedSuggestion, isAccepted: boolean, e: MouseEvent) {
-    selectedSuggestion = { suggestion: s, isAccepted, position: { x: e.clientX + 10, y: e.clientY - 50 } };
+  function onSuggestionClick(
+    s: PendingSuggestion | AcceptedSuggestion,
+    isAccepted: boolean,
+    e: MouseEvent,
+  ) {
+    selectedSuggestion = {
+      suggestion: s,
+      isAccepted,
+      position: { x: e.clientX + 10, y: e.clientY - 50 },
+    };
   }
 
-  function closeSuggestionCard() { selectedSuggestion = null; }
-  function handleAccept() { if (selectedSuggestion) dispatch("suggestionAccept", selectedSuggestion.suggestion.suggestionId); closeSuggestionCard(); }
-  function handleSkip() { if (selectedSuggestion) dispatch("suggestionSkip", selectedSuggestion.suggestion.suggestionId); closeSuggestionCard(); }
-  function handleDelete() { if (selectedSuggestion) dispatch("suggestionDelete", selectedSuggestion.suggestion.suggestionId); closeSuggestionCard(); }
+  function closeSuggestionCard() {
+    selectedSuggestion = null;
+  }
+  function handleAccept() {
+    if (selectedSuggestion)
+      dispatch("suggestionAccept", selectedSuggestion.suggestion.suggestionId);
+    closeSuggestionCard();
+  }
+  function handleSkip() {
+    if (selectedSuggestion)
+      dispatch("suggestionSkip", selectedSuggestion.suggestion.suggestionId);
+    closeSuggestionCard();
+  }
+  function handleDelete() {
+    if (selectedSuggestion)
+      dispatch("suggestionDelete", selectedSuggestion.suggestion.suggestionId);
+    closeSuggestionCard();
+  }
 
   function startResize(id: string, duration: number, e: MouseEvent) {
     e.preventDefault();
@@ -318,7 +384,10 @@
   function onDrag(e: MouseEvent) {
     if (!isDragging || !dragId) return;
     const delta = Math.round((dragStartY - e.clientY) / 5) * 5;
-    dispatch("suggestionResize", { suggestionId: dragId, newDuration: Math.max(5, dragOrigDuration + delta) });
+    dispatch("suggestionResize", {
+      suggestionId: dragId,
+      newDuration: Math.max(5, dragOrigDuration + delta),
+    });
   }
 
   function endDrag() {
@@ -330,7 +399,7 @@
 
   // Resize observer with throttle
   let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
-  
+
   function handleResize() {
     if (!containerElement) return;
     const rect = containerElement.getBoundingClientRect();
@@ -341,12 +410,17 @@
     handleResize();
     const ro = new ResizeObserver(() => {
       if (resizeTimeout) return;
-      resizeTimeout = setTimeout(() => { handleResize(); resizeTimeout = null; }, 50);
+      resizeTimeout = setTimeout(() => {
+        handleResize();
+        resizeTimeout = null;
+      }, 50);
     });
     if (containerElement) ro.observe(containerElement);
-    
-    const interval = setInterval(() => { currentTime = new Date(); }, 60000);
-    
+
+    const interval = setInterval(() => {
+      currentTime = new Date();
+    }, 60000);
+
     return () => {
       ro.disconnect();
       if (resizeTimeout) clearTimeout(resizeTimeout);
@@ -361,7 +435,10 @@
   });
 
   // Helper to get resize handle position
-  function getHandlePos(endAngle: number, radius: number): { x: number; y: number } {
+  function getHandlePos(
+    endAngle: number,
+    radius: number,
+  ): { x: number; y: number } {
     const x = center + radius * Math.cos(endAngle - Math.PI / 2);
     const y = center + radius * Math.sin(endAngle - Math.PI / 2);
     return { x, y };
@@ -373,38 +450,63 @@
     <defs>
       <!-- Gradients -->
       <linearGradient id="eventGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.9"/>
-        <stop offset="50%" stop-color="#FF8E53" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#FFA726" stop-opacity="0.9"/>
+        <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.9" />
+        <stop offset="50%" stop-color="#FF8E53" stop-opacity="1" />
+        <stop offset="100%" stop-color="#FFA726" stop-opacity="0.9" />
       </linearGradient>
       <linearGradient id="pendingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#667EEA" stop-opacity="0.8"/>
-        <stop offset="100%" stop-color="#764BA2" stop-opacity="0.8"/>
+        <stop offset="0%" stop-color="#667EEA" stop-opacity="0.8" />
+        <stop offset="100%" stop-color="#764BA2" stop-opacity="0.8" />
       </linearGradient>
       <linearGradient id="acceptedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#11998E" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="#38EF7D" stop-opacity="0.9"/>
+        <stop offset="0%" stop-color="#11998E" stop-opacity="0.9" />
+        <stop offset="100%" stop-color="#38EF7D" stop-opacity="0.9" />
       </linearGradient>
       <linearGradient id="gapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#a8edea" stop-opacity="0.6"/>
-        <stop offset="100%" stop-color="#fed6e3" stop-opacity="0.6"/>
+        <stop offset="0%" stop-color="#a8edea" stop-opacity="0.6" />
+        <stop offset="100%" stop-color="#fed6e3" stop-opacity="0.6" />
       </linearGradient>
-      
+
       <!-- Glow filters -->
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="0.5" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        <feGaussianBlur stdDeviation="0.5" result="blur" />
+        <feMerge
+          ><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge
+        >
       </filter>
       <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="0.3" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        <feGaussianBlur stdDeviation="0.3" result="blur" />
+        <feMerge
+          ><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge
+        >
       </filter>
     </defs>
 
     <!-- Background rings -->
-    <circle cx={center} cy={center} r={outerRadius} fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.3"/>
-    <circle cx={center} cy={center} r={eventBaseRadius} fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="0.2"/>
-    <circle cx={center} cy={center} r={suggestionRingRadius} fill="none" stroke="rgba(0,0,0,0.05)" stroke-width="0.2"/>
+    <circle
+      cx={center}
+      cy={center}
+      r={outerRadius}
+      fill="none"
+      stroke="rgba(0,0,0,0.1)"
+      stroke-width="0.3"
+    />
+    <circle
+      cx={center}
+      cy={center}
+      r={eventBaseRadius}
+      fill="none"
+      stroke="rgba(0,0,0,0.05)"
+      stroke-width="0.2"
+    />
+    <circle
+      cx={center}
+      cy={center}
+      r={suggestionRingRadius}
+      fill="none"
+      stroke="rgba(0,0,0,0.05)"
+      stroke-width="0.2"
+    />
 
     <!-- Hour markers -->
     {#each [0, 6, 12, 18] as hour}
@@ -415,9 +517,24 @@
       {@const y2 = center + (outerRadius + 1.5) * Math.sin(angle)}
       {@const lx = center + (outerRadius + 5) * Math.cos(angle)}
       {@const ly = center + (outerRadius + 5) * Math.sin(angle)}
-      <line {x1} {y1} {x2} {y2} stroke="rgba(0,0,0,0.4)" stroke-width="0.5"/>
-      <circle cx={lx} cy={ly} r="2.5" fill="rgba(255,255,255,0.95)" stroke="rgba(0,0,0,0.2)" stroke-width="0.3"/>
-      <text x={lx} y={ly} font-size="3" font-weight="600" fill="rgba(0,0,0,0.8)" text-anchor="middle" dominant-baseline="middle">
+      <line {x1} {y1} {x2} {y2} stroke="rgba(0,0,0,0.4)" stroke-width="0.5" />
+      <circle
+        cx={lx}
+        cy={ly}
+        r="2.5"
+        fill="rgba(255,255,255,0.95)"
+        stroke="rgba(0,0,0,0.2)"
+        stroke-width="0.3"
+      />
+      <text
+        x={lx}
+        y={ly}
+        font-size="3"
+        font-weight="600"
+        fill="rgba(0,0,0,0.8)"
+        text-anchor="middle"
+        dominant-baseline="middle"
+      >
         {String(hour).padStart(2, "0")}
       </text>
     {/each}
@@ -448,7 +565,8 @@
           stroke="rgba(255,255,255,0.9)"
           stroke-width="0.3"
           class="resize-handle"
-          onmousedown={(e) => startResize(s.data.suggestionId, s.data.duration, e)}
+          onmousedown={(e) =>
+            startResize(s.data.suggestionId, s.data.duration, e)}
         />
       {/if}
     {/each}
@@ -493,8 +611,10 @@
 
     <!-- Current time indicator -->
     {#if true}
-      {@const timeX = center + (outerRadius - 2) * Math.cos(currentTimeAngle - Math.PI / 2)}
-      {@const timeY = center + (outerRadius - 2) * Math.sin(currentTimeAngle - Math.PI / 2)}
+      {@const timeX =
+        center + (outerRadius - 2) * Math.cos(currentTimeAngle - Math.PI / 2)}
+      {@const timeY =
+        center + (outerRadius - 2) * Math.sin(currentTimeAngle - Math.PI / 2)}
       <line
         x1={center}
         y1={center}
@@ -505,11 +625,24 @@
         stroke-linecap="round"
         filter="url(#glow)"
       />
-      <circle cx={timeX} cy={timeY} r="1.2" fill="#FF6B6B" filter="url(#glow)"/>
+      <circle
+        cx={timeX}
+        cy={timeY}
+        r="1.2"
+        fill="#FF6B6B"
+        filter="url(#glow)"
+      />
     {/if}
 
     <!-- Center circle -->
-    <circle cx={center} cy={center} r="15" fill="rgba(255, 255, 255, 0.95)" stroke="rgba(0,0,0,0.1)" stroke-width="0.3"/>
+    <circle
+      cx={center}
+      cy={center}
+      r="15"
+      fill="rgba(255, 255, 255, 0.95)"
+      stroke="rgba(0,0,0,0.1)"
+      stroke-width="0.3"
+    />
   </svg>
 
   <!-- Center display -->
@@ -531,7 +664,9 @@
     <div class="tooltip" style="left: {mousePos.x}px; top: {mousePos.y}px;">
       <div class="tooltip-title">{hoveredEvent.title}</div>
       <div class="tooltip-time">
-        {hoveredEvent.timeLabel === "all-day" ? "All day" : `${dateToHM(new Date(hoveredEvent.start))} - ${dateToHM(new Date(hoveredEvent.end))}`}
+        {hoveredEvent.timeLabel === "all-day"
+          ? "All day"
+          : `${dateToHM(new Date(hoveredEvent.start))} - ${dateToHM(new Date(hoveredEvent.end))}`}
       </div>
       {#if hoveredEvent.description}
         <div class="tooltip-desc">{hoveredEvent.description}</div>
@@ -549,13 +684,21 @@
 
   {#if showLog}
     <div class="debug">
-      events: {normalizedEvents.length} | gaps: {normalizedGaps.length} | suggestions: {normalizedSuggestions.length}
+      events: {normalizedEvents.length} | gaps: {normalizedGaps.length} | suggestions:
+      {normalizedSuggestions.length}
     </div>
   {/if}
 
   <!-- Suggestion Card -->
   {#if selectedSuggestion}
-    <div class="backdrop" onclick={closeSuggestionCard} onkeydown={(e) => e.key === "Escape" && closeSuggestionCard()} role="button" tabindex="-1" aria-label="Close"></div>
+    <div
+      class="backdrop"
+      onclick={closeSuggestionCard}
+      onkeydown={(e) => e.key === "Escape" && closeSuggestionCard()}
+      role="button"
+      tabindex="-1"
+      aria-label="Close"
+    ></div>
     <SuggestionCard
       suggestion={selectedSuggestion.suggestion}
       taskTitle={getTaskTitle(selectedSuggestion.suggestion.memoId)}
@@ -591,7 +734,9 @@
 
   .event-arc {
     cursor: pointer;
-    transition: stroke-width 0.2s ease, stroke-opacity 0.2s ease;
+    transition:
+      stroke-width 0.2s ease,
+      stroke-opacity 0.2s ease;
   }
 
   .event-arc:hover {
@@ -702,7 +847,7 @@
 
   .tooltip-duration {
     font-size: 11px;
-    color: #11998E;
+    color: #11998e;
     margin-top: 2px;
   }
 
@@ -711,7 +856,7 @@
     bottom: 4px;
     left: 4px;
     font-size: 8px;
-    color: rgba(0,0,0,0.4);
+    color: rgba(0, 0, 0, 0.4);
     pointer-events: none;
   }
 
@@ -724,14 +869,28 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @media (max-width: 768px) {
-    .event-arc { stroke-width: 2.5; }
-    .event-arc.all-day { stroke-width: 1.5; }
-    .suggestion-arc { stroke-width: 2; }
-    .gap-arc { stroke-width: 2; }
+    .event-arc {
+      stroke-width: 2.5;
+    }
+    .event-arc.all-day {
+      stroke-width: 1.5;
+    }
+    .suggestion-arc {
+      stroke-width: 2;
+    }
+    .gap-arc {
+      stroke-width: 2;
+    }
   }
 </style>
