@@ -1,5 +1,7 @@
 # AGENTS Guide
 
+You MUST update this file when the systems structure changed.
+
 ## Stack
 
 - SvelteKit + Prisma (MongoDB) + better-auth
