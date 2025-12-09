@@ -37,22 +37,26 @@ export const dayBoundaries = writable<DayBoundaries>({
  * @returns Gap-finder event or null if not applicable to target date
  */
 function convertCalendarEventToGapEvent(
-  calendarEvent: CalendarEvent | { start: Date; end: Date; id: string; title: string; timeLabel?: string },
+  calendarEvent:
+    | CalendarEvent
+    | { start: Date; end: Date; id: string; title: string; timeLabel?: string },
   targetDate: Date,
 ): Event | null {
   const eventStartDate = new Date(calendarEvent.start);
   const eventEndDate = new Date(calendarEvent.end);
-  
+
   // Calculate day boundaries for target date
   const targetDayStart = new Date(targetDate);
   targetDayStart.setHours(0, 0, 0, 0);
   const targetDayEnd = new Date(targetDate);
   targetDayEnd.setHours(23, 59, 59, 999);
-  
+
   // Check if event overlaps with target date (handles multi-day events)
-  const eventStartsBeforeDayEnd = eventStartDate.getTime() <= targetDayEnd.getTime();
-  const eventEndsAfterDayStart = eventEndDate.getTime() >= targetDayStart.getTime();
-  
+  const eventStartsBeforeDayEnd =
+    eventStartDate.getTime() <= targetDayEnd.getTime();
+  const eventEndsAfterDayStart =
+    eventEndDate.getTime() >= targetDayStart.getTime();
+
   if (!eventStartsBeforeDayEnd || !eventEndsAfterDayStart) {
     return null; // Event doesn't overlap with target date at all
   }
@@ -81,7 +85,8 @@ function convertCalendarEventToGapEvent(
   normalizedEventEnd.setHours(0, 0, 0, 0);
 
   // Determine start time: use event start if it's on this day, otherwise use 00:00
-  const eventStartsOnTarget = normalizedEventStart.getTime() === normalizedTargetDate.getTime();
+  const eventStartsOnTarget =
+    normalizedEventStart.getTime() === normalizedTargetDate.getTime();
   if (eventStartsOnTarget) {
     // Event starts on target date - use actual start time
     startTime = calendarEvent.start.toLocaleTimeString("en-GB", {
@@ -96,8 +101,9 @@ function convertCalendarEventToGapEvent(
 
   // Determine end time: use event end if it's on this day, otherwise use 23:59
   // Check if event ends on the target date by comparing normalized dates
-  const eventEndsOnTarget = normalizedEventEnd.getTime() === normalizedTargetDate.getTime();
-  
+  const eventEndsOnTarget =
+    normalizedEventEnd.getTime() === normalizedTargetDate.getTime();
+
   if (eventEndsOnTarget) {
     // Event ends on target date - use actual end time
     endTime = calendarEvent.end.toLocaleTimeString("en-GB", {
@@ -128,16 +134,19 @@ export const events = derived(
   [calendarEvents, calendarOccurrences, selectedDate],
   ([$events, $occurrences, $selectedDate]) => {
     // Combine master events and expanded recurring occurrences
-    const allEvents: Array<CalendarEvent | {
-      id: string;
-      title: string;
-      start: Date;
-      end: Date;
-      description?: string;
-      address?: string;
-      importance?: "low" | "medium" | "high";
-      timeLabel?: string;
-    }> = [
+    const allEvents: Array<
+      | CalendarEvent
+      | {
+          id: string;
+          title: string;
+          start: Date;
+          end: Date;
+          description?: string;
+          address?: string;
+          importance?: "low" | "medium" | "high";
+          timeLabel?: string;
+        }
+    > = [
       ...$events,
       ...$occurrences.map((occ) => ({
         id: occ.id,

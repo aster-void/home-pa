@@ -187,7 +187,7 @@
 
   // Track previous month to only fetch when month actually changes
   let previousMonthKey = $state<string | null>(null);
-  
+
   function getMonthKey(month: Date): string {
     return `${month.getFullYear()}-${month.getMonth()}`;
   }
@@ -216,7 +216,7 @@
   // Reload events when month actually changes (not on every render)
   $effect(() => {
     const monthKey = getMonthKey(currentMonth);
-    
+
     // Only fetch if month actually changed (skip initial render/mount)
     if (previousMonthKey !== null && previousMonthKey !== monthKey) {
       previousMonthKey = monthKey;
@@ -263,7 +263,7 @@
           const previewOccurrences = calendarActions.expandRecurringEvents(
             eventsWithPreview,
             windowStart,
-            windowEnd
+            windowEnd,
           );
           // Note: This is just for preview - the actual store won't update until save
         }, 200);
@@ -568,7 +568,9 @@
     }
   }
 
-  function parseFreqFromRrule(rrule: string | undefined): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null {
+  function parseFreqFromRrule(
+    rrule: string | undefined,
+  ): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null {
     if (!rrule) return null;
     const match = rrule.match(/FREQ=([A-Z]+)/);
     if (match) {
@@ -597,9 +599,7 @@
 
     if (recurrence.type === "RRULE") {
       const freq =
-        recurrence.frequency ||
-        parseFreqFromRrule(recurrence.rrule) ||
-        "DAILY";
+        recurrence.frequency || parseFreqFromRrule(recurrence.rrule) || "DAILY";
       const freqMap: Record<string, string> = {
         DAILY: "毎日",
         WEEKLY: "毎週",
@@ -1123,9 +1123,8 @@
                   <span class="event-label">
                     {truncatedEvent.title}
                     {#if (truncatedEvent as any).isForever}
-                      <span
-                        class="forever-indicator"
-                        title="Forever recurring">∞</span
+                      <span class="forever-indicator" title="Forever recurring"
+                        >∞</span
                       >
                     {/if}
                     {#if (truncatedEvent as any).isDuplicate}
@@ -1167,8 +1166,7 @@
           <button
             class="close-button"
             onclick={() => uiActions.hideTimelinePopup()}
-            aria-label="Close"
-            >✕</button
+            aria-label="Close">✕</button
           >
         </div>
 
@@ -1286,8 +1284,7 @@
           <button
             class="close-button"
             onclick={() => uiActions.hideEventForm()}
-            aria-label="Close"
-            >✕</button
+            aria-label="Close">✕</button
           >
         </div>
 
@@ -1667,8 +1664,7 @@
             <button
               type="button"
               class="cancel-btn"
-              onclick={() => eventActions.cancelEventForm()}
-              >キャンセル</button
+              onclick={() => eventActions.cancelEventForm()}>キャンセル</button
             >
             <button
               type="button"
@@ -2109,7 +2105,9 @@
     animation: slideUp 0.3s ease;
     scrollbar-width: thin;
     scrollbar-color: var(--accent-primary) transparent;
-    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    margin-bottom: calc(
+      var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+    );
     padding-bottom: var(--space-md);
   }
 
@@ -2119,7 +2117,9 @@
       padding-right: var(--space-sm);
       padding-top: var(--space-md);
       padding-bottom: var(--space-md);
-      margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+      margin-bottom: calc(
+        var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+      );
     }
   }
 
@@ -2185,8 +2185,8 @@
 
   @media (max-width: 768px) {
     .popup-header {
-    margin-bottom: var(--space-sm);
-    padding-bottom: var(--space-xs);
+      margin-bottom: var(--space-sm);
+      padding-bottom: var(--space-xs);
     }
   }
 
@@ -2376,8 +2376,13 @@
     border: 1px solid var(--ui-border);
     border-radius: 16px 16px 0 0;
     padding: var(--space-lg);
-    padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-    margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+    padding-bottom: calc(
+      var(--space-lg) + var(--bottom-nav-height, 80px) +
+        env(safe-area-inset-bottom)
+    );
+    margin-bottom: calc(
+      var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+    );
     width: 100%;
     max-width: 500px;
     max-height: calc(90vh - var(--bottom-nav-height, 80px));

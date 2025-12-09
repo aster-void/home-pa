@@ -96,7 +96,10 @@
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(day);
     dayEnd.setHours(23, 59, 59, 999);
-    return eventStart.getTime() <= dayEnd.getTime() && eventEnd.getTime() >= dayStart.getTime();
+    return (
+      eventStart.getTime() <= dayEnd.getTime() &&
+      eventEnd.getTime() >= dayStart.getTime()
+    );
   }
 
   function toGapEventForDay(e: Event, day: Date) {
@@ -120,7 +123,9 @@
     const startTime = startsToday
       ? new Date(e.start).toTimeString().slice(0, 5)
       : dayStart;
-    const endTime = endsToday ? new Date(e.end).toTimeString().slice(0, 5) : dayEnd;
+    const endTime = endsToday
+      ? new Date(e.end).toTimeString().slice(0, 5)
+      : dayEnd;
 
     return {
       id: e.id,
@@ -135,22 +140,27 @@
     const events = get(calendarEvents) as Event[];
     const occurrences = get(calendarOccurrences);
     const currentDate = startOfDay(get(selectedDate));
-    
+
     const combined: Event[] = [
       ...events,
-      ...occurrences.map((occ) => ({
-        id: occ.id,
-        title: occ.title,
-        start: occ.start,
-        end: occ.end,
-        description: occ.description,
-        address: occ.location,
-        importance: occ.importance,
-        timeLabel: occ.timeLabel,
-      }) as Event),
+      ...occurrences.map(
+        (occ) =>
+          ({
+            id: occ.id,
+            title: occ.title,
+            start: occ.start,
+            end: occ.end,
+            description: occ.description,
+            address: occ.location,
+            importance: occ.importance,
+            timeLabel: occ.timeLabel,
+          }) as Event,
+      ),
     ];
 
-    const todaysEvents = combined.filter((e) => overlapsDay(new Date(e.start), new Date(e.end), currentDate));
+    const todaysEvents = combined.filter((e) =>
+      overlapsDay(new Date(e.start), new Date(e.end), currentDate),
+    );
     const mapped = todaysEvents.map((e) => toGapEventForDay(e, currentDate));
 
     selectedDayEvents = sortEventsByStart(todaysEvents);
@@ -161,11 +171,13 @@
   $effect(() => {
     // Subscribe to reactive stores and recompute on change
     const unsubscribeEvents = calendarEvents.subscribe(() => recomputeGaps());
-    const unsubscribeOccurrences = calendarOccurrences.subscribe(() => recomputeGaps());
+    const unsubscribeOccurrences = calendarOccurrences.subscribe(() =>
+      recomputeGaps(),
+    );
     const unsubscribeDate = selectedDate.subscribe(() => recomputeGaps());
-    
+
     recomputeGaps();
-    
+
     return () => {
       unsubscribeEvents();
       unsubscribeOccurrences();
@@ -233,9 +245,15 @@
     await scheduleActions.deleteAccepted(suggestionId, taskList);
   }
 
-  async function handleSuggestionResize(event: CustomEvent<{ suggestionId: string; newDuration: number }>) {
+  async function handleSuggestionResize(
+    event: CustomEvent<{ suggestionId: string; newDuration: number }>,
+  ) {
     const { suggestionId, newDuration } = event.detail;
-    await scheduleActions.updateAcceptedDuration(suggestionId, newDuration, taskList);
+    await scheduleActions.updateAcceptedDuration(
+      suggestionId,
+      newDuration,
+      taskList,
+    );
   }
 
   // Component-level event handling is wired directly on the child via on: handlers below
@@ -252,25 +270,26 @@
     <!-- Timeline Section - Takes majority of space -->
     <section class="timeline-section">
       <div class="timeline-stack">
-      <div class="timeline-container">
-        <CircularTimelineCss
-          externalGaps={computedGaps}
-          pendingSuggestions={$pendingSuggestions}
-          acceptedSuggestions={$acceptedSuggestions}
-          {getTaskTitle}
-          on:eventSelected={(e: any) => (selectedEvent = e.detail)}
-          on:gapSelected={(e: any) => (selectedGap = e.detail)}
-          on:suggestionAccept={handleSuggestionAccept}
-          on:suggestionSkip={handleSuggestionSkip}
-          on:suggestionDelete={handleSuggestionDelete}
-          on:suggestionResize={handleSuggestionResize}
-        />
+        <div class="timeline-container">
+          <CircularTimelineCss
+            externalGaps={computedGaps}
+            pendingSuggestions={$pendingSuggestions}
+            acceptedSuggestions={$acceptedSuggestions}
+            {getTaskTitle}
+            on:eventSelected={(e: any) => (selectedEvent = e.detail)}
+            on:gapSelected={(e: any) => (selectedGap = e.detail)}
+            on:suggestionAccept={handleSuggestionAccept}
+            on:suggestionSkip={handleSuggestionSkip}
+            on:suggestionDelete={handleSuggestionDelete}
+            on:suggestionResize={handleSuggestionResize}
+          />
         </div>
 
         <div class="event-list-panel">
           <div class="event-list-header">
             <h3>Events</h3>
-            <span class="event-list-date">{formatDateLabel($selectedDate)}</span>
+            <span class="event-list-date">{formatDateLabel($selectedDate)}</span
+            >
           </div>
           {#if displayEvents.length === 0}
             <p class="event-empty">この日の予定はありません</p>
@@ -340,8 +359,7 @@
         <button
           class="settings-close"
           onclick={() => (showSettings = false)}
-          aria-label="Close"
-          >✕</button
+          aria-label="Close">✕</button
         >
       </div>
       <div class="settings-content">

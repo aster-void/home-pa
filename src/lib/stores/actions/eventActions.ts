@@ -88,7 +88,7 @@ export const eventActions = {
         timeLabel: formData.timeLabel || "all-day",
         recurrence: formData.recurrence,
       });
-      
+
       if (!newEvent) {
         throw new Error("Failed to create event");
       }
@@ -162,12 +162,12 @@ export const eventActions = {
         eventFormActions.setGeneralError("Event not found");
         return null;
       }
-      
+
       // Fetch the updated event from the store
       const { calendarEvents } = await import("../calendar.js");
       const events = get(calendarEvents);
-      const updatedEvent = events.find(e => e.id === formData.editingId);
-      
+      const updatedEvent = events.find((e) => e.id === formData.editingId);
+
       if (!updatedEvent) {
         eventFormActions.setGeneralError("Event not found after update");
         return null;

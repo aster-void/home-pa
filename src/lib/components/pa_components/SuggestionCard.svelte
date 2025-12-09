@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { PendingSuggestion, AcceptedSuggestion } from "../../stores/schedule.js";
+  import type {
+    PendingSuggestion,
+    AcceptedSuggestion,
+  } from "../../stores/schedule.js";
 
   interface Props {
     suggestion: PendingSuggestion | AcceptedSuggestion;
@@ -30,16 +33,16 @@
   // Adjust position to keep card within viewport
   onMount(() => {
     if (!cardElement) return;
-    
+
     const rect = cardElement.getBoundingClientRect();
     const navHeight = 80; // --bottom-nav-height
     const padding = 16;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
+
     let newX = position.x;
     let newY = position.y;
-    
+
     // Adjust horizontal position
     if (newX + rect.width > viewportWidth - padding) {
       newX = viewportWidth - rect.width - padding;
@@ -47,7 +50,7 @@
     if (newX < padding) {
       newX = padding;
     }
-    
+
     // Adjust vertical position (account for bottom nav)
     if (newY + rect.height > viewportHeight - navHeight - padding) {
       newY = viewportHeight - navHeight - padding - rect.height;
@@ -55,7 +58,7 @@
     if (newY < padding) {
       newY = padding;
     }
-    
+
     adjustedPosition = { x: newX, y: newY };
   });
 
@@ -90,7 +93,9 @@
 
   <div class="card-body">
     <div class="time-info">
-      <span class="time-range">{suggestion.startTime} - {suggestion.endTime}</span>
+      <span class="time-range"
+        >{suggestion.startTime} - {suggestion.endTime}</span
+      >
       <span class="duration">{suggestion.duration}分</span>
     </div>
 
@@ -103,16 +108,10 @@
 
   <div class="card-actions">
     {#if isAccepted}
-      <button class="action-btn delete" onclick={handleDelete}>
-        削除
-      </button>
+      <button class="action-btn delete" onclick={handleDelete}> 削除 </button>
     {:else}
-      <button class="action-btn accept" onclick={handleAccept}>
-        承認
-      </button>
-      <button class="action-btn skip" onclick={handleSkip}>
-        スキップ
-      </button>
+      <button class="action-btn accept" onclick={handleAccept}> 承認 </button>
+      <button class="action-btn skip" onclick={handleSkip}> スキップ </button>
     {/if}
   </div>
 </div>
@@ -124,7 +123,9 @@
     border: 1px solid var(--ui-border, #e5e7eb);
     border-radius: var(--radius-lg, 12px);
     padding: var(--space-md, 16px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.12),
+      0 4px 12px rgba(0, 0, 0, 0.06);
     z-index: 1000;
     min-width: 240px;
     max-width: 300px;
@@ -145,7 +146,9 @@
 
   .suggestion-card.accepted {
     border-color: rgba(34, 197, 94, 0.4);
-    box-shadow: 0 12px 40px rgba(34, 197, 94, 0.15), 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 12px 40px rgba(34, 197, 94, 0.15),
+      0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
   .card-header {

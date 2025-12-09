@@ -5,7 +5,7 @@
 </script>
 
 <div class="calendar-tab">
-      <CalendarView />
+  <CalendarView />
 </div>
 
 <style>

@@ -147,6 +147,7 @@ The `stableSerializeSchedule()` function creates a deterministic JSON string fro
 ### Scheduled Events on Timeline
 
 Scheduled blocks are converted to `Event` objects with:
+
 - `timeLabel: "timed"` - Always timed events
 - `start/end` - Calculated from block's `startTime/endTime` and selected date
 - `id: scheduled-{suggestionId}` - Unique identifier prefixed with "scheduled-"
@@ -168,6 +169,7 @@ Tasks are automatically enriched with LLM-suggested metadata after creation.
 ### Enrichment Fields
 
 The LLM fills these optional fields:
+
 - `genre` - Task category (e.g., "勉強", "運動", "家事")
 - `importance` - Low/medium/high priority
 - `sessionDuration` - Recommended minutes per session
@@ -182,6 +184,7 @@ The LLM fills these optional fields:
 ### Enrichment States
 
 Tasks show an "AI analyzing..." overlay while enriching:
+
 - `enrichingTaskIds` store tracks which tasks are being enriched
 - UI displays spinner overlay on enriching tasks
 - Updates happen automatically when enrichment completes
@@ -189,6 +192,7 @@ Tasks show an "AI analyzing..." overlay while enriching:
 ### Fallback Behavior
 
 If LLM enrichment fails (API unavailable, network error, etc.):
+
 - Fallback values are used (sensible defaults based on task type)
 - Task remains fully functional without enrichment
 - No error shown to user (graceful degradation)

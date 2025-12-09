@@ -100,7 +100,10 @@ function createMemoFromForm(formData: TaskFormData): Memo {
     locationPreference: formData.locationPreference,
     status,
     // Preserve importance if set (empty string becomes undefined, but valid values are preserved)
-    importance: formData.importance && formData.importance.length > 0 ? (formData.importance as ImportanceLevel) : undefined,
+    importance:
+      formData.importance && formData.importance.length > 0
+        ? (formData.importance as ImportanceLevel)
+        : undefined,
     // LLM will fill these later:
     // genre, sessionDuration, totalDurationExpected
   };
@@ -172,7 +175,9 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
 
     // Edge case: If enrichment is undefined/null, use fallback
     if (!enrichment) {
-      console.warn(`[Enrichment] Received undefined enrichment for task ${taskId}, skipping update`);
+      console.warn(
+        `[Enrichment] Received undefined enrichment for task ${taskId}, skipping update`,
+      );
       return;
     }
 
@@ -191,7 +196,8 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
       genre: latestTask.genre ?? enrichment.genre,
       importance: latestTask.importance ?? enrichment.importance,
       sessionDuration: latestTask.sessionDuration ?? enrichment.sessionDuration,
-      totalDurationExpected: latestTask.totalDurationExpected ?? enrichment.totalDurationExpected,
+      totalDurationExpected:
+        latestTask.totalDurationExpected ?? enrichment.totalDurationExpected,
     };
 
     // Update task in store with enriched data
@@ -326,7 +332,10 @@ export const taskActions = {
                 }
               : undefined,
           locationPreference: formData.locationPreference,
-          importance: formData.importance && formData.importance.length > 0 ? (formData.importance as ImportanceLevel) : undefined,
+          importance:
+            formData.importance && formData.importance.length > 0
+              ? (formData.importance as ImportanceLevel)
+              : undefined,
         };
 
         const newTasks = [...currentTasks];

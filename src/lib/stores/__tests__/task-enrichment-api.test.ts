@@ -1,6 +1,6 @@
 /**
  * Task Enrichment API Integration Tests
- * 
+ *
  * Tests the integration between taskActions and the LLM enrichment API:
  * - Task creation triggers API enrichment
  * - Enrichment state tracking
@@ -10,7 +10,12 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
-import { tasks, taskActions, enrichingTaskIds, hasEnrichingTasks } from "../actions/taskActions.js";
+import {
+  tasks,
+  taskActions,
+  enrichingTaskIds,
+  hasEnrichingTasks,
+} from "../actions/taskActions.js";
 import { taskFormActions, taskForm } from "../forms/taskForm.js";
 import type { Memo } from "../../types.js";
 
@@ -35,8 +40,10 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should trigger API enrichment when creating a task", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     const mockEnrichment = {
       genre: "勉強",
       importance: "high" as const,
@@ -54,7 +61,7 @@ describe("Task Enrichment API Integration", () => {
 
     expect(createdTask).not.toBeNull();
     expect(enrichMemoViaAPI).toHaveBeenCalled();
-    
+
     // Wait for enrichment to complete
     await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -68,8 +75,10 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should track enriching state during API call", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     // Create a promise that we can control
     let resolveEnrichment: (value: any) => void;
     const enrichmentPromise = new Promise((resolve) => {
@@ -80,10 +89,10 @@ describe("Task Enrichment API Integration", () => {
 
     taskFormActions.updateField("title", "Test task");
     const createPromise = taskActions.create();
-    
+
     // Wait a bit for the enrichment to start
     await new Promise((resolve) => setTimeout(resolve, 10));
-    
+
     const createdTask = await createPromise;
 
     // Check that task is marked as enriching
@@ -107,8 +116,10 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should use fallback enrichment when API fails", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     // Mock API to fail
     (enrichMemoViaAPI as any).mockRejectedValueOnce(new Error("Network error"));
 
@@ -128,8 +139,10 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should preserve existing fields when enriching", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     const mockEnrichment = {
       genre: "勉強",
       importance: "high" as const,
@@ -148,7 +161,7 @@ describe("Task Enrichment API Integration", () => {
     expect(formBeforeCreate.importance).toBe("low");
 
     const createdTask = await taskActions.create();
-    
+
     // Check that task was created with user-set importance
     expect(createdTask?.importance).toBe("low");
 
@@ -165,8 +178,10 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should handle multiple concurrent enrichments", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     const mockEnrichment1 = {
       genre: "勉強",
       importance: "high" as const,
@@ -220,20 +235,23 @@ describe("Task Enrichment API Integration", () => {
   });
 
   it("should handle task deletion gracefully during enrichment", async () => {
-    const { enrichMemoViaAPI } = await import("../../services/suggestions/llm-enrichment.js");
-    
+    const { enrichMemoViaAPI } = await import(
+      "../../services/suggestions/llm-enrichment.js"
+    );
+
     // Use a delayed enrichment to simulate real API call
     (enrichMemoViaAPI as any).mockImplementationOnce(
-      () => new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            genre: "その他",
-            importance: "medium" as const,
-            sessionDuration: 30,
-            totalDurationExpected: 60,
-          });
-        }, 50);
-      })
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              genre: "その他",
+              importance: "medium" as const,
+              sessionDuration: 30,
+              totalDurationExpected: 60,
+            });
+          }, 50);
+        }),
     );
 
     taskFormActions.updateField("title", "Test task");

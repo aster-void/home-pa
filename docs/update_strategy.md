@@ -11,6 +11,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ✅ Complete
 
 **Changes:**
+
 - Schedule generation now runs automatically when user opens assistant tab (today only)
 - Schedule results are cached and only update UI when regenerated schedule differs from cached version
 - `SchedulePanel` component removed from UI
@@ -18,11 +19,13 @@ This document tracks recent updates and necessary next steps for Home-PA.
 - Schedule generation happens in background without disrupting UI
 
 **Files Modified:**
+
 - `src/lib/stores/schedule.ts` - Added caching logic with `stableSerializeSchedule()` to compare schedules
 - `src/lib/components/PersonalAssistantView.svelte` - Removed SchedulePanel, integrated scheduled blocks as timeline events
 - `src/lib/components/pa_components/CircularTimeline.svelte` - Added `extraEvents` prop to inject scheduled suggestions
 
 **Key Implementation:**
+
 - `scheduleActions.regenerate()` now compares serialized schedule results before updating store
 - Scheduled blocks converted to `Event` format with `timeLabel: "timed"` for timeline rendering
 - Only shows scheduled events when selected date is today
@@ -34,15 +37,18 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ✅ Complete
 
 **Changes:**
+
 - Enhanced task cards to prominently display min-session time for enriched tasks
 - Improved progress tracking visualization with clearer labels
 - Streamlined task card layout, removing unnecessary clutter
 - Better visual hierarchy for task metadata
 
 **Files Modified:**
+
 - `src/lib/components/task_components/TaskCard.svelte` - Redesigned with min-session pill, improved progress display
 
 **Key Features:**
+
 - Min-session time shown as pill badge (e.g., "30 min/session")
 - Progress labels explicitly show "Progress: X/Y" format
 - Routine progress: "Progress: done/goal this period"
@@ -56,6 +62,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ✅ Complete
 
 **Changes:**
+
 - Removed bottom shadow from calendar view
 - Fixed scrollability issues in PersonalAssistantView
 - Removed recurrence loading indicator (kept network error indicator)
@@ -63,6 +70,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 - Timeline section layout optimized for better space utilization
 
 **Files Modified:**
+
 - `src/lib/components/CalendarView.svelte` - Removed shadow, removed loading indicator
 - `src/lib/components/PersonalAssistantView.svelte` - Fixed scrollability, improved layout
 - `src/lib/components/pa_components/CircularTimeline.svelte` - Increased max radius to 50% of viewport
@@ -74,6 +82,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ✅ Complete
 
 **Changes:**
+
 - All schedule suggestions now display concurrently on `CircularTimeline` (not sequential).
 - Pending suggestions shown as dashed purple arcs with Accept/Skip controls via popup card.
 - Accepted suggestions shown as solid green arcs, act as fixed events in gap calculation.
@@ -83,6 +92,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 - Only today's suggestions are generated.
 
 **Files Modified:**
+
 - `src/lib/stores/schedule.ts` - Added `AcceptedSuggestion`, `PendingSuggestion` types, `acceptedSuggestions`, `pendingSuggestions`, `skippedSuggestionIds` stores, and actions for accept/skip/delete/resize
 - `src/lib/stores/index.ts` - Exported new stores and types
 - `src/lib/components/pa_components/SuggestionCard.svelte` - New component for suggestion popup with Accept/Skip/Delete controls
@@ -91,6 +101,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 - `src/lib/components/PersonalAssistantView.svelte` - Wired suggestion events to schedule actions
 
 **Key Implementation:**
+
 - `subtractAcceptedFromGaps()` removes accepted suggestion time slots from available gaps before regeneration
 - Pending suggestions rendered on lane 1 with `pendingSuggestionGradient` (purple)
 - Accepted suggestions rendered on lane 1 with `acceptedSuggestionGradient` (green) + resize handle
@@ -108,6 +119,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Current State:** Tasks stored in-memory (Svelte store), lost on page refresh
 
 **Needed:**
+
 - Add Prisma model for `Task` (similar to `CalendarEvent`)
 - Create API endpoints for task CRUD operations
 - Update `taskActions.ts` to use API instead of in-memory store
@@ -124,12 +136,14 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Purpose:** Allow users to track time spent working on tasks
 
 **Features:**
+
 - Start/pause/complete buttons
 - Auto-update `timeSpentMinutes` in task status
 - Increment routine completions when session completes
 - Visual timer display
 
 **Files to Create:**
+
 - `src/lib/components/task_components/SessionTimer.svelte`
 
 **Estimated:** 3-4 hours
@@ -143,6 +157,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Current:** Basic progress bars and labels
 
 **Enhancements:**
+
 - Visual progress indicators for deadline countdown
 - Last activity date display
 - Completion streak tracking for routines
@@ -158,6 +173,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Current:** Auto-generates on assistant tab open for today only
 
 **Enhancements:**
+
 - Manual refresh button (if needed)
 - Schedule preview before applying
 - Undo/redo schedule changes
@@ -172,17 +188,20 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Priority:** Low | **Status:** ✅ Complete
 
 **Tasks:**
+
 - ✅ Update `AGENTS.md` with new schedule generation flow
 - ✅ Document task enrichment process
 - ✅ Add developer guide for schedule caching logic (`docs/implementation_guide/SCHEDULE_CACHING.md`)
 - 📋 Update API documentation for task endpoints (when task persistence is implemented)
 
 **Completed:**
+
 - Added schedule generation flow documentation to `AGENTS.md`
 - Added task enrichment process documentation to `AGENTS.md`
 - Created `SCHEDULE_CACHING.md` developer guide with detailed caching logic explanation
 
 **Remaining:**
+
 - Task API documentation (pending task persistence implementation)
 
 ---
@@ -194,11 +213,13 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ⚠️ Monitor
 
 **Potential Issues:**
+
 - Rapid task changes might cause cache misses
 - Time-based schedule changes (e.g., gaps update) might not trigger regeneration
 - Concurrent schedule generations could cause race conditions
 
 **Mitigation:**
+
 - Current implementation uses stable serialization to prevent unnecessary updates
 - Monitor for edge cases in production usage
 
@@ -209,6 +230,7 @@ This document tracks recent updates and necessary next steps for Home-PA.
 **Status:** ⚠️ Monitor
 
 **Potential Issues:**
+
 - Form field updates might not be immediately available when task is created
 - Race conditions between form state and task creation
 

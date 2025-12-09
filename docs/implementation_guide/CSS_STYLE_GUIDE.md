@@ -62,23 +62,23 @@
 
 ### Glass/Frosted Effects
 
-| Variable            | Value                    | Usage                    |
-| ------------------- | ------------------------ | ------------------------ |
-| **--glass-bg**      | `rgba(255, 255, 255, 0.8)` | Glass panel backgrounds  |
-| **--glass-border**  | `rgba(0, 0, 0, 0.06)`    | Glass panel borders      |
-| **--glass-shadow**  | `0 4px 16px rgba(0,0,0,0.06)` | Glass panel shadows     |
+| Variable           | Value                         | Usage                   |
+| ------------------ | ----------------------------- | ----------------------- |
+| **--glass-bg**     | `rgba(255, 255, 255, 0.8)`    | Glass panel backgrounds |
+| **--glass-border** | `rgba(0, 0, 0, 0.06)`         | Glass panel borders     |
+| **--glass-shadow** | `0 4px 16px rgba(0,0,0,0.06)` | Glass panel shadows     |
 
 ### Legacy Compatibility Colors
 
-| Variable      | Value/Alias              | Usage                    |
-| ------------- | ------------------------ | ------------------------ |
-| **--white**   | `#FFFFFF`                | White color (legacy)     |
-| **--navy-900**| `#1A1A1A`                | Dark text (legacy alias) |
-| **--muted**   | `var(--text-secondary)`  | Secondary text (alias)   |
-| **--primary** | `#0066CC`                | Primary accent (blue)    |
-| **--text**    | `var(--text-primary)`    | Text color (alias)       |
-| **--panel**   | `var(--bg-secondary)`    | Panel background (alias) |
-| **--bg**      | `var(--bg-secondary)`    | Page background (alias)  |
+| Variable       | Value/Alias             | Usage                    |
+| -------------- | ----------------------- | ------------------------ |
+| **--white**    | `#FFFFFF`               | White color (legacy)     |
+| **--navy-900** | `#1A1A1A`               | Dark text (legacy alias) |
+| **--muted**    | `var(--text-secondary)` | Secondary text (alias)   |
+| **--primary**  | `#0066CC`               | Primary accent (blue)    |
+| **--text**     | `var(--text-primary)`   | Text color (alias)       |
+| **--panel**    | `var(--bg-secondary)`   | Panel background (alias) |
+| **--bg**       | `var(--bg-secondary)`   | Page background (alias)  |
 
 **Note:** Prefer using the primary variable names (e.g., `--text-primary` over `--text`, `--bg-secondary` over `--panel`).
 
@@ -382,8 +382,13 @@ All popups follow this pattern:
   border: 1px solid var(--ui-border);
   border-radius: 16px 16px 0 0; /* Mobile: bottom sheet */
   padding: var(--space-lg);
-  padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-  margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+  padding-bottom: calc(
+    var(--space-lg) + var(--bottom-nav-height, 80px) +
+      env(safe-area-inset-bottom)
+  );
+  margin-bottom: calc(
+    var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+  );
   width: 100%;
   max-width: 500px;
   max-height: calc(90vh - var(--bottom-nav-height, 80px));
@@ -521,13 +526,13 @@ All popups follow this pattern:
 
 ### Z-Index Hierarchy
 
-| Level | Z-Index | Usage |
-|-------|---------|-------|
-| **Modals/Popups** | `2100` | Event form, task form, timeline popup |
-| **Bottom Navigation** | `2000` | Fixed bottom navigation bar |
-| **Settings Panel** | `500` | Settings bottom sheet |
-| **Suggestion Card** | `1000` | Suggestion popup cards |
-| **Backdrop** | `[modal z-index - 1]` | Backdrop overlays |
+| Level                 | Z-Index               | Usage                                 |
+| --------------------- | --------------------- | ------------------------------------- |
+| **Modals/Popups**     | `2100`                | Event form, task form, timeline popup |
+| **Bottom Navigation** | `2000`                | Fixed bottom navigation bar           |
+| **Settings Panel**    | `500`                 | Settings bottom sheet                 |
+| **Suggestion Card**   | `1000`                | Suggestion popup cards                |
+| **Backdrop**          | `[modal z-index - 1]` | Backdrop overlays                     |
 
 ### Popup Rules
 
@@ -616,9 +621,9 @@ When creating new components:
 
 ### Breakpoints
 
-| Breakpoint | Value | Usage |
-|------------|-------|-------|
-| **Mobile** | `< 768px` | Bottom sheets, full-width layouts |
+| Breakpoint  | Value     | Usage                                 |
+| ----------- | --------- | ------------------------------------- |
+| **Mobile**  | `< 768px` | Bottom sheets, full-width layouts     |
 | **Desktop** | `≥ 768px` | Centered modals, side-by-side layouts |
 
 ### Mobile-First Approach
@@ -633,8 +638,12 @@ When creating new components:
 Always account for bottom navigation on mobile:
 
 ```css
-padding-bottom: calc(var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-margin-bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
+padding-bottom: calc(
+  var(--space-lg) + var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+);
+margin-bottom: calc(
+  var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom)
+);
 ```
 
 ### Safe Area Insets

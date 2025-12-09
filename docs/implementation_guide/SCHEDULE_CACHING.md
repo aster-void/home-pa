@@ -9,11 +9,13 @@ The schedule generation system includes intelligent caching to prevent unnecessa
 ### The Problem
 
 Schedule generation runs automatically when:
+
 - User opens the assistant tab (today selected)
 - Tasks or gaps change
 - User manually triggers regeneration
 
 Without caching, every regeneration would cause a UI re-render even if the schedule result is identical, leading to:
+
 - Unnecessary component re-renders
 - Timeline flickering
 - Poor user experience
@@ -73,6 +75,7 @@ function stableSerializeSchedule(schedule: ScheduleResult): string {
 ```
 
 **Key Points:**
+
 - Arrays are sorted before serialization (order doesn't matter for comparison)
 - All fields are included in the comparison
 - Uses `JSON.stringify()` for deterministic serialization
@@ -82,6 +85,7 @@ function stableSerializeSchedule(schedule: ScheduleResult): string {
 ### Automatic Regeneration
 
 Schedule regenerates automatically when:
+
 1. User opens assistant tab with today selected
 2. Tasks change (but result might be identical)
 3. Gaps change (but result might be identical)
@@ -105,6 +109,7 @@ await scheduleActions.regenerate(tasks, { gaps });
 ### Rapid Changes
 
 If tasks change rapidly (multiple updates in quick succession):
+
 - Each change triggers regeneration
 - Caching prevents UI thrashing
 - Only final schedule updates UI
@@ -112,6 +117,7 @@ If tasks change rapidly (multiple updates in quick succession):
 ### Time-Based Changes
 
 Schedules are date-specific (today only). If user changes date:
+
 - Previous day's schedule is not cached
 - New day generates fresh schedule
 - No caching across days
@@ -119,6 +125,7 @@ Schedules are date-specific (today only). If user changes date:
 ### Concurrent Generation
 
 If multiple regenerations happen concurrently:
+
 - Last one wins (standard Svelte store behavior)
 - Earlier results are discarded
 - Only final result updates UI
@@ -179,8 +186,8 @@ console.log("[Schedule] Cache comparison:", {
 ## Future Improvements
 
 Potential enhancements:
+
 - Persist cache across sessions (localStorage)
 - Cache multiple days (not just today)
 - Invalidate cache based on time (e.g., every hour)
 - Cache intermediate results (suggestions, gaps, etc.)
-

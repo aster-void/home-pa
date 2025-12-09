@@ -10,10 +10,7 @@ interface SimpleSuggestion {
 }
 type Suggestion = SimpleSuggestion;
 import { get } from "svelte/store";
-import {
-  suggestionLogs,
-  suggestionLogOperations,
-} from "../stores/data.js";
+import { suggestionLogs, suggestionLogOperations } from "../stores/data.js";
 import { calendarEvents, calendarOccurrences } from "../stores/calendar.js";
 import type { ExpandedOccurrence } from "../stores/calendar.js";
 
@@ -101,17 +98,18 @@ export class SuggestionService {
     // Get master events and occurrences
     const masterEvents = get(calendarEvents);
     const occurrences = get(calendarOccurrences);
-    
+
     // Combine regular events (non-recurring) with expanded occurrences
-    const recurringEventIds = new Set(masterEvents
-      .filter(e => e.recurrence && e.recurrence.type !== "NONE")
-      .map(e => e.id)
+    const recurringEventIds = new Set(
+      masterEvents
+        .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
+        .map((e) => e.id),
     );
-    
+
     // Convert occurrences to Event format
     const occurrenceEvents: Event[] = occurrences
-      .filter(occ => recurringEventIds.has(occ.masterEventId))
-      .map(occ => ({
+      .filter((occ) => recurringEventIds.has(occ.masterEventId))
+      .map((occ) => ({
         id: occ.id,
         title: occ.title,
         start: occ.start,
@@ -119,13 +117,15 @@ export class SuggestionService {
         description: occ.description,
         address: occ.location,
         importance: occ.importance,
-        timeLabel: occ.timeLabel as 'all-day' | 'timed' | 'some-timing',
+        timeLabel: occ.timeLabel as "all-day" | "timed" | "some-timing",
       }));
-    
+
     // Combine all events
     const allEvents: Event[] = [
-      ...masterEvents.filter(e => !e.recurrence || e.recurrence.type === "NONE"),
-      ...occurrenceEvents
+      ...masterEvents.filter(
+        (e) => !e.recurrence || e.recurrence.type === "NONE",
+      ),
+      ...occurrenceEvents,
     ];
 
     // Sort by start time and find next event
