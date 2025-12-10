@@ -1,9 +1,25 @@
 <script lang="ts">
   import { authClient } from "$lib/auth-client";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
+
   const session = authClient.useSession;
 
   let form = $state({ name: "", email: "", password: "" });
   let msg = $state("");
+
+  // Get redirect target from URL params
+  function getRedirectTo(): string {
+    const redirectTo = $page.url.searchParams.get("redirectTo");
+    return redirectTo ? decodeURIComponent(redirectTo) : "/";
+  }
+
+  // Redirect authenticated users away from auth page
+  $effect(() => {
+    if ($session.data?.user) {
+      goto(getRedirectTo(), { replaceState: true });
+    }
+  });
 
   async function signUp() {
     msg = "";
@@ -12,7 +28,10 @@
       email: form.email,
       password: form.password,
     });
-    if (error) msg = error.message || "Sign up failed";
+    if (error) {
+      msg = error.message || "Sign up failed";
+    }
+    // Redirect handled by $effect when session updates
   }
 
   async function signIn() {
@@ -21,7 +40,10 @@
       email: form.email,
       password: form.password,
     });
-    if (error) msg = error.message || "Sign in failed";
+    if (error) {
+      msg = error.message || "Sign in failed";
+    }
+    // Redirect handled by $effect when session updates
   }
 
   async function signOut() {

@@ -4,11 +4,37 @@
   import BottomNavigation from "$lib/components/BottomNavigation.svelte";
   import Toast from "$lib/components/Toast.svelte";
   import { initializeStores } from "$lib/stores/bootstrap.js";
+  import { authClient } from "$lib/auth-client";
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
 
   let { children } = $props();
 
   // Initialize global stores on layout load
   initializeStores();
+
+  const session = authClient.useSession;
+
+  // Public routes that don't require authentication
+  const PUBLIC_ROUTES = ["/auth"];
+
+  function isPublicRoute(pathname: string): boolean {
+    return PUBLIC_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(route + "/"),
+    );
+  }
+
+  // Client-side auth guard (backup for server-side redirect)
+  $effect(() => {
+    const isLoading = $session.isPending;
+    const isAuthenticated = !!$session.data?.user;
+    const pathname = $page.url.pathname;
+
+    if (!isLoading && !isAuthenticated && !isPublicRoute(pathname)) {
+      const redirectTo = encodeURIComponent(pathname + $page.url.search);
+      goto(`/auth?redirectTo=${redirectTo}`, { replaceState: true });
+    }
+  });
 </script>
 
 <svelte:head>
