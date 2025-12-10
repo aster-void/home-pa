@@ -8,17 +8,8 @@
 
 ## Project Context
 - This is a SvelteKit + Prisma (MongoDB) + better-auth project
-- Follow the conventions in AGENTS.md
 - Use Svelte 5 runes syntax for all new components
-
-## Svelte 5
-
-- Use runes (e.g. `$state`) over stores.
-- Use controller class if applicable.
-- Use new Remote Functions for type-safe communication, over `+server.ts`.
 
 Read AGENTS.md for the specific code examples.
 
-## Preference
-
-You rarely need to care about performance. if user requests to "improve performance" without any actual harm observed, reply with something that can relax the user. don't overcomplex the system for it.
+@AGENTS.md
