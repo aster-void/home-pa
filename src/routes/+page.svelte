@@ -1,19 +1,19 @@
 <script lang="ts">
-  import CalendarTabView from "$lib/components/CalendarTabView.svelte";
-  import PersonalAssistantView from "$lib/components/PersonalAssistantView.svelte";
-  import TaskView from "$lib/components/TaskView.svelte";
-  import UtilitiesView from "$lib/components/UtilitiesView.svelte";
-  import { currentView } from "$lib/stores/index.js";
+  import CalendarTabView from "$lib/features/calendar/components/CalendarTabView.svelte";
+  import UtilitiesView from "$lib/features/utilities/components/UtilitiesView.svelte";
+  import { PersonalAssistantView } from "$lib/features/assistant/components/index.js";
+  import { TaskView } from "$lib/features/tasks/components/index.js";
+  import { uiState } from "$lib/state/index.svelte.js";
 </script>
 
 <main class="main-content">
-  {#if $currentView === "calendar"}
+  {#if uiState.currentView === "calendar"}
     <CalendarTabView />
-  {:else if $currentView === "personal-assistant"}
+  {:else if uiState.currentView === "personal-assistant"}
     <PersonalAssistantView />
-  {:else if $currentView === "tasks"}
+  {:else if uiState.currentView === "tasks"}
     <TaskView />
-  {:else if $currentView === "utilities"}
+  {:else if uiState.currentView === "utilities"}
     <UtilitiesView />
   {/if}
 </main>
