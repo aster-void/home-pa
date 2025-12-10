@@ -6,16 +6,16 @@
  */
 
 // Calendar feature
-export * from "./calendar/components/index.js";
+export * from "./calendar/components/index.ts";
 
 // Memo feature
-export * from "./memo/components/index.js";
+export * from "./memo/components/index.ts";
 
 // Tasks feature
-export * from "./tasks/components/index.js";
+export * from "./tasks/components/index.ts";
 
 // Personal Assistant feature
-export * from "./assistant/components/index.js";
+export * from "./assistant/components/index.ts";
 
 // Shared components
-export * from "./shared/components/index.js";
+export * from "./shared/components/index.ts";

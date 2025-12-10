@@ -11,12 +11,12 @@
  * Location matching uses string labels (handled by location-matching.ts).
  */
 
-import type { Gap, Suggestion } from "../../types.js";
-import { canFit, findFirstCompatibleGap } from "./location-matching.js";
+import type { Gap, Suggestion } from "../../types.ts";
+import { canFit, findFirstCompatibleGap } from "./location-matching.ts";
 import {
   calculatePriority,
   MANDATORY_THRESHOLD,
-} from "./suggestion-scoring.js";
+} from "./suggestion-scoring.ts";
 
 // ============================================================================
 // TYPES

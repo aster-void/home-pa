@@ -7,7 +7,7 @@
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
 
-import type { ViewMode } from "../types.js";
+import type { ViewMode } from "../types.ts";
 
 /**
  * Application view type
@@ -18,7 +18,7 @@ export type AppView = "calendar" | "personal-assistant" | "tasks" | "utilities";
  * UI State reactive class
  *
  * Usage:
- *   import { uiState } from "$lib/state/ui.svelte.js";
+ *   import { uiState } from "$lib/state/ui.svelte.ts";
  *   // In template: {uiState.currentView}
  *   // In script: uiState.setView("calendar")
  */

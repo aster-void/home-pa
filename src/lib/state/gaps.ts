@@ -10,15 +10,15 @@
  */
 
 import { writable, derived } from "svelte/store";
-import type { DayBoundaries, Event } from "../services/gap-finder.js";
-import { GapFinder } from "../services/gap-finder.js";
-import { selectedDate } from "./data.js";
-import { calendarEvents, calendarOccurrences } from "./calendar.js";
-import type { Event as CalendarEvent } from "../types.js";
+import type { DayBoundaries, Event } from "../services/gap-finder.ts";
+import { GapFinder } from "../services/gap-finder.ts";
+import { selectedDate } from "./data.ts";
+import { calendarEvents, calendarOccurrences } from "./calendar.ts";
+import type { Event as CalendarEvent } from "../types.ts";
 import {
   enrichGapsWithLocation,
   type EnrichableEvent,
-} from "../services/suggestions/index.js";
+} from "../services/suggestions/index.ts";
 
 /**
  * User-configurable day boundaries for gap calculation

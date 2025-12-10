@@ -2,9 +2,9 @@
  * @fileoverview Centralized store initialization
  */
 
-import { uiActions } from "./actions/uiActions.js";
-import { suggestionActions } from "./actions/suggestionActions.js";
-import { timezoneActions } from "./timezone.js";
+import { uiActions } from "./actions/uiActions.ts";
+import { suggestionActions } from "./actions/suggestionActions.ts";
+import { timezoneActions } from "./timezone.ts";
 
 export function initializeStores(): void {
   timezoneActions.detect();

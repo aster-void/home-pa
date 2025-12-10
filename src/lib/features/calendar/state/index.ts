@@ -7,7 +7,7 @@ export {
   type CalendarState,
   type ImportResult,
   type DateWindow,
-} from "./calendar.state.svelte.js";
+} from "./calendar.state.svelte.ts";
 
 // Re-export API functions for direct usage
 export {
@@ -17,4 +17,4 @@ export {
   deleteEventApi,
   importIcsApi,
   getExportUrl,
-} from "./calendar.remote.js";
+} from "./calendar.remote.ts";

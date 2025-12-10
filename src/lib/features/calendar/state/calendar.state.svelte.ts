@@ -10,18 +10,18 @@
  * - Export calendar to .ics
  * - Local caching with reactive updates
  */
-import type { Event } from "$lib/types.js";
+import type { Event } from "$lib/types.ts";
 import {
   expandRecurrences,
   type ExpandedOccurrence as IcalOccurrence,
-} from "$lib/services/calendar/index.js";
-import { toastState } from "$lib/state/index.svelte.js";
+} from "$lib/services/calendar/index.ts";
+import { toastState } from "$lib/state/index.svelte.ts";
 import type {
   CalendarState,
   ExpandedOccurrence,
   ImportResult,
   DateWindow,
-} from "./calendar.types.js";
+} from "./calendar.types.ts";
 import {
   fetchEventsApi,
   createEventApi,
@@ -29,7 +29,7 @@ import {
   deleteEventApi,
   importIcsApi,
   getExportUrl,
-} from "./calendar.remote.js";
+} from "./calendar.remote.ts";
 
 // ============================================================================
 // HELPERS

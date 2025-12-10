@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Event, Recurrence } from "$lib/types.js";
+  import type { Event, Recurrence } from "$lib/types.ts";
   import {
     calendarEvents,
     calendarOccurrences,
@@ -18,7 +18,7 @@
     eventActions,
     uiActions,
     type ExpandedOccurrence,
-  } from "$lib/state/index.js";
+  } from "$lib/state/index.ts";
   import {
     localDateStringToUTC,
     localDateTimeStringToUTC,
@@ -27,7 +27,7 @@
     utcToLocalTimeString,
     localDateTimeToUTC,
     createAllDayUTCRange,
-  } from "$lib/utils/date-utils.js";
+  } from "$lib/utils/date-utils.ts";
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());

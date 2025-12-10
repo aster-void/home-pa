@@ -1,7 +1,7 @@
 /**
  * Calendar store type definitions
  */
-import type { Event } from "$lib/types.js";
+import type { Event } from "$lib/types.ts";
 
 /**
  * Rich expanded occurrence with full event data

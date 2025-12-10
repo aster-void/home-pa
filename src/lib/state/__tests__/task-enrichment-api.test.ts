@@ -15,9 +15,9 @@ import {
   taskActions,
   enrichingTaskIds,
   hasEnrichingTasks,
-} from "../actions/taskActions.js";
-import { taskFormActions, taskForm } from "../forms/taskForm.js";
-import type { Memo } from "../../types.js";
+} from "../actions/taskActions.ts";
+import { taskFormActions, taskForm } from "../forms/taskForm.ts";
+import type { Memo } from "../../types.ts";
 
 // Mock the API function
 vi.mock("../../services/suggestions/llm-enrichment.js", () => {

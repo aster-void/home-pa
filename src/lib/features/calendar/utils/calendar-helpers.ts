@@ -1,7 +1,7 @@
 /**
  * Calendar utility functions
  */
-import type { Event } from "$lib/types.js";
+import type { Event } from "$lib/types.ts";
 
 /**
  * Get the position for the current time indicator

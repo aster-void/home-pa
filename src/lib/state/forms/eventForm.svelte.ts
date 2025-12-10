@@ -7,12 +7,12 @@
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
 
-import type { Event, Recurrence } from "../../types.js";
-import { dataState } from "../data.svelte.js";
+import type { Event, Recurrence } from "../../types.ts";
+import { dataState } from "../data.svelte.ts";
 import {
   utcToLocalDateTimeString,
   utcToLocalDateString,
-} from "../../utils/date-utils.js";
+} from "../../utils/date-utils.ts";
 
 /**
  * Event form data interface

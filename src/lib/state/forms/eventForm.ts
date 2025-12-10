@@ -9,12 +9,12 @@
  */
 
 import { writable, derived, get } from "svelte/store";
-import { selectedDate } from "../data.js";
-import type { Event, Recurrence } from "../../types.js";
+import { selectedDate } from "../data.ts";
+import type { Event, Recurrence } from "../../types.ts";
 import {
   utcToLocalDateTimeString,
   utcToLocalDateString,
-} from "../../utils/date-utils.js";
+} from "../../utils/date-utils.ts";
 
 /**
  * Event form data interface

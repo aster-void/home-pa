@@ -8,9 +8,9 @@
     showDeadlineField,
     showRecurrenceFields,
     taskFormActions,
-  } from "$lib/state/forms/taskForm.js";
-  import { taskActions } from "$lib/state/actions/taskActions.js";
-  import type { MemoType, LocationPreference } from "$lib/types.js";
+  } from "$lib/state/forms/taskForm.ts";
+  import { taskActions } from "$lib/state/actions/taskActions.ts";
+  import type { MemoType, LocationPreference } from "$lib/types.ts";
 
   // Type options
   const typeOptions: { value: MemoType; label: string; description: string }[] =

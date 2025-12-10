@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Event } from "$lib/types.js";
+  import type { Event } from "$lib/types.ts";
   import {
     getCalendarDays,
     isToday,
@@ -9,7 +9,7 @@
     isFirstDayOfEvent,
     getEventBarPosition,
     getEventColor,
-  } from "../utils/index.js";
+  } from "../utils/index.ts";
 
   interface Props {
     currentMonth: Date;

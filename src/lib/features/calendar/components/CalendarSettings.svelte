@@ -6,8 +6,8 @@
    * Uses ical.js-backed API endpoints
    */
 
-  import { calendarActions } from "$lib/state/index.js";
-  import { UserSettings } from "$lib/features/shared/components/index.js";
+  import { calendarActions } from "$lib/state/index.ts";
+  import { UserSettings } from "$lib/features/shared/components/index.ts";
 
   // State
   let importing = $state(false);

@@ -15,12 +15,12 @@
  * - Only Deadline tasks can reach mandatory status (need >= 1.0)
  */
 
-import type { Memo, Suggestion, ImportanceLevel } from "../../types.js";
+import type { Memo, Suggestion, ImportanceLevel } from "../../types.ts";
 import {
   resetPeriodIfNeeded,
   getPeriodProgress,
   isSameDay,
-} from "./period-utils.js";
+} from "./period-utils.ts";
 
 // ============================================================================
 // TYPES

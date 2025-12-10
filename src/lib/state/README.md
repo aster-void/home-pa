@@ -97,7 +97,7 @@ User Interaction → Action Function → Store Update → Component Reactivity
 ### **Accessing UI State**
 
 ```typescript
-import { currentView, viewMode } from "$lib/state/ui.js";
+import { currentView, viewMode } from "$lib/state/ui.ts";
 
 // In component
 $currentView; // reactive value
@@ -107,8 +107,8 @@ viewActions.setView("personal-assistant"); // action call
 ### **Form Management**
 
 ```typescript
-import { eventForm } from "$lib/state/forms/eventForm.js";
-import { eventActions } from "$lib/state/actions/eventActions.js";
+import { eventForm } from "$lib/state/forms/eventForm.ts";
+import { eventActions } from "$lib/state/actions/eventActions.ts";
 
 // In component
 $eventForm.title; // reactive form field
@@ -118,8 +118,8 @@ eventActions.create(); // submit form
 ### **Data Operations**
 
 ```typescript
-import { events } from "$lib/state/data.js";
-import { eventActions } from "$lib/state/actions/eventActions.js";
+import { events } from "$lib/state/data.ts";
+import { eventActions } from "$lib/state/actions/eventActions.ts";
 
 // In component
 $events; // reactive events array
@@ -166,7 +166,7 @@ Enable store debugging in development:
 
 ```typescript
 // In component
-import { events } from "$lib/state/data.js";
+import { events } from "$lib/state/data.ts";
 console.log("Events:", $events); // Log current state
 ```
 

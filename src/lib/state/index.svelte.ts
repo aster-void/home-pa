@@ -7,7 +7,7 @@
  * Migration from writable stores to Svelte 5 reactive classes ($state).
  *
  * Usage:
- *   import { uiState, dataState, calendarState } from "$lib/state/index.svelte.js";
+ *   import { uiState, dataState, calendarState } from "$lib/state/index.svelte.ts";
  *
  *   // In template: {uiState.currentView}
  *   // In script: uiState.setView("calendar")
@@ -18,23 +18,23 @@
 // ============================================================================
 
 // UI State
-export { uiState, type AppView } from "./ui.svelte.js";
+export { uiState, type AppView } from "./ui.svelte.ts";
 
 // Data State (memos, suggestion logs, selected date)
-export { dataState, type SimpleMemo } from "./data.svelte.js";
+export { dataState, type SimpleMemo } from "./data.svelte.ts";
 
 // Toast State
-export { toastState, type Toast, type ToastType } from "./toast.svelte.js";
+export { toastState, type Toast, type ToastType } from "./toast.svelte.ts";
 
 // Calendar State
-export { calendarState, type ExpandedOccurrence } from "./calendar.svelte.js";
+export { calendarState, type ExpandedOccurrence } from "./calendar.svelte.ts";
 
 // Event Form State
 export {
   eventFormState,
   type EventFormData,
   type EventFormErrors,
-} from "./forms/eventForm.svelte.js";
+} from "./forms/eventForm.svelte.ts";
 
 // Memo State
 export {
@@ -42,13 +42,13 @@ export {
   type SimpleMemo as MemoType,
   type MemoFormData,
   type MemoFormErrors,
-} from "./forms/memoForm.svelte.js";
+} from "./forms/memoForm.svelte.ts";
 
 // ============================================================================
 // Utility Exports
 // ============================================================================
 
-export { formatDate, formatDateTime } from "../utils/date-utils.js";
+export { formatDate, formatDateTime } from "../utils/date-utils.ts";
 
 // ============================================================================
 // Legacy Store Compatibility (will be removed after migration)
@@ -66,7 +66,7 @@ export {
   gaps,
   gapStats,
   dayBoundaryActions,
-} from "./gaps.js";
+} from "./gaps.ts";
 
 // Schedule store (not yet migrated)
 export {
@@ -91,10 +91,10 @@ export {
   getBlocksForGap,
   type AcceptedSuggestion,
   type PendingSuggestion,
-} from "./schedule.js";
+} from "./schedule.ts";
 
 // Task actions (not yet migrated)
-export { taskActions, tasks } from "./actions/taskActions.js";
+export { taskActions, tasks } from "./actions/taskActions.ts";
 
 // Task form (not yet migrated)
 export {
@@ -108,10 +108,10 @@ export {
   taskFormActions,
   type TaskFormData,
   type TaskFormErrors as TaskFormErrorsType,
-} from "./forms/taskForm.js";
+} from "./forms/taskForm.ts";
 
 // Timezone (not yet migrated)
-export { timezone, timezoneActions, timezoneLabel } from "./timezone.js";
+export { timezone, timezoneActions, timezoneLabel } from "./timezone.ts";
 
 // Devtools (not yet migrated)
-export { devtools, devtoolsEnabled } from "./devtools.js";
+export { devtools, devtoolsEnabled } from "./devtools.ts";

@@ -18,14 +18,14 @@
  */
 
 import { writable, derived, get } from "svelte/store";
-import type { Memo, Gap } from "../types.js";
+import type { Memo, Gap } from "../types.ts";
 import type {
   ScheduleResult,
   ScheduledBlock,
   PipelineSummary,
-} from "../services/suggestions/index.js";
-import { createEngine } from "../services/suggestions/index.js";
-import { enrichedGaps } from "./gaps.js";
+} from "../services/suggestions/index.ts";
+import { createEngine } from "../services/suggestions/index.ts";
+import { enrichedGaps } from "./gaps.ts";
 
 // ============================================================================
 // Types for Suggestion Management

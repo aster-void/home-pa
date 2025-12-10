@@ -20,7 +20,7 @@ import type {
   LocationLabel,
   LocationPreference,
   Suggestion,
-} from "../../types.js";
+} from "../../types.ts";
 
 // ============================================================================
 // TYPES

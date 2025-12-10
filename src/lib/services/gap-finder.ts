@@ -9,7 +9,7 @@
  */
 
 // Import Gap from types.ts for consistency
-import type { Gap, LocationLabel } from "../types.js";
+import type { Gap, LocationLabel } from "../types.ts";
 export type { Gap };
 
 /**

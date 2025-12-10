@@ -7,7 +7,7 @@
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
 
-import { toastState } from "../toast.svelte.js";
+import { toastState } from "../toast.svelte.ts";
 
 /**
  * Simple memo type

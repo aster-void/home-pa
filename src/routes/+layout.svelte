@@ -1,8 +1,8 @@
 <script lang="ts">
   import "../app.css";
   import favicon from "@/assets/favicon.svg";
-  import { BottomNavigation, Toast } from "$lib/features/shared/components/index.js";
-  import { initializeStores } from "$lib/state/bootstrap.js";
+  import { BottomNavigation, Toast } from "$lib/features/shared/components/index.ts";
+  import { initializeStores } from "$lib/state/bootstrap.ts";
   import { authClient } from "$lib/auth-client";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";

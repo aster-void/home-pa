@@ -9,7 +9,7 @@
  */
 
 import { writable } from "svelte/store";
-import type { ViewMode } from "../types.js";
+import type { ViewMode } from "../types.ts";
 
 /**
  * Application view type

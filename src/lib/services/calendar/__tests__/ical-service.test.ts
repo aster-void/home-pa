@@ -3,7 +3,7 @@ import {
   parseVEventString,
   expandRecurrences,
   generateICS,
-} from "../ical-service.js";
+} from "../ical-service.ts";
 
 describe("ical-service", () => {
   it("parses all-day VEVENT with exclusive DTEND", () => {

@@ -15,7 +15,7 @@ export {
   memoOperations,
   suggestionLogOperations,
   clearAllData,
-} from "./data.js";
+} from "./data.ts";
 
 export {
   dayBoundaries,
@@ -24,10 +24,10 @@ export {
   gaps,
   gapStats,
   dayBoundaryActions,
-} from "./gaps.js";
+} from "./gaps.ts";
 
-export { toasts } from "./toast.js";
-export { formatDate, formatDateTime } from "../utils/date-utils.js";
+export { toasts } from "./toast.ts";
+export { formatDate, formatDateTime } from "../utils/date-utils.ts";
 
 // Schedule store (suggestion engine output)
 export {
@@ -52,7 +52,7 @@ export {
   getBlocksForGap,
   type AcceptedSuggestion,
   type PendingSuggestion,
-} from "./schedule.js";
+} from "./schedule.ts";
 
 // UI state stores
 export {
@@ -68,9 +68,9 @@ export {
   isPersonalAssistantView,
   isTasksView,
   uiActions as uiStateActions,
-} from "./ui.js";
+} from "./ui.ts";
 
-export type { AppView } from "./ui.js";
+export type { AppView } from "./ui.ts";
 
 // Form stores
 export {
@@ -82,7 +82,7 @@ export {
   isFormValid as eventFormValid,
   isEditing as eventFormEditing,
   eventFormActions,
-} from "./forms/eventForm.js";
+} from "./forms/eventForm.ts";
 
 export {
   memoForm,
@@ -94,14 +94,14 @@ export {
   characterCount,
   wordCount,
   memoFormActions,
-} from "./forms/memoForm.js";
+} from "./forms/memoForm.ts";
 
 // Action stores
-export { eventActions } from "./actions/eventActions.js";
-export { memoActions } from "./actions/memoActions.js";
-export { uiActions } from "./actions/uiActions.js";
-export { suggestionActions } from "./actions/suggestionActions.js";
-export { taskActions, tasks } from "./actions/taskActions.js";
+export { eventActions } from "./actions/eventActions.ts";
+export { memoActions } from "./actions/memoActions.ts";
+export { uiActions } from "./actions/uiActions.ts";
+export { suggestionActions } from "./actions/suggestionActions.ts";
+export { taskActions, tasks } from "./actions/taskActions.ts";
 
 // Task form
 export {
@@ -113,12 +113,12 @@ export {
   showDeadlineField,
   showRecurrenceFields,
   taskFormActions,
-} from "./forms/taskForm.js";
+} from "./forms/taskForm.ts";
 
-export type { TaskFormData, TaskFormErrors } from "./forms/taskForm.js";
+export type { TaskFormData, TaskFormErrors } from "./forms/taskForm.ts";
 
 // Timezone
-export { timezone, timezoneActions, timezoneLabel } from "./timezone.js";
+export { timezone, timezoneActions, timezoneLabel } from "./timezone.ts";
 
 // Calendar store (iCalendar-based)
 export {
@@ -129,7 +129,7 @@ export {
   calendarError,
   calendarActions,
   type ExpandedOccurrence,
-} from "./calendar.js";
+} from "./calendar.ts";
 
 // Devtools
-export { devtools, devtoolsEnabled } from "./devtools.js";
+export { devtools, devtoolsEnabled } from "./devtools.ts";

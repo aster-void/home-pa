@@ -1,9 +1,9 @@
 <script lang="ts">
   import CalendarTabView from "$lib/features/calendar/components/CalendarTabView.svelte";
   import UtilitiesView from "$lib/features/utilities/components/UtilitiesView.svelte";
-  import { PersonalAssistantView } from "$lib/features/assistant/components/index.js";
-  import { TaskView } from "$lib/features/tasks/components/index.js";
-  import { uiState } from "$lib/state/index.svelte.js";
+  import { PersonalAssistantView } from "$lib/features/assistant/components/index.ts";
+  import { TaskView } from "$lib/features/tasks/components/index.ts";
+  import { uiState } from "$lib/state/index.svelte.ts";
 </script>
 
 <main class="main-content">

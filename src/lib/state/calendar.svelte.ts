@@ -14,12 +14,12 @@
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
 
-import type { Event } from "../types.js";
+import type { Event } from "../types.ts";
 import {
   expandRecurrences,
   type ExpandedOccurrence as IcalOccurrence,
-} from "../services/calendar/index.js";
-import { toastState } from "./toast.svelte.js";
+} from "../services/calendar/index.ts";
+import { toastState } from "./toast.svelte.ts";
 
 // ============================================================================
 // TYPES

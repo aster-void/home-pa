@@ -13,7 +13,7 @@
  * - API call fails
  */
 
-import type { Memo, ImportanceLevel, MemoType } from "../../types.js";
+import type { Memo, ImportanceLevel, MemoType } from "../../types.ts";
 
 // ============================================================================
 // Types

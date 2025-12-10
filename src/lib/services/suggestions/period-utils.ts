@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import type { Memo, RecurrenceGoal } from "../../types.js";
+import type { Memo, RecurrenceGoal } from "../../types.ts";
 
 // ============================================================================
 // TYPES

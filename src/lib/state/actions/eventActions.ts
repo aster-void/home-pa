@@ -9,17 +9,17 @@
  */
 
 import { get } from "svelte/store";
-import type { Event } from "../../types.js";
-import { selectedDate } from "../data.js";
-import { calendarActions } from "../calendar.js";
+import type { Event } from "../../types.ts";
+import { selectedDate } from "../data.ts";
+import { calendarActions } from "../calendar.ts";
 import {
   eventForm,
   eventFormActions,
   eventFormErrors,
   validateEventFormData,
-} from "../forms/eventForm.js";
-import { uiActions } from "../ui.js";
-import { toasts } from "../toast.js";
+} from "../forms/eventForm.ts";
+import { uiActions } from "../ui.ts";
+import { toasts } from "../toast.ts";
 import {
   utcToLocalDateTimeString,
   utcToLocalDateString,
@@ -27,7 +27,7 @@ import {
   createDateOnlyUTC,
   createMultiDayAllDayUTCRange,
   localDateTimeToUTC,
-} from "../../utils/date-utils.js";
+} from "../../utils/date-utils.ts";
 
 /**
  * Event Actions

@@ -11,20 +11,20 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
-import type { Memo, Gap } from "../../types.js";
+import type { Memo, Gap } from "../../types.ts";
 
 // Mock fetch for API enrichment calls in tests
 global.fetch = vi.fn();
 
 // Task stores and actions
-import { tasks, taskActions } from "../actions/taskActions.js";
+import { tasks, taskActions } from "../actions/taskActions.ts";
 import {
   taskForm,
   taskFormActions,
   isTaskFormOpen,
   isTaskFormSubmitting,
   taskFormErrors,
-} from "../forms/taskForm.js";
+} from "../forms/taskForm.ts";
 
 // Schedule stores and actions
 import {
@@ -35,10 +35,10 @@ import {
   scheduledBlocks,
   droppedMandatory,
   scheduleActions,
-} from "../schedule.js";
+} from "../schedule.ts";
 
 // Gap store
-import { enrichedGaps } from "../gaps.js";
+import { enrichedGaps } from "../gaps.ts";
 
 // ============================================================================
 // Test Helpers

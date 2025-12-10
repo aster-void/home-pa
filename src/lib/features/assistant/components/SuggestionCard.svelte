@@ -3,7 +3,7 @@
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
-  } from "$lib/state/schedule.js";
+  } from "$lib/state/schedule.ts";
 
   interface Props {
     suggestion: PendingSuggestion | AcceptedSuggestion;

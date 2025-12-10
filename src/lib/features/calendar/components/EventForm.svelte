@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Recurrence } from "$lib/types.js";
+  import type { Recurrence } from "$lib/types.ts";
   import {
     selectedDate,
     eventForm,
@@ -7,8 +7,8 @@
     eventFormErrors,
     eventActions,
     uiActions,
-  } from "$lib/state/index.js";
-  import { utcToLocalDateString, utcToLocalTimeString } from "$lib/utils/date-utils.js";
+  } from "$lib/state/index.ts";
+  import { utcToLocalDateString, utcToLocalTimeString } from "$lib/utils/date-utils.ts";
 
   // Form state
   let eventTitle = $state("");

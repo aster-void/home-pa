@@ -6,16 +6,16 @@
   import {
     calendarState,
     dataState,
-  } from "$lib/state/index.svelte.js";
+  } from "$lib/state/index.svelte.ts";
   import {
     scheduleActions,
     pendingSuggestions,
     acceptedSuggestions,
     tasks,
-  } from "$lib/state/index.js";
-  import { enrichedGaps } from "$lib/state/gaps.js";
-  import type { Event, Gap } from "$lib/types.js";
-  import { GapFinder } from "$lib/services/gap-finder.js";
+  } from "$lib/state/index.ts";
+  import { enrichedGaps } from "$lib/state/gaps.ts";
+  import type { Event, Gap } from "$lib/types.ts";
+  import { GapFinder } from "$lib/services/gap-finder.ts";
   import { get } from "svelte/store";
 
   // Local state

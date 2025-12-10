@@ -1,9 +1,9 @@
 <script lang="ts">
-  import type { Memo } from "$lib/types.js";
+  import type { Memo } from "$lib/types.ts";
   import {
     taskActions,
     enrichingTaskIds,
-  } from "$lib/state/actions/taskActions.js";
+  } from "$lib/state/actions/taskActions.ts";
 
   interface Props {
     task: Memo;

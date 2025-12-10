@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { createEventDispatcher } from "svelte";
-  import { selectedDate } from "$lib/state/data.js";
+  import { selectedDate } from "$lib/state/data.ts";
   import {
     calendarEvents,
     calendarOccurrences,
-  } from "$lib/state/calendar.js";
-  import type { Event as MyEvent } from "$lib/types.js";
-  import type { ExpandedOccurrence } from "$lib/state/calendar.js";
+  } from "$lib/state/calendar.ts";
+  import type { Event as MyEvent } from "$lib/types.ts";
+  import type { ExpandedOccurrence } from "$lib/state/calendar.ts";
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
-  } from "$lib/state/schedule.js";
+  } from "$lib/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
 
   interface Props {

@@ -5,7 +5,7 @@
    * Displays user authentication status and provides login/signup/logout functionality
    */
 
-  import { authClient } from "$lib/auth-client.js";
+  import { authClient } from "$lib/auth-client.ts";
 
   const session = authClient.useSession;
 

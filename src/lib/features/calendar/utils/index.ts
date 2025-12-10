@@ -1,4 +1,4 @@
 /**
  * Calendar utility functions
  */
-export * from "./calendar-helpers.js";
+export * from "./calendar-helpers.ts";

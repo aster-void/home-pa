@@ -19,7 +19,7 @@ export {
   type ParsedEvent,
   type VEventInput,
   type ExpandedOccurrence,
-} from "./ical-service.js";
+} from "./ical-service.ts";
 
 // Type conversions
 export {
@@ -34,4 +34,4 @@ export {
   eventToJSON,
   eventFromJSON,
   eventsFromJSON,
-} from "./event-converter.js";
+} from "./event-converter.ts";

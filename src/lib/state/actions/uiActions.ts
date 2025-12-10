@@ -9,13 +9,13 @@
  */
 
 import { get } from "svelte/store";
-import { selectedDate } from "../data.js";
+import { selectedDate } from "../data.ts";
 import {
   uiActions as uiStateActions,
   currentSuggestion,
   type AppView,
-} from "../ui.js";
-import { suggestionService } from "../../services/suggestion.js";
+} from "../ui.ts";
+import { suggestionService } from "../../services/suggestion.ts";
 
 /**
  * UI Actions

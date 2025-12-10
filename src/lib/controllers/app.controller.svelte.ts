@@ -1,5 +1,5 @@
 // Main application controller using Svelte stores
-import type { Event, ViewMode } from "../types.js";
+import type { Event, ViewMode } from "../types.ts";
 
 // Temporary types (will be replaced in Phase 4)
 interface SimpleMemo {
@@ -19,15 +19,15 @@ import {
   memoOperations,
   suggestionLogOperations,
   selectedDate,
-} from "../stores/data.js";
-import { calendarActions } from "../stores/calendar.js";
-import { suggestionService } from "../services/suggestion.js";
+} from "../stores/data.ts";
+import { calendarActions } from "../stores/calendar.ts";
+import { suggestionService } from "../services/suggestion.ts";
 import {
   utcToLocalDateTimeString,
   createAllDayUTCRange,
   createMultiDayAllDayUTCRange,
   localDateTimeToUTC,
-} from "../utils/date-utils.js";
+} from "../utils/date-utils.ts";
 
 // Form interfaces moved to dedicated form stores
 

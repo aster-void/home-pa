@@ -13,12 +13,12 @@
  */
 
 import { writable, derived, get } from "svelte/store";
-import type { Event } from "../types.js";
+import type { Event } from "../types.ts";
 import {
   expandRecurrences,
   type ExpandedOccurrence as IcalOccurrence,
-} from "../services/calendar/index.js";
-import { toasts } from "./toast.js";
+} from "../services/calendar/index.ts";
+import { toasts } from "./toast.ts";
 
 // ============================================================================
 // TYPES

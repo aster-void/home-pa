@@ -17,8 +17,8 @@ import {
   buildPrompt,
   parseResponse,
   getFallbackEnrichment,
-} from "$lib/services/suggestions/llm-enrichment.js";
-import type { Memo } from "$lib/types.js";
+} from "$lib/services/suggestions/llm-enrichment.ts";
+import type { Memo } from "$lib/types.ts";
 
 /**
  * POST /api/enrich

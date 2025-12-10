@@ -11,7 +11,7 @@ import type {
   LocationPreference,
   ImportanceLevel,
   RecurrenceGoal,
-} from "../../types.js";
+} from "../../types.ts";
 
 // ============================================================================
 // Types

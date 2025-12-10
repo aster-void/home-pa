@@ -8,7 +8,7 @@
  * @version 1.0.0
  */
 
-import type { Gap, LocationLabel } from "../../types.js";
+import type { Gap, LocationLabel } from "../../types.ts";
 
 // ============================================================================
 // TYPES

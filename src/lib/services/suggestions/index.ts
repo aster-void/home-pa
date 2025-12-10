@@ -12,9 +12,9 @@ export {
   findFollowingEvent,
   deriveLocationLabel,
   DEFAULT_CONFIG,
-} from "./gap-enrichment.js";
+} from "./gap-enrichment.ts";
 
-export type { EnrichableEvent, EnrichmentConfig } from "./gap-enrichment.js";
+export type { EnrichableEvent, EnrichmentConfig } from "./gap-enrichment.ts";
 
 // Period Tracking
 export {
@@ -27,9 +27,9 @@ export {
   isSameMonth,
   getWeekNumber,
   getDaysInMonth,
-} from "./period-utils.js";
+} from "./period-utils.ts";
 
-export type { Period } from "./period-utils.js";
+export type { Period } from "./period-utils.ts";
 
 // Suggestion Scoring
 export {
@@ -48,9 +48,9 @@ export {
   calculatePriority,
   NEED_RANGES,
   MANDATORY_THRESHOLD,
-} from "./suggestion-scoring.js";
+} from "./suggestion-scoring.ts";
 
-export type { ScoreInput, ScoreOutput } from "./suggestion-scoring.js";
+export type { ScoreInput, ScoreOutput } from "./suggestion-scoring.ts";
 
 // Location Matching
 export {
@@ -61,9 +61,9 @@ export {
   findCompatibleGaps,
   findFirstCompatibleGap,
   hasCompatibleGap,
-} from "./location-matching.js";
+} from "./location-matching.ts";
 
-export type { CompatibilityResult } from "./location-matching.js";
+export type { CompatibilityResult } from "./location-matching.ts";
 
 // Suggestion Scheduler
 export {
@@ -79,14 +79,14 @@ export {
   minutesToTime,
   addMinutesToTime,
   DEFAULT_EXTENSION_CONFIG,
-} from "./suggestion-scheduler.js";
+} from "./suggestion-scheduler.ts";
 
 export type {
   ScheduledBlock,
   ScheduleResult,
   DurationExtensionConfig,
   SchedulerOptions,
-} from "./suggestion-scheduler.js";
+} from "./suggestion-scheduler.ts";
 
 // LLM Enrichment
 export {
@@ -99,12 +99,12 @@ export {
   clearEnrichmentCache,
   invalidateCacheEntry,
   getCacheStats,
-} from "./llm-enrichment.js";
+} from "./llm-enrichment.ts";
 
 export type {
   EnrichmentResult,
   LLMEnrichmentConfig,
-} from "./llm-enrichment.js";
+} from "./llm-enrichment.ts";
 
 // Suggestion Engine (Main Orchestrator)
 export {
@@ -115,7 +115,7 @@ export {
   memosToSuggestions,
   isMemoComplete,
   isRoutineGoalReached,
-} from "./suggestion-engine.js";
+} from "./suggestion-engine.ts";
 
 export type {
   EngineConfig,
@@ -123,4 +123,4 @@ export type {
   SessionCompleteInput,
   SessionCompleteResult,
   PipelineSummary,
-} from "./suggestion-engine.js";
+} from "./suggestion-engine.ts";

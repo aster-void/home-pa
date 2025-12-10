@@ -15,9 +15,9 @@
     droppedMandatory,
     hasMandatoryDropped,
     scheduleActions,
-  } from "$lib/state/schedule.js";
-  import { tasks } from "$lib/state/actions/taskActions.js";
-  import { enrichedGaps } from "$lib/state/gaps.js";
+  } from "$lib/state/schedule.ts";
+  import { tasks } from "$lib/state/actions/taskActions.ts";
+  import { enrichedGaps } from "$lib/state/gaps.ts";
   import { get } from "svelte/store";
 
   // Get memo title from memoId

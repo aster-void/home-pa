@@ -19,28 +19,28 @@
  * ```
  */
 
-import type { Memo, Gap, Suggestion } from "../../types.js";
+import type { Memo, Gap, Suggestion } from "../../types.ts";
 
 // Import from sibling modules
 import {
   enrichMemo,
   enrichMemos,
   type LLMEnrichmentConfig,
-} from "./llm-enrichment.js";
-import { resetPeriodIfNeeded, incrementCompletion } from "./period-utils.js";
-import { createSuggestionFromMemo } from "./suggestion-scoring.js";
+} from "./llm-enrichment.ts";
+import { resetPeriodIfNeeded, incrementCompletion } from "./period-utils.ts";
+import { createSuggestionFromMemo } from "./suggestion-scoring.ts";
 import {
   scheduleSuggestions,
   type ScheduleResult,
   type DurationExtensionConfig,
   DEFAULT_EXTENSION_CONFIG,
-} from "./suggestion-scheduler.js";
+} from "./suggestion-scheduler.ts";
 import {
   enrichGapsWithLocation,
   DEFAULT_CONFIG as DEFAULT_GAP_CONFIG,
   type EnrichableEvent,
   type EnrichmentConfig as GapEnrichmentConfig,
-} from "./gap-enrichment.js";
+} from "./gap-enrichment.ts";
 
 // ============================================================================
 // Types
@@ -468,4 +468,4 @@ export function createEngine(
 // ============================================================================
 
 // Re-export commonly used types for convenience
-export type { ScheduleResult, ScheduledBlock } from "./suggestion-scheduler.js";
+export type { ScheduleResult, ScheduledBlock } from "./suggestion-scheduler.ts";

@@ -13,7 +13,7 @@ import type {
   ImportanceLevel,
   RecurrenceGoal,
   MemoStatus,
-} from "../../types.js";
+} from "../../types.ts";
 import {
   taskForm,
   taskFormActions,
@@ -21,9 +21,9 @@ import {
   isTaskFormSubmitting,
   type TaskFormData,
   type TaskFormErrors,
-} from "../forms/taskForm.js";
-import { toasts } from "../toast.js";
-import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.js";
+} from "../forms/taskForm.ts";
+import { toasts } from "../toast.ts";
+import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.ts";
 
 // ============================================================================
 // Tasks Store (Rich Memos)

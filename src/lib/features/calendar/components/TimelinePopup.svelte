@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Event } from "$lib/types.js";
+  import type { Event } from "$lib/types.ts";
   import {
     selectedDate,
     calendarEvents,
     eventActions,
     uiActions,
-  } from "$lib/state/index.js";
+  } from "$lib/state/index.ts";
 
   interface Props {
     events: Event[];

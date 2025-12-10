@@ -13,11 +13,11 @@ import {
   suggestionLogOperations,
   suggestionLogs,
   selectedDate,
-} from "../data.js";
-import { uiActions, currentSuggestion } from "../ui.js";
-import { gaps } from "../gaps.js";
-import { suggestionService } from "../../services/suggestion.js";
-import type { Gap } from "../../types.js";
+} from "../data.ts";
+import { uiActions, currentSuggestion } from "../ui.ts";
+import { gaps } from "../gaps.ts";
+import { suggestionService } from "../../services/suggestion.ts";
+import type { Gap } from "../../types.ts";
 
 /**
  * Suggestion Actions

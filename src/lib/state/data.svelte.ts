@@ -7,8 +7,8 @@
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
 
-import type { SuggestionLog } from "../types.js";
-import { toastState } from "./toast.svelte.js";
+import type { SuggestionLog } from "../types.ts";
+import { toastState } from "./toast.svelte.ts";
 
 /**
  * Simple memo type (will be enhanced in future phases)

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Event } from "$lib/types.js";
+  import type { Event } from "$lib/types.ts";
 
   interface Props {
     currentMonth: Date;

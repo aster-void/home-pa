@@ -1,5 +1,5 @@
 // Suggestion service for gap time detection and proposal
-import type { SuggestionLog, Gap, Event } from "../types.js";
+import type { SuggestionLog, Gap, Event } from "../types.ts";
 
 // Temporary type (will be replaced in Phase 4)
 interface SimpleSuggestion {
@@ -10,9 +10,9 @@ interface SimpleSuggestion {
 }
 type Suggestion = SimpleSuggestion;
 import { get } from "svelte/store";
-import { suggestionLogs, suggestionLogOperations } from "../stores/data.js";
-import { calendarEvents, calendarOccurrences } from "../stores/calendar.js";
-import type { ExpandedOccurrence } from "../stores/calendar.js";
+import { suggestionLogs, suggestionLogOperations } from "../stores/data.ts";
+import { calendarEvents, calendarOccurrences } from "../stores/calendar.ts";
+import type { ExpandedOccurrence } from "../stores/calendar.ts";
 
 export class SuggestionService {
   private readonly GAP_THRESHOLD_MINUTES = 15; // Minimum gap to show suggestion

@@ -1,7 +1,7 @@
 <script lang="ts">
   import TaskCard from "./TaskCard.svelte";
   import TaskForm from "./TaskForm.svelte";
-  import { tasks, taskActions } from "$lib/state/actions/taskActions.js";
+  import { tasks, taskActions } from "$lib/state/actions/taskActions.ts";
 
   // Filter options
   type FilterType = "all" | "active" | "completed";

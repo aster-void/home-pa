@@ -8,12 +8,12 @@
  */
 
 import type { CalendarEvent } from "@prisma/client";
-import type { Event, Recurrence } from "../../types.js";
+import type { Event, Recurrence } from "../../types.ts";
 import {
   createVEvent,
   parseVEventString,
   type ParsedEvent,
-} from "./ical-service.js";
+} from "./ical-service.ts";
 
 // ============================================================================
 // DATABASE → APP

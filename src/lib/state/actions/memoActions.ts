@@ -15,16 +15,16 @@ interface SimpleMemo {
   text: string;
 }
 type Memo = SimpleMemo;
-import { memoOperations } from "../data.js";
+import { memoOperations } from "../data.ts";
 import {
   memoForm,
   memoFormActions,
   memoFormErrors,
   isSubmitting,
   type MemoFormErrors,
-} from "../forms/memoForm.js";
-import { uiActions } from "../ui.js";
-import { toasts } from "../toast.js";
+} from "../forms/memoForm.ts";
+import { uiActions } from "../ui.ts";
+import { toasts } from "../toast.ts";
 
 /**
  * Memo Actions

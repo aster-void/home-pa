@@ -12,7 +12,7 @@
  */
 
 import { writable } from "svelte/store";
-import type { SuggestionLog } from "../types.js";
+import type { SuggestionLog } from "../types.ts";
 
 // Temporary simple memo type (will be replaced with new Memo in Phase 4)
 interface SimpleMemo {
@@ -20,7 +20,7 @@ interface SimpleMemo {
   text: string;
 }
 type Memo = SimpleMemo;
-import { toasts } from "./toast.js";
+import { toasts } from "./toast.ts";
 
 /**
  * Core application data stores

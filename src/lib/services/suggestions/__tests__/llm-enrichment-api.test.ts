@@ -9,8 +9,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { enrichMemoViaAPI, getFallbackEnrichment } from "../llm-enrichment.js";
-import type { Memo } from "../../../types.js";
+import { enrichMemoViaAPI, getFallbackEnrichment } from "../llm-enrichment.ts";
+import type { Memo } from "../../../types.ts";
 
 describe("enrichMemoViaAPI", () => {
   const createTestMemo = (overrides?: Partial<Memo>): Memo => ({

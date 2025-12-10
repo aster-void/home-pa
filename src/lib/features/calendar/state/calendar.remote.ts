@@ -4,8 +4,8 @@
  * Pure API functions for calendar operations.
  * These functions handle HTTP requests and response parsing only.
  */
-import type { Event } from "$lib/types.js";
-import type { ImportResult, DateWindow } from "./calendar.types.js";
+import type { Event } from "$lib/types.ts";
+import type { ImportResult, DateWindow } from "./calendar.types.ts";
 
 /**
  * Fetch events from API

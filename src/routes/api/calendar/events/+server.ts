@@ -12,7 +12,7 @@ import {
   dbEventsToAppEvents,
   appEventToDbCreate,
   eventToJSON,
-} from "$lib/services/calendar/index.js";
+} from "$lib/services/calendar/index.ts";
 
 /**
  * GET /api/calendar/events

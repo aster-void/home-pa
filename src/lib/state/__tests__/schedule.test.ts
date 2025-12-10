@@ -9,19 +9,19 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { get } from "svelte/store";
-import type { Memo, Gap } from "../../types.js";
+import type { Memo, Gap } from "../../types.ts";
 import {
   createEngine,
   filterActiveMemos,
   memosToSuggestions,
   MANDATORY_THRESHOLD,
-} from "../../services/suggestions/index.js";
+} from "../../services/suggestions/index.ts";
 import {
   scheduleResult,
   scheduleActions,
   nextScheduledBlock,
   hasScheduledTasks,
-} from "../schedule.js";
+} from "../schedule.ts";
 
 // ============================================================================
 // Test Fixtures
