@@ -1,33 +1,17 @@
 // Main application controller using Svelte stores
-import type { Event, ViewMode } from "../types.ts";
+import type { ViewMode } from "../types.ts";
 
 // Temporary types (will be replaced in Phase 4)
-interface SimpleMemo {
-  id: string;
-  text: string;
-}
 interface SimpleSuggestion {
   id: string;
   template: string;
   gapMin: number;
   eventId?: string;
 }
-type Memo = SimpleMemo;
 type Suggestion = SimpleSuggestion;
-import { writable, type Writable, get } from "svelte/store";
-import {
-  memoOperations,
-  suggestionLogOperations,
-  selectedDate,
-} from "../stores/data.ts";
-import { calendarActions } from "../stores/calendar.ts";
+import { writable, type Writable } from "svelte/store";
+import { dataState, calendarState } from "../state/index.svelte.ts";
 import { suggestionService } from "../services/suggestion.ts";
-import {
-  utcToLocalDateTimeString,
-  createAllDayUTCRange,
-  createMultiDayAllDayUTCRange,
-  localDateTimeToUTC,
-} from "../utils/date-utils.ts";
 
 // Form interfaces moved to dedicated form stores
 
@@ -43,16 +27,16 @@ export class AppController {
 
   // Store operations (components will access stores directly)
   getEvents() {
-    // Events are now managed via calendarActions from calendar.ts
-    return calendarActions;
+    // Events are now managed via calendarState
+    return calendarState;
   }
 
   getMemos() {
-    return memoOperations;
+    return dataState;
   }
 
   getSuggestionLogs() {
-    return suggestionLogOperations;
+    return dataState;
   }
 
   // Methods
@@ -83,8 +67,7 @@ export class AppController {
   }
 
   setSelectedDate(date: Date): void {
-    // Use the store from data.js instead
-    selectedDate.set(date);
+    dataState.setSelectedDate(date);
   }
 
   // Event management moved to eventActions
@@ -96,7 +79,7 @@ export class AppController {
   // Utility methods moved to utility functions
 
   constructor() {
-    selectedDate.set(new Date());
+    dataState.setSelectedDate(new Date());
     this.initialize();
   }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { suggestionLogs } from "$lib/state/data.ts";
-  import { utcToLocalDateTimeString } from "../utils/date-utils.ts";
+  import { suggestionLogs } from "$lib/state/index.ts";
+  import { utcToLocalDateTimeString } from "$lib/utils/date-utils.ts";
 
   function formatDateTime(d: Date): string {
     return utcToLocalDateTimeString(d).replace("T", " ");

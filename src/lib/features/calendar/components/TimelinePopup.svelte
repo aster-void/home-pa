@@ -36,8 +36,7 @@
     if (event.timeLabel === "all-day") {
       return 24 * 16.67;
     }
-    const startMinutes =
-      event.start.getHours() * 60 + event.start.getMinutes();
+    const startMinutes = event.start.getHours() * 60 + event.start.getMinutes();
     const endMinutes = event.end.getHours() * 60 + event.end.getMinutes();
     const durationMinutes = Math.max(endMinutes - startMinutes, 30);
     return (durationMinutes / 60) * 16.67;
@@ -67,7 +66,7 @@
     if (events.length === 0) return [];
 
     const sortedEvents = [...events].sort(
-      (a, b) => a.start.getTime() - b.start.getTime()
+      (a, b) => a.start.getTime() - b.start.getTime(),
     );
 
     const columns: Event[][] = [];
@@ -93,7 +92,7 @@
   function handleEventClick(event: Event) {
     const masterEvent =
       $calendarEvents.find(
-        (e) => e.id === (event as any).eventId || e.id === event.id
+        (e) => e.id === (event as any).eventId || e.id === event.id,
       ) || event;
     eventActions.editEvent(masterEvent);
     parseRecurrenceForEdit(masterEvent);
@@ -138,7 +137,9 @@
           <div class="timeline-hours">
             {#each Array(24) as _, hour (hour)}
               <div class="hour-indicator" style="top: {hour * 16.67}px;">
-                <span class="hour-label">{hour.toString().padStart(2, "0")}:00</span>
+                <span class="hour-label"
+                  >{hour.toString().padStart(2, "0")}:00</span
+                >
                 <div class="hour-line"></div>
               </div>
             {/each}
@@ -153,16 +154,23 @@
           <!-- Event columns -->
           <div class="timeline-columns">
             {#each eventColumns as column, columnIndex (columnIndex)}
-              <div class="timeline-column" style="width: {100 / eventColumns.length}%;">
+              <div
+                class="timeline-column"
+                style="width: {100 / eventColumns.length}%;"
+              >
                 {#each column as event (event.id)}
                   <div
                     class="timeline-event-block"
                     onclick={() => handleEventClick(event)}
-                    onkeydown={(e) => e.key === "Enter" && handleEventClick(event)}
+                    onkeydown={(e) =>
+                      e.key === "Enter" && handleEventClick(event)}
                     role="button"
                     tabindex="0"
                     style="
-                      top: {getEventPositionScaled(event.start, event.timeLabel)}px;
+                      top: {getEventPositionScaled(
+                      event.start,
+                      event.timeLabel,
+                    )}px;
                       height: {getEventHeightScaled(event)}px;
                       background-color: {getEventColor(event)};
                       color: white;
@@ -335,7 +343,9 @@
     padding: var(--space-xs);
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
     min-height: 20px;
   }
 

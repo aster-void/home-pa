@@ -266,7 +266,7 @@ function evaluateOrder(
 ): { schedulable: number; totalDuration: number } {
   // Clone gaps for simulation
   const simGaps = gaps.map((g) => ({ ...g }));
-  let gapIndex = 0;
+  const gapIndex = 0;
   let schedulable = 0;
   let totalDuration = 0;
 

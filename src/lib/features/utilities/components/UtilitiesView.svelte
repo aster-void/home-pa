@@ -1,7 +1,7 @@
 <script lang="ts">
-  import CalendarSettings from "./calendar_components/CalendarSettings.svelte";
+  import CalendarSettings from "$lib/features/calendar/components/CalendarSettings.svelte";
 
-  const {} = $props();
+  // No props required for this component
 </script>
 
 <div class="utilities-view">

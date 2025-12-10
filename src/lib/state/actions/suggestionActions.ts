@@ -8,16 +8,11 @@
  * @version 2.0.0
  */
 
-import { get } from "svelte/store";
-import {
-  suggestionLogOperations,
-  suggestionLogs,
-  selectedDate,
-} from "../data.ts";
-import { uiActions, currentSuggestion } from "../ui.ts";
+import { dataState } from "../data.svelte.ts";
+import { uiState } from "../ui.svelte.ts";
 import { gaps } from "../gaps.ts";
 import { suggestionService } from "../../services/suggestion.ts";
-import type { Gap } from "../../types.ts";
+import type { Gap, SuggestionLog } from "../../types.ts";
 
 /**
  * Suggestion Actions
@@ -33,7 +28,7 @@ export const suggestionActions = {
     }
 
     const suggestion = suggestionService.checkForSuggestion();
-    uiActions.setCurrentSuggestion(suggestion);
+    uiState.setCurrentSuggestion(suggestion);
   },
 
   /**
@@ -41,7 +36,7 @@ export const suggestionActions = {
    */
   generateSuggestionForGap(gap: Gap): void {
     const suggestion = suggestionService.generateSuggestionForGap(gap);
-    uiActions.setCurrentSuggestion(suggestion);
+    uiState.setCurrentSuggestion(suggestion);
   },
 
   /**
@@ -49,21 +44,21 @@ export const suggestionActions = {
    */
   generateNewSuggestion(): void {
     const suggestion = suggestionService.generateNewSuggestion();
-    uiActions.setCurrentSuggestion(suggestion);
+    uiState.setCurrentSuggestion(suggestion);
   },
 
   /**
    * React to a suggestion
    */
   reactToSuggestion(reaction: "accepted" | "rejected" | "later"): void {
-    const active = get(currentSuggestion);
+    const active = uiState.currentSuggestion;
     if (!active) return;
 
     // Log the reaction
-    suggestionService.logReaction(active, reaction);
+    suggestionService.logReaction(active as any, reaction);
 
     // Clear the current suggestion
-    uiActions.clearCurrentSuggestion();
+    uiState.clearCurrentSuggestion();
   },
 
   /**
@@ -91,7 +86,7 @@ export const suggestionActions = {
    * Dismiss the current suggestion
    */
   dismissSuggestion(): void {
-    uiActions.clearCurrentSuggestion();
+    uiState.clearCurrentSuggestion();
   },
 
   /**
@@ -111,7 +106,7 @@ export const suggestionActions = {
     later: number;
     acceptanceRate: number;
   } {
-    const logs = get(suggestionLogs) as any[];
+    const logs: SuggestionLog[] = dataState.suggestionLogs;
 
     const total = logs.length;
     const accepted = logs.filter((log) => log.reaction === "accepted").length;
@@ -132,9 +127,8 @@ export const suggestionActions = {
    * Clear all suggestion logs
    */
   clearSuggestionLogs(): void {
-    // This would need to be implemented in the suggestionLogOperations
-    // For now, we'll just clear the current suggestion
-    uiActions.clearCurrentSuggestion();
+    // Clear the current suggestion
+    uiState.clearCurrentSuggestion();
   },
 
   /**
@@ -142,7 +136,7 @@ export const suggestionActions = {
    */
   forceCheckForSuggestion(): void {
     const suggestion = suggestionService.checkForSuggestion();
-    uiActions.setCurrentSuggestion(suggestion);
+    uiState.setCurrentSuggestion(suggestion);
   },
 
   /**
@@ -152,13 +146,8 @@ export const suggestionActions = {
     // Fire immediately on init
     this.checkForSuggestion();
 
-    // React to gap changes
+    // React to gap changes using store subscription
     gaps.subscribe(() => {
-      this.checkForSuggestion();
-    });
-
-    // React to date changes
-    selectedDate.subscribe(() => {
       this.checkForSuggestion();
     });
   },

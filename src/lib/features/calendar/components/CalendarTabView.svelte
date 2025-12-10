@@ -1,7 +1,7 @@
 <script lang="ts">
   import CalendarView from "./CalendarView.svelte";
 
-  const {} = $props();
+  // No props required for this component
 </script>
 
 <div class="calendar-tab">

@@ -8,25 +8,20 @@
  * @version 2.0.0
  */
 
-import { get } from "svelte/store";
 import type { Event } from "../../types.ts";
-import { selectedDate } from "../data.ts";
-import { calendarActions } from "../calendar.ts";
+import { dataState } from "../data.svelte.ts";
+import { calendarState } from "../calendar.svelte.ts";
 import {
-  eventForm,
-  eventFormActions,
-  eventFormErrors,
-  validateEventFormData,
-} from "../forms/eventForm.ts";
-import { uiActions } from "../ui.ts";
-import { toasts } from "../toast.ts";
+  eventFormState,
+  type EventFormData,
+} from "../forms/eventForm.svelte.ts";
+import { uiState } from "../ui.svelte.ts";
+import { toastState } from "../toast.svelte.ts";
 import {
-  utcToLocalDateTimeString,
   utcToLocalDateString,
   localDateTimeStringToUTC,
   createDateOnlyUTC,
   createMultiDayAllDayUTCRange,
-  localDateTimeToUTC,
 } from "../../utils/date-utils.ts";
 
 /**
@@ -38,28 +33,20 @@ export const eventActions = {
    * Create a new event from the current form data
    */
   async create(): Promise<Event | null> {
-    const formData = get(eventForm);
+    const formData = eventFormState.formData;
 
     // Clear previous errors
-    eventFormActions.clearAllErrors();
+    eventFormState.clearAllErrors();
 
     // Validate form data
-    const validationResult = validateEventFormData(formData);
+    const validationResult = eventFormState.validate();
     if (!validationResult.isValid) {
-      // Set validation errors
-      (
-        Object.entries(validationResult.errors) as Array<
-          [keyof typeof validationResult.errors, string]
-        >
-      ).forEach(([field, error]) => {
-        eventFormActions.setFieldError(field as any, error);
-      });
       return null;
     }
 
     try {
       // Set submitting state
-      eventFormActions.setSubmitting(true);
+      eventFormState.setSubmitting(true);
 
       // Create UTC dates for storage based on time label
       const { startDate, endDate } = createEventDates(formData);
@@ -78,7 +65,7 @@ export const eventActions = {
       });
 
       // Create the event via API
-      const newEvent = await calendarActions.createEvent({
+      const newEvent = await calendarState.createEvent({
         title: formData.title.trim(),
         start: startDate,
         end: endDate,
@@ -94,20 +81,20 @@ export const eventActions = {
       }
 
       // Reset form and hide it
-      eventFormActions.resetForm();
-      uiActions.hideEventForm();
+      eventFormState.reset();
+      uiState.closeEventForm();
 
       // Show success message
-      toasts.show("Event created successfully", "success");
+      toastState.success("Event created successfully");
 
       return newEvent;
-    } catch (error: any) {
-      eventFormActions.setGeneralError(
-        error.message || "Failed to create event",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create event";
+      eventFormState.setGeneralError(message);
       return null;
     } finally {
-      eventFormActions.setSubmitting(false);
+      eventFormState.setSubmitting(false);
     }
   },
 
@@ -115,39 +102,31 @@ export const eventActions = {
    * Update an existing event from the current form data
    */
   async update(): Promise<Event | null> {
-    const formData = get(eventForm);
+    const formData = eventFormState.formData;
 
     if (!formData.editingId) {
-      eventFormActions.setGeneralError("No event selected for editing");
+      eventFormState.setGeneralError("No event selected for editing");
       return null;
     }
 
     // Clear previous errors
-    eventFormActions.clearAllErrors();
+    eventFormState.clearAllErrors();
 
     // Validate form data
-    const validationResult = validateEventFormData(formData);
+    const validationResult = eventFormState.validate();
     if (!validationResult.isValid) {
-      // Set validation errors
-      (
-        Object.entries(validationResult.errors) as Array<
-          [keyof typeof validationResult.errors, string]
-        >
-      ).forEach(([field, error]) => {
-        eventFormActions.setFieldError(field as any, error);
-      });
       return null;
     }
 
     try {
       // Set submitting state
-      eventFormActions.setSubmitting(true);
+      eventFormState.setSubmitting(true);
 
       // Create UTC dates for storage based on time label
       const { startDate, endDate } = createEventDates(formData);
 
       // Update the event via API
-      const success = await calendarActions.updateEvent(formData.editingId, {
+      const success = await calendarState.updateEvent(formData.editingId, {
         title: formData.title.trim(),
         start: startDate,
         end: endDate,
@@ -159,35 +138,33 @@ export const eventActions = {
       });
 
       if (!success) {
-        eventFormActions.setGeneralError("Event not found");
+        eventFormState.setGeneralError("Event not found");
         return null;
       }
 
-      // Fetch the updated event from the store
-      const { calendarEvents } = await import("../calendar.js");
-      const events = get(calendarEvents);
-      const updatedEvent = events.find((e) => e.id === formData.editingId);
+      // Get the updated event from the state
+      const updatedEvent = calendarState.getEvent(formData.editingId);
 
       if (!updatedEvent) {
-        eventFormActions.setGeneralError("Event not found after update");
+        eventFormState.setGeneralError("Event not found after update");
         return null;
       }
 
       // Reset form and hide it
-      eventFormActions.resetForm();
-      uiActions.hideEventForm();
+      eventFormState.reset();
+      uiState.closeEventForm();
 
       // Show success message
-      toasts.show("Event updated successfully", "success");
+      toastState.success("Event updated successfully");
 
       return updatedEvent;
-    } catch (error: any) {
-      eventFormActions.setGeneralError(
-        error.message || "Failed to update event",
-      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update event";
+      eventFormState.setGeneralError(message);
       return null;
     } finally {
-      eventFormActions.setSubmitting(false);
+      eventFormState.setSubmitting(false);
     }
   },
 
@@ -196,17 +173,19 @@ export const eventActions = {
    */
   async delete(eventId: string): Promise<boolean> {
     try {
-      const deleted = await calendarActions.deleteEvent(eventId);
+      const deleted = await calendarState.deleteEvent(eventId);
 
       if (deleted) {
-        toasts.show("Event deleted", "success");
+        toastState.success("Event deleted");
       } else {
-        toasts.show("Event not found", "error");
+        toastState.error("Event not found");
       }
 
       return deleted;
-    } catch (error: any) {
-      toasts.show(error.message || "Failed to delete event", "error");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete event";
+      toastState.error(message);
       return false;
     }
   },
@@ -219,13 +198,13 @@ export const eventActions = {
     const timeLabel = event.timeLabel || "all-day";
 
     // Set form data for editing
-    eventFormActions.setFormForEditing({
+    eventFormState.setForEditing({
       ...event,
       timeLabel,
     });
 
     // Show the form
-    uiActions.showEventForm();
+    uiState.openEventForm();
   },
 
   /**
@@ -233,27 +212,27 @@ export const eventActions = {
    */
   createNewEvent(): void {
     // Reset form and set to create mode
-    eventFormActions.resetForm();
-    eventFormActions.setCreateMode();
-    eventFormActions.initializeForNewEvent();
+    eventFormState.reset();
+    eventFormState.setCreateMode();
+    eventFormState.initializeForNewEvent();
 
     // Show the form
-    uiActions.showEventForm();
+    uiState.openEventForm();
   },
 
   /**
    * Cancel event editing/creation
    */
   cancelEventForm(): void {
-    eventFormActions.resetForm();
-    uiActions.hideEventForm();
+    eventFormState.reset();
+    uiState.closeEventForm();
   },
 
   /**
    * Submit the event form (create or update based on editing state)
    */
   async submitEventForm(): Promise<Event | null> {
-    const formData = get(eventForm);
+    const formData = eventFormState.formData;
 
     if (formData.isEditing) {
       return await this.update();
@@ -308,7 +287,10 @@ function validateEventForm(formData: any): {
 /**
  * Create UTC dates for event storage based on form data
  */
-function createEventDates(formData: any): { startDate: Date; endDate: Date } {
+function createEventDates(formData: EventFormData): {
+  startDate: Date;
+  endDate: Date;
+} {
   if (formData.timeLabel === "timed") {
     // For timed events, use actual start/end times
     if (!formData.start || !formData.end) {
@@ -334,7 +316,7 @@ function createEventDates(formData: any): { startDate: Date; endDate: Date } {
       : formData.end;
   } else {
     // Use selected date as fallback
-    const currentSelectedDate = get(selectedDate);
+    const currentSelectedDate = dataState.selectedDate;
     const dateString = utcToLocalDateString(currentSelectedDate);
     startDateStr = dateString;
     endDateStr = dateString;

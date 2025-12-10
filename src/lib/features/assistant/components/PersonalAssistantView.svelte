@@ -3,10 +3,7 @@
   // LogsView removed from header; settings panel is minimal
   import LogsView from "$lib/features/logs/components/LogsView.svelte";
   import CircularTimelineCss from "./CircularTimelineCss.svelte";
-  import {
-    calendarState,
-    dataState,
-  } from "$lib/state/index.svelte.ts";
+  import { calendarState, dataState } from "$lib/state/index.svelte.ts";
   import {
     scheduleActions,
     pendingSuggestions,
@@ -199,7 +196,8 @@
 
   // Convert accepted suggestions to Event format for display list
   let acceptedEvents = $derived.by(() => {
-    const isTodaySelected = dateKey(dataState.selectedDate) === dateKey(new Date());
+    const isTodaySelected =
+      dateKey(dataState.selectedDate) === dateKey(new Date());
     if (!isTodaySelected) return [];
 
     const base = startOfDay(dataState.selectedDate);
@@ -282,7 +280,8 @@
         <div class="event-list-panel">
           <div class="event-list-header">
             <h3>Events</h3>
-            <span class="event-list-date">{formatDateLabel(dataState.selectedDate)}</span
+            <span class="event-list-date"
+              >{formatDateLabel(dataState.selectedDate)}</span
             >
           </div>
           {#if displayEvents.length === 0}

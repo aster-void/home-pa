@@ -3,11 +3,13 @@
 ## ✅ Completed Tasks
 
 ### 1. Renamed `stores` → `state`
+
 - ✅ `src/lib/stores/` → `src/lib/state/`
 - ✅ All imports updated: `$lib/stores/` → `$lib/state/`
 - ✅ README.md updated to reflect "State Architecture"
 
 ### 2. Calendar Feature Migration
+
 - ✅ Moved `CalendarView.svelte` (88KB/3183 lines) to `features/calendar/components/`
 - ✅ Moved `CalendarSettings.svelte` to `features/calendar/components/`
 - ✅ Moved `CalendarTabView.svelte` to `features/calendar/components/`
@@ -18,6 +20,7 @@
   - `index.ts` - Barrel exports
 
 ### 3. Component Migration to Features
+
 - ✅ `LogsView.svelte` → `features/logs/components/`
 - ✅ `UtilitiesView.svelte` → `features/utilities/components/`
 - ✅ `util_components/` → `features/shared/components/`
@@ -25,6 +28,7 @@
 - ✅ `src/lib/components/` → **completely removed**
 
 ### 4. Legacy File Cleanup
+
 - ✅ Renamed duplicate files:
   - `calendar.ts` → `calendar.legacy.ts`
   - `data.ts` → `data.legacy.ts`
@@ -35,11 +39,13 @@
 - ✅ Legacy files preserved for reference but not imported
 
 ### 5. Import Path Updates
+
 - ✅ All component imports updated to use `$lib/features/`
 - ✅ All state imports updated to use `$lib/state/`
 - ✅ Route files updated with correct paths
 
 ### 6. Barrel Exports Created
+
 - ✅ `features/calendar/components/index.ts`
 - ✅ `features/logs/components/index.ts`
 - ✅ `features/utilities/components/index.ts`
@@ -88,6 +94,7 @@ src/lib/
 ## ✨ Clean Architecture
 
 All problems identified have been solved:
+
 - ✅ Feature-based directory structure
 - ✅ Svelte 5 reactive state migration
 - ✅ No legacy "stores" naming

@@ -9,10 +9,11 @@ interface SimpleSuggestion {
   eventId?: string;
 }
 type Suggestion = SimpleSuggestion;
-import { get } from "svelte/store";
-import { suggestionLogs, suggestionLogOperations } from "../stores/data.ts";
-import { calendarEvents, calendarOccurrences } from "../stores/calendar.ts";
-import type { ExpandedOccurrence } from "../stores/calendar.ts";
+import {
+  dataState,
+  calendarState,
+  type ExpandedOccurrence,
+} from "../state/index.svelte.ts";
 
 export class SuggestionService {
   private readonly GAP_THRESHOLD_MINUTES = 15; // Minimum gap to show suggestion
@@ -95,9 +96,9 @@ export class SuggestionService {
    * Check for gap time and generate suggestion if applicable
    */
   checkForSuggestion(currentTime: Date = new Date()): Suggestion | null {
-    // Get master events and occurrences
-    const masterEvents = get(calendarEvents);
-    const occurrences = get(calendarOccurrences);
+    // Get master events and occurrences from reactive state
+    const masterEvents = calendarState.events;
+    const occurrences = calendarState.occurrences;
 
     // Combine regular events (non-recurring) with expanded occurrences
     const recurringEventIds = new Set(
@@ -108,8 +109,10 @@ export class SuggestionService {
 
     // Convert occurrences to Event format
     const occurrenceEvents: Event[] = occurrences
-      .filter((occ) => recurringEventIds.has(occ.masterEventId))
-      .map((occ) => ({
+      .filter((occ: ExpandedOccurrence) =>
+        recurringEventIds.has(occ.masterEventId),
+      )
+      .map((occ: ExpandedOccurrence) => ({
         id: occ.id,
         title: occ.title,
         start: occ.start,
@@ -174,7 +177,7 @@ export class SuggestionService {
     suggestion: Suggestion,
     reaction: SuggestionLog["reaction"],
   ): SuggestionLog {
-    return suggestionLogOperations.create({
+    return dataState.createSuggestionLog({
       at: new Date(),
       gapMin: suggestion.gapMin,
       eventId: suggestion.eventId,
@@ -186,7 +189,7 @@ export class SuggestionService {
    * Get suggestion logs for analysis
    */
   getLogs(): SuggestionLog[] {
-    return get(suggestionLogs);
+    return dataState.suggestionLogs;
   }
 
   /**
@@ -194,7 +197,7 @@ export class SuggestionService {
    */
   hasRecentSuggestion(minutesAgo: number = 5): boolean {
     const recent = new Date(Date.now() - minutesAgo * 60 * 1000);
-    const currentLogs = get(suggestionLogs);
+    const currentLogs = dataState.suggestionLogs;
     const recentLogs = currentLogs.filter((log) => log.at >= recent);
     return recentLogs.length > 0;
   }

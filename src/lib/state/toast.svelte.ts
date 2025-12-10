@@ -80,6 +80,20 @@ class ToastState {
   }
 
   /**
+   * Dismiss a toast by ID (alias for remove)
+   */
+  dismiss(id: string): void {
+    this.remove(id);
+  }
+
+  /**
+   * Clear all toasts (alias for clearAll)
+   */
+  clear(): void {
+    this.clearAll();
+  }
+
+  /**
    * Show a success toast
    */
   success(message: string, duration?: number): void {

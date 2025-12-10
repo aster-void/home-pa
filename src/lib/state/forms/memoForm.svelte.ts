@@ -153,7 +153,10 @@ class MemoState {
 
     const maxLength = 10000;
     if (memoText.length > maxLength) {
-      this.setFieldError("text", `メモは${maxLength}文字以内で入力してください`);
+      this.setFieldError(
+        "text",
+        `メモは${maxLength}文字以内で入力してください`,
+      );
       return null;
     }
 
@@ -269,6 +272,20 @@ class MemoState {
     this.editingId = null;
     this.errors = {};
     this.isSubmitting = false;
+  }
+
+  /**
+   * Reset form to initial state (alias for resetForm)
+   */
+  reset(): void {
+    this.resetForm();
+  }
+
+  /**
+   * Set form for editing (alias for setFormForEditing)
+   */
+  setForEditing(memo: SimpleMemo): void {
+    this.setFormForEditing(memo);
   }
 
   /**

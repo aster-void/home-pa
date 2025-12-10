@@ -8,8 +8,6 @@
 import { writable, derived, get } from "svelte/store";
 import type {
   Memo,
-  MemoType,
-  LocationPreference,
   ImportanceLevel,
   RecurrenceGoal,
   MemoStatus,
@@ -17,13 +15,19 @@ import type {
 import {
   taskForm,
   taskFormActions,
-  taskFormErrors,
-  isTaskFormSubmitting,
   type TaskFormData,
   type TaskFormErrors,
 } from "../forms/taskForm.ts";
-import { toasts } from "../toast.ts";
+import { toastState } from "../toast.svelte.ts";
 import { enrichMemoViaAPI } from "../../services/suggestions/llm-enrichment.ts";
+
+// Toast compatibility wrapper
+const toasts = {
+  show: toastState.show.bind(toastState),
+  success: toastState.success.bind(toastState),
+  error: toastState.error.bind(toastState),
+  info: toastState.info.bind(toastState),
+};
 
 // ============================================================================
 // Tasks Store (Rich Memos)

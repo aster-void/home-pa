@@ -9,16 +9,49 @@
  * @version 1.0.0
  */
 
-import { writable, derived } from "svelte/store";
+import { writable, derived, type Readable } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.ts";
 import { GapFinder } from "../services/gap-finder.ts";
-import { selectedDate } from "./data.ts";
-import { calendarEvents, calendarOccurrences } from "./calendar.ts";
+import { dataState } from "./data.svelte.ts";
+import { calendarState } from "./calendar.svelte.ts";
 import type { Event as CalendarEvent } from "../types.ts";
 import {
   enrichGapsWithLocation,
   type EnrichableEvent,
 } from "../services/suggestions/index.ts";
+
+// Reactive store wrapper for selectedDate
+const selectedDate: Readable<Date> = {
+  subscribe: (fn: (value: Date) => void) => {
+    fn(dataState.selectedDate);
+    return $effect.root(() => {
+      $effect(() => fn(dataState.selectedDate));
+      return () => {};
+    });
+  },
+};
+
+// Reactive store wrapper for calendarEvents
+const calendarEvents: Readable<CalendarEvent[]> = {
+  subscribe: (fn: (value: CalendarEvent[]) => void) => {
+    fn(calendarState.events);
+    return $effect.root(() => {
+      $effect(() => fn(calendarState.events));
+      return () => {};
+    });
+  },
+};
+
+// Reactive store wrapper for calendarOccurrences
+const calendarOccurrences: Readable<any[]> = {
+  subscribe: (fn: (value: any[]) => void) => {
+    fn(calendarState.occurrences);
+    return $effect.root(() => {
+      $effect(() => fn(calendarState.occurrences));
+      return () => {};
+    });
+  },
+};
 
 /**
  * User-configurable day boundaries for gap calculation

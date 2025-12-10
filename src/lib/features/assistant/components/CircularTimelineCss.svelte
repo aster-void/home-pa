@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { createEventDispatcher } from "svelte";
-  import { selectedDate } from "$lib/state/data.ts";
   import {
+    selectedDate,
     calendarEvents,
     calendarOccurrences,
-  } from "$lib/state/calendar.ts";
+    type ExpandedOccurrence,
+  } from "$lib/state/index.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
-  import type { ExpandedOccurrence } from "$lib/state/calendar.ts";
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
@@ -38,12 +38,22 @@
 
   // DOM refs & sizing
   let containerElement: HTMLDivElement | null = null;
-  let size = $state(300);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _size = $state(300);
+
+  // Gap type for dispatcher
+  interface GapData {
+    start: string;
+    end: string;
+    duration: number;
+    startAngle: number;
+    endAngle: number;
+  }
 
   // Dispatcher
   const dispatch = createEventDispatcher<{
     eventSelected: MyEvent;
-    gapSelected: any;
+    gapSelected: GapData;
     suggestionAccept: string;
     suggestionSkip: string;
     suggestionDelete: string;
@@ -403,7 +413,7 @@
   function handleResize() {
     if (!containerElement) return;
     const rect = containerElement.getBoundingClientRect();
-    size = Math.min(rect.width, rect.height);
+    _size = Math.min(rect.width, rect.height);
   }
 
   onMount(() => {

@@ -75,8 +75,9 @@
                     >
                   {/if}
                   {#if (truncatedEvent as any).isDuplicate}
-                    <span class="duplicate-indicator" title="Auto-generated duplicate"
-                      >↻</span
+                    <span
+                      class="duplicate-indicator"
+                      title="Auto-generated duplicate">↻</span
                     >
                   {/if}
                 </span>

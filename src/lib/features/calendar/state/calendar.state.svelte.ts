@@ -186,7 +186,8 @@ class CalendarStateClass {
           }
         : window;
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to fetch events";
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to fetch events";
       console.error("[CalendarState] fetchEvents error:", err);
       this.loading = false;
       this.error = errorMsg;

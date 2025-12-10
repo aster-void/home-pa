@@ -8,23 +8,16 @@
  * @version 2.0.0
  */
 
-import { get } from "svelte/store";
-// Temporary simple memo type (will be replaced with new Memo in Phase 4)
-interface SimpleMemo {
-  id: string;
-  text: string;
-}
-type Memo = SimpleMemo;
-import { memoOperations } from "../data.ts";
+import { dataState } from "../data.svelte.ts";
 import {
-  memoForm,
-  memoFormActions,
-  memoFormErrors,
-  isSubmitting,
+  memoState,
+  type SimpleMemo,
+  type MemoFormData,
   type MemoFormErrors,
-} from "../forms/memoForm.ts";
-import { uiActions } from "../ui.ts";
-import { toasts } from "../toast.ts";
+} from "../forms/memoForm.svelte.ts";
+import { toastState } from "../toast.svelte.ts";
+
+type Memo = SimpleMemo;
 
 /**
  * Memo Actions
@@ -35,40 +28,42 @@ export const memoActions = {
    * Create a new memo from the current form data
    */
   async create(): Promise<Memo | null> {
-    const formData = get(memoForm);
+    const formData = memoState.formData;
 
     // Clear previous errors
-    memoFormActions.clearAllErrors();
+    memoState.clearAllErrors();
 
     // Validate form data
     const validationResult = validateMemoForm(formData);
     if (!validationResult.isValid) {
       // Set validation errors
       Object.entries(validationResult.errors).forEach(([field, error]) => {
-        memoFormActions.setFieldError(field as keyof MemoFormErrors, error);
+        memoState.setFieldError(field as keyof MemoFormErrors, error);
       });
       return null;
     }
 
     try {
       // Set submitting state
-      memoFormActions.setSubmitting(true);
+      memoState.setSubmitting(true);
 
       // Create the memo
-      const newMemo = memoOperations.create(formData.text.trim());
+      const newMemo = dataState.createMemo(formData.text.trim());
 
       // Reset form
-      memoFormActions.resetForm();
+      memoState.reset();
 
       // Show success message
-      toasts.show("Memo saved", "success");
+      toastState.success("Memo saved");
 
       return newMemo;
-    } catch (error: any) {
-      memoFormActions.setGeneralError(error.message || "Failed to create memo");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to create memo";
+      memoState.setGeneralError(message);
       return null;
     } finally {
-      memoFormActions.setSubmitting(false);
+      memoState.setSubmitting(false);
     }
   },
 
@@ -76,53 +71,55 @@ export const memoActions = {
    * Update an existing memo from the current form data
    */
   async update(): Promise<Memo | null> {
-    const formData = get(memoForm);
+    const formData = memoState.formData;
 
     if (!formData.editingId) {
-      memoFormActions.setGeneralError("No memo selected for editing");
+      memoState.setGeneralError("No memo selected for editing");
       return null;
     }
 
     // Clear previous errors
-    memoFormActions.clearAllErrors();
+    memoState.clearAllErrors();
 
     // Validate form data
     const validationResult = validateMemoForm(formData);
     if (!validationResult.isValid) {
       // Set validation errors
       Object.entries(validationResult.errors).forEach(([field, error]) => {
-        memoFormActions.setFieldError(field as keyof MemoFormErrors, error);
+        memoState.setFieldError(field as keyof MemoFormErrors, error);
       });
       return null;
     }
 
     try {
       // Set submitting state
-      memoFormActions.setSubmitting(true);
+      memoState.setSubmitting(true);
 
       // Update the memo
-      const updatedMemo = memoOperations.update(
+      const updatedMemo = dataState.updateMemo(
         formData.editingId,
         formData.text.trim(),
       );
 
       if (!updatedMemo) {
-        memoFormActions.setGeneralError("Memo not found");
+        memoState.setGeneralError("Memo not found");
         return null;
       }
 
       // Reset form
-      memoFormActions.resetForm();
+      memoState.reset();
 
       // Show success message
-      toasts.show("Memo updated", "success");
+      toastState.success("Memo updated");
 
       return updatedMemo;
-    } catch (error: any) {
-      memoFormActions.setGeneralError(error.message || "Failed to update memo");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to update memo";
+      memoState.setGeneralError(message);
       return null;
     } finally {
-      memoFormActions.setSubmitting(false);
+      memoState.setSubmitting(false);
     }
   },
 
@@ -131,17 +128,19 @@ export const memoActions = {
    */
   async delete(memoId: string): Promise<boolean> {
     try {
-      const deleted = memoOperations.delete(memoId);
+      const deleted = dataState.deleteMemo(memoId);
 
       if (deleted) {
-        toasts.show("Memo deleted", "success");
+        toastState.success("Memo deleted");
       } else {
-        toasts.show("Memo not found", "error");
+        toastState.error("Memo not found");
       }
 
       return deleted;
-    } catch (error: any) {
-      toasts.show(error.message || "Failed to delete memo", "error");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete memo";
+      toastState.error(message);
       return false;
     }
   },
@@ -151,7 +150,7 @@ export const memoActions = {
    */
   editMemo(memo: Memo): void {
     // Set form data for editing
-    memoFormActions.setFormForEditing(memo);
+    memoState.setForEditing(memo);
   },
 
   /**
@@ -159,22 +158,22 @@ export const memoActions = {
    */
   createNewMemo(): void {
     // Reset form and set to create mode
-    memoFormActions.resetForm();
-    memoFormActions.setCreateMode();
+    memoState.reset();
+    memoState.setCreateMode();
   },
 
   /**
    * Cancel memo editing/creation
    */
   cancelMemoForm(): void {
-    memoFormActions.resetForm();
+    memoState.reset();
   },
 
   /**
    * Submit the memo form (create or update based on editing state)
    */
   async submitMemoForm(): Promise<Memo | null> {
-    const formData = get(memoForm);
+    const formData = memoState.formData;
 
     if (formData.isEditing) {
       return await this.update();
@@ -187,7 +186,7 @@ export const memoActions = {
    * Quick save memo (save without closing form)
    */
   async quickSave(): Promise<Memo | null> {
-    const formData = get(memoForm);
+    const formData = memoState.formData;
 
     if (!formData.text.trim()) {
       return null;
@@ -204,10 +203,10 @@ export const memoActions = {
    * Auto-save memo (save periodically while typing)
    */
   async autoSave(): Promise<void> {
-    const formData = get(memoForm);
+    const formData = memoState.formData;
 
     // Only auto-save if there's content and it's not currently submitting
-    if (formData.text.trim() && !get(isSubmitting)) {
+    if (formData.text.trim() && !memoState.isSubmitting) {
       try {
         if (formData.isEditing) {
           await this.update();
@@ -225,7 +224,7 @@ export const memoActions = {
 /**
  * Validation function for memo form data
  */
-function validateMemoForm(formData: any): {
+function validateMemoForm(formData: MemoFormData): {
   isValid: boolean;
   errors: Record<string, string>;
 } {

@@ -8,13 +8,8 @@
  * @version 2.0.0
  */
 
-import { get } from "svelte/store";
-import { selectedDate } from "../data.ts";
-import {
-  uiActions as uiStateActions,
-  currentSuggestion,
-  type AppView,
-} from "../ui.ts";
+import { dataState } from "../data.svelte.ts";
+import { uiState, type AppView } from "../ui.svelte.ts";
 import { suggestionService } from "../../services/suggestion.ts";
 
 /**
@@ -26,7 +21,7 @@ export const uiActions = {
    * Switch between calendar, personal assistant, tasks, and utilities views
    */
   setView(view: AppView): void {
-    uiStateActions.setView(view);
+    uiState.setView(view);
 
     // Check for suggestions when returning to calendar
     if (view === "calendar") {
@@ -38,35 +33,35 @@ export const uiActions = {
    * Change the calendar view mode
    */
   setViewMode(mode: "day" | "list"): void {
-    uiStateActions.setViewMode(mode);
+    uiState.setViewMode(mode);
   },
 
   /**
    * Toggle the memo panel open/closed
    */
   toggleMemo(): void {
-    uiStateActions.toggleMemo();
+    uiState.toggleMemo();
   },
 
   /**
    * Set the memo panel state
    */
   setMemoOpen(open: boolean): void {
-    uiStateActions.setMemoOpen(open);
+    uiState.setMemoOpen(open);
   },
 
   /**
    * Navigate to a specific date
    */
   setSelectedDate(date: Date): void {
-    selectedDate.set(date);
+    dataState.setSelectedDate(date);
   },
 
   /**
    * Navigate date by a number of days
    */
   navigateDate(days: number): void {
-    const currentDate = new Date(get(selectedDate));
+    const currentDate = new Date(dataState.selectedDate);
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
     this.setSelectedDate(newDate);
@@ -111,7 +106,7 @@ export const uiActions = {
    * Navigate to previous month
    */
   navigateToPreviousMonth(): void {
-    const currentDate = new Date(get(selectedDate));
+    const currentDate = new Date(dataState.selectedDate);
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() - 1);
     this.setSelectedDate(newDate);
@@ -121,7 +116,7 @@ export const uiActions = {
    * Navigate to next month
    */
   navigateToNextMonth(): void {
-    const currentDate = new Date(get(selectedDate));
+    const currentDate = new Date(dataState.selectedDate);
     const newDate = new Date(currentDate);
     newDate.setMonth(newDate.getMonth() + 1);
     this.setSelectedDate(newDate);
@@ -131,7 +126,7 @@ export const uiActions = {
    * Navigate to previous year
    */
   navigateToPreviousYear(): void {
-    const currentDate = new Date(get(selectedDate));
+    const currentDate = new Date(dataState.selectedDate);
     const newDate = new Date(currentDate);
     newDate.setFullYear(newDate.getFullYear() - 1);
     this.setSelectedDate(newDate);
@@ -141,7 +136,7 @@ export const uiActions = {
    * Navigate to next year
    */
   navigateToNextYear(): void {
-    const currentDate = new Date(get(selectedDate));
+    const currentDate = new Date(dataState.selectedDate);
     const newDate = new Date(currentDate);
     newDate.setFullYear(newDate.getFullYear() + 1);
     this.setSelectedDate(newDate);
@@ -151,35 +146,35 @@ export const uiActions = {
    * Show the event form
    */
   showEventForm(): void {
-    uiStateActions.showEventForm();
+    uiState.openEventForm();
   },
 
   /**
    * Hide the event form
    */
   hideEventForm(): void {
-    uiStateActions.hideEventForm();
+    uiState.closeEventForm();
   },
 
   /**
    * Toggle the event form visibility
    */
   toggleEventForm(): void {
-    uiStateActions.toggleEventForm();
+    uiState.toggleEventForm();
   },
 
   /**
    * Show the timeline popup
    */
   showTimelinePopup(): void {
-    uiStateActions.showTimelinePopup();
+    uiState.openTimelinePopup();
   },
 
   /**
    * Hide the timeline popup
    */
   hideTimelinePopup(): void {
-    uiStateActions.hideTimelinePopup();
+    uiState.closeTimelinePopup();
   },
 
   /**
@@ -191,45 +186,45 @@ export const uiActions = {
     }
 
     const suggestion = suggestionService.checkForSuggestion();
-    uiStateActions.setCurrentSuggestion(suggestion);
+    uiState.setCurrentSuggestion(suggestion);
   },
 
   /**
    * React to a suggestion
    */
   reactToSuggestion(reaction: "accepted" | "rejected" | "later"): void {
-    const active: any = get(currentSuggestion as any);
+    const active = uiState.currentSuggestion;
     if (!active) return;
-    suggestionService.logReaction(active, reaction);
-    uiStateActions.clearCurrentSuggestion();
+    suggestionService.logReaction(active as any, reaction);
+    uiState.clearCurrentSuggestion();
   },
 
   /**
    * Dismiss the current suggestion
    */
   dismissSuggestion(): void {
-    uiStateActions.clearCurrentSuggestion();
+    uiState.clearCurrentSuggestion();
   },
 
   /**
    * Set loading state
    */
   setLoading(loading: boolean): void {
-    uiStateActions.setLoading(loading);
+    uiState.setLoading(loading);
   },
 
   /**
    * Set error message
    */
   setError(message: string | null): void {
-    uiStateActions.setError(message);
+    uiState.setError(message);
   },
 
   /**
    * Clear error message
    */
   clearError(): void {
-    uiStateActions.clearError();
+    uiState.clearError();
   },
 
   /**

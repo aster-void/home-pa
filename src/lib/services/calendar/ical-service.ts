@@ -10,7 +10,7 @@
  * - Expand recurring event occurrences
  */
 
-import ICAL from "ical.ts";
+import ICAL from "ical.js";
 
 // ============================================================================
 // TYPES

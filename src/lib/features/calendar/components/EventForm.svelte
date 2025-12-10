@@ -8,7 +8,10 @@
     eventActions,
     uiActions,
   } from "$lib/state/index.ts";
-  import { utcToLocalDateString, utcToLocalTimeString } from "$lib/utils/date-utils.ts";
+  import {
+    utcToLocalDateString,
+    utcToLocalTimeString,
+  } from "$lib/utils/date-utils.ts";
 
   // Form state
   let eventTitle = $state("");
@@ -29,10 +32,20 @@
 
   // Recurrence state
   let isRecurring = $state(false);
-  let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">("WEEKLY");
+  let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">(
+    "WEEKLY",
+  );
   let recurrenceInterval = $state(1);
   let recurrenceEndDate = $state<string>("");
-  let weeklyDays = $state<boolean[]>([false, false, false, false, false, false, false]);
+  let weeklyDays = $state<boolean[]>([
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
   let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
 
   // Sync from store
@@ -98,7 +111,9 @@
 
   $effect(() => {
     const startDateTime =
-      eventStartDate && eventStartTime ? `${eventStartDate}T${eventStartTime}` : "";
+      eventStartDate && eventStartTime
+        ? `${eventStartDate}T${eventStartTime}`
+        : "";
     const endDateTime =
       eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "";
 
@@ -132,11 +147,17 @@
 
     if (recurrenceFrequency === "MONTHLY") {
       if (monthlyType === "dayOfMonth") {
-        const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"));
+        const startDate = new Date(
+          eventStartDate + "T" + (eventStartTime || "00:00"),
+        );
         rrule += `;BYMONTHDAY=${startDate.getDate()}`;
       } else {
-        const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"));
-        const dayOfWeek = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][startDate.getDay()];
+        const startDate = new Date(
+          eventStartDate + "T" + (eventStartTime || "00:00"),
+        );
+        const dayOfWeek = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][
+          startDate.getDay()
+        ];
         const weekOfMonth = Math.ceil(startDate.getDate() / 7);
         const position = weekOfMonth > 4 ? -1 : weekOfMonth;
         rrule += `;BYDAY=${position}${dayOfWeek}`;
@@ -180,7 +201,11 @@
   >
     <div class="modal-header">
       <h3>{isEventEditing ? "予定を編集" : "新しい予定"}</h3>
-      <button class="close-button" onclick={() => uiActions.hideEventForm()} aria-label="Close">
+      <button
+        class="close-button"
+        onclick={() => uiActions.hideEventForm()}
+        aria-label="Close"
+      >
         ✕
       </button>
     </div>
@@ -249,7 +274,9 @@
         <div class="time-label-switches" id="time-label-switches">
           <button
             type="button"
-            class="time-switch {timeMode === 'all-day' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+            class="time-switch {timeMode === 'all-day'
+              ? 'active'
+              : ''} {isGreyState ? 'grey' : ''}"
             onclick={() => {
               timeMode = "all-day";
               eventTimeLabel = "all-day";
@@ -263,7 +290,9 @@
           </button>
           <button
             type="button"
-            class="time-switch {timeMode === 'some-timing' ? 'active' : ''} {isGreyState ? 'grey' : ''}"
+            class="time-switch {timeMode === 'some-timing'
+              ? 'active'
+              : ''} {isGreyState ? 'grey' : ''}"
             onclick={() => {
               timeMode = "some-timing";
               eventTimeLabel = "some-timing";
@@ -287,8 +316,10 @@
             id="event-start-date"
             type="date"
             bind:value={eventStartDate}
-            onfocus={() => eventTimeLabel === "some-timing" && switchToTimedMode()}
-            oninput={() => eventTimeLabel === "some-timing" && switchToTimedMode()}
+            onfocus={() =>
+              eventTimeLabel === "some-timing" && switchToTimedMode()}
+            oninput={() =>
+              eventTimeLabel === "some-timing" && switchToTimedMode()}
           />
         </div>
         <div class="inline-field">
@@ -297,8 +328,10 @@
             id="event-end-date"
             type="date"
             bind:value={eventEndDate}
-            onfocus={() => eventTimeLabel === "some-timing" && switchToTimedMode()}
-            oninput={() => eventTimeLabel === "some-timing" && switchToTimedMode()}
+            onfocus={() =>
+              eventTimeLabel === "some-timing" && switchToTimedMode()}
+            oninput={() =>
+              eventTimeLabel === "some-timing" && switchToTimedMode()}
           />
         </div>
       </div>
@@ -312,8 +345,14 @@
             type="time"
             bind:value={eventStartTime}
             class:error={$eventFormErrors.start}
-            onfocus={() => (eventTimeLabel === "all-day" || eventTimeLabel === "some-timing") && switchToTimedMode()}
-            oninput={() => (eventTimeLabel === "all-day" || eventTimeLabel === "some-timing") && switchToTimedMode()}
+            onfocus={() =>
+              (eventTimeLabel === "all-day" ||
+                eventTimeLabel === "some-timing") &&
+              switchToTimedMode()}
+            oninput={() =>
+              (eventTimeLabel === "all-day" ||
+                eventTimeLabel === "some-timing") &&
+              switchToTimedMode()}
           />
           {#if $eventFormErrors.start}
             <div class="field-error">{$eventFormErrors.start}</div>
@@ -326,8 +365,14 @@
             type="time"
             bind:value={eventEndTime}
             class:error={$eventFormErrors.end}
-            onfocus={() => (eventTimeLabel === "all-day" || eventTimeLabel === "some-timing") && switchToTimedMode()}
-            oninput={() => (eventTimeLabel === "all-day" || eventTimeLabel === "some-timing") && switchToTimedMode()}
+            onfocus={() =>
+              (eventTimeLabel === "all-day" ||
+                eventTimeLabel === "some-timing") &&
+              switchToTimedMode()}
+            oninput={() =>
+              (eventTimeLabel === "all-day" ||
+                eventTimeLabel === "some-timing") &&
+              switchToTimedMode()}
           />
           {#if $eventFormErrors.end}
             <div class="field-error">{$eventFormErrors.end}</div>
@@ -347,7 +392,9 @@
       {#if isRecurring}
         <div class="recurrence-panel">
           <div class="recurrence-field">
-            <label for="recurrence-interval-input" class="field-label">繰り返し</label>
+            <label for="recurrence-interval-input" class="field-label"
+              >繰り返し</label
+            >
             <div class="interval-row">
               <input
                 id="recurrence-interval-input"
@@ -382,30 +429,55 @@
           {/if}
 
           {#if recurrenceFrequency === "MONTHLY"}
-            {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+            {@const startDate = new Date(
+              eventStartDate + "T" + (eventStartTime || "00:00"),
+            )}
             {@const dayOfMonth = startDate.getDate()}
             {@const weekdays = ["日", "月", "火", "水", "木", "金", "土"]}
             {@const weekday = weekdays[startDate.getDay()]}
             {@const weekOfMonth = Math.ceil(dayOfMonth / 7)}
-            {@const positionText = weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
+            {@const positionText =
+              weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
 
             <div class="recurrence-field">
               <span class="field-label">繰り返しパターン</span>
               <div class="monthly-options">
-                <label class="option-card {monthlyType === 'dayOfMonth' ? 'selected' : ''}">
-                  <input type="radio" name="monthly-type" value="dayOfMonth" bind:group={monthlyType} />
+                <label
+                  class="option-card {monthlyType === 'dayOfMonth'
+                    ? 'selected'
+                    : ''}"
+                >
+                  <input
+                    type="radio"
+                    name="monthly-type"
+                    value="dayOfMonth"
+                    bind:group={monthlyType}
+                  />
                   <span class="option-text">毎月{dayOfMonth}日</span>
                 </label>
-                <label class="option-card {monthlyType === 'nthWeekday' ? 'selected' : ''}">
-                  <input type="radio" name="monthly-type" value="nthWeekday" bind:group={monthlyType} />
-                  <span class="option-text">毎月{positionText}{weekday}曜日</span>
+                <label
+                  class="option-card {monthlyType === 'nthWeekday'
+                    ? 'selected'
+                    : ''}"
+                >
+                  <input
+                    type="radio"
+                    name="monthly-type"
+                    value="nthWeekday"
+                    bind:group={monthlyType}
+                  />
+                  <span class="option-text"
+                    >毎月{positionText}{weekday}曜日</span
+                  >
                 </label>
               </div>
             </div>
           {/if}
 
           {#if recurrenceFrequency === "YEARLY"}
-            {@const startDate = new Date(eventStartDate + "T" + (eventStartTime || "00:00"))}
+            {@const startDate = new Date(
+              eventStartDate + "T" + (eventStartTime || "00:00"),
+            )}
             {@const month = startDate.getMonth() + 1}
             {@const day = startDate.getDate()}
 
@@ -441,17 +513,33 @@
 
     <div class="form-actions">
       {#if isEventEditing}
-        <button type="button" class="cancel-btn" onclick={() => eventActions.cancelEventForm()}>
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick={() => eventActions.cancelEventForm()}
+        >
           キャンセル
         </button>
-        <button type="button" class="submit-btn" onclick={() => eventActions.submitEventForm()}>
+        <button
+          type="button"
+          class="submit-btn"
+          onclick={() => eventActions.submitEventForm()}
+        >
           更新
         </button>
       {:else}
-        <button type="button" class="cancel-btn" onclick={() => eventActions.cancelEventForm()}>
+        <button
+          type="button"
+          class="cancel-btn"
+          onclick={() => eventActions.cancelEventForm()}
+        >
           キャンセル
         </button>
-        <button type="button" class="submit-btn" onclick={() => eventActions.submitEventForm()}>
+        <button
+          type="button"
+          class="submit-btn"
+          onclick={() => eventActions.submitEventForm()}
+        >
           作成
         </button>
       {/if}

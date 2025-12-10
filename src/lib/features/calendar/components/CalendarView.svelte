@@ -8,8 +8,6 @@
     calendarError,
     calendarActions,
     selectedDate,
-    currentView,
-    viewMode,
     showEventForm,
     showTimelinePopup,
     eventForm,
@@ -20,12 +18,11 @@
     type ExpandedOccurrence,
   } from "$lib/state/index.ts";
   import {
-    localDateStringToUTC,
     localDateTimeStringToUTC,
+    localDateTimeToUTC,
     utcToLocalDateString,
     utcToLocalDateTimeString,
     utcToLocalTimeString,
-    localDateTimeToUTC,
     createAllDayUTCRange,
   } from "$lib/utils/date-utils.ts";
 

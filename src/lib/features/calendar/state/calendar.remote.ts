@@ -10,9 +10,7 @@ import type { ImportResult, DateWindow } from "./calendar.types.ts";
 /**
  * Fetch events from API
  */
-export async function fetchEventsApi(
-  window: DateWindow,
-): Promise<Event[]> {
+export async function fetchEventsApi(window: DateWindow): Promise<Event[]> {
   const params = new URLSearchParams({
     start: window.start.toISOString(),
     end: window.end.toISOString(),
@@ -44,9 +42,7 @@ export async function fetchEventsApi(
 /**
  * Create a new event via API
  */
-export async function createEventApi(
-  event: Omit<Event, "id">,
-): Promise<Event> {
+export async function createEventApi(event: Omit<Event, "id">): Promise<Event> {
   const response = await fetch("/api/calendar/events", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

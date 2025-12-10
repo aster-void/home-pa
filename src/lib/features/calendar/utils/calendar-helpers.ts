@@ -92,7 +92,8 @@ export function getEventsForDate(events: Event[], targetDate: Date): Event[] {
         eventEndTime >= targetDateStartTime &&
         eventEndTime <= targetDateEndTime;
       const spansTarget =
-        eventStartTime < targetDateStartTime && eventEndTime > targetDateEndTime;
+        eventStartTime < targetDateStartTime &&
+        eventEndTime > targetDateEndTime;
 
       // If event starts and ends on the same day, return as is
       if (startsOnTarget && endsOnTarget) {
