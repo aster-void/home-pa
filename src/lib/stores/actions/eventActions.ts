@@ -346,14 +346,21 @@ function createEventDates(formData: any): { startDate: Date; endDate: Date } {
     return { startDate: dateOnly, endDate: dateOnly };
   } else {
     // All-day events: can span multiple days
+    // App uses inclusive end dates for all all-day events:
+    // - Single-day: 12/12 00:00:00 to 12/12 23:59:59.999
+    // - Multi-day: 12/12 00:00:00 to 12/15 23:59:59.999 (inclusive of last day)
     if (startDateStr === endDateStr) {
-      // Single day all-day event - start and end are the same (date at 00:00 UTC)
-      const dateOnly = createDateOnlyUTC(startDateStr);
-      return { startDate: dateOnly, endDate: dateOnly };
+      // Single day all-day event - start at 00:00, end at 23:59:59.999 (inclusive)
+      const startDate = createDateOnlyUTC(startDateStr);
+      const endDate = new Date(startDate);
+      endDate.setHours(23, 59, 59, 999); // End of the same day
+      return { startDate, endDate };
     } else {
-      // Multi-day all-day event - start is first day, end is last day (both at 00:00 UTC)
-      const range = createMultiDayAllDayUTCRange(startDateStr, endDateStr);
-      return { startDate: range.start, endDate: range.end };
+      // Multi-day all-day event - start is first day 00:00, end is last day 23:59:59.999 (inclusive)
+      const startDate = createDateOnlyUTC(startDateStr);
+      const endDate = createDateOnlyUTC(endDateStr);
+      endDate.setHours(23, 59, 59, 999); // End of the last day (inclusive)
+      return { startDate, endDate };
     }
   }
 }

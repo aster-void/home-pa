@@ -414,67 +414,135 @@ export function extractRRule(icalData: string): string | null {
  * @returns true if valid
  */
 export function isValidRRule(rrule: string): boolean {
+  if (!rrule || rrule.trim() === '') {
+    return false;
+  }
+  // Must contain FREQ= to be a valid RRULE
+  if (!rrule.includes('FREQ=')) {
+    return false;
+  }
   try {
-    ICAL.Recur.fromString(rrule);
-    return true;
+    const recur = ICAL.Recur.fromString(rrule);
+    // Ensure it has a valid frequency
+    return !!recur.freq;
   } catch {
     return false;
   }
 }
 
 /**
+ * Locale options for RRULE formatting
+ */
+export type RRuleLocale = 'ja' | 'en';
+
+/**
  * Format an RRULE into human-readable text
  *
  * @param rrule - RRULE string
+ * @param locale - 'ja' for Japanese (default), 'en' for English
  * @returns Human-readable description
  */
-export function formatRRule(rrule: string): string {
+export function formatRRule(
+  rrule: string,
+  locale: RRuleLocale = "ja",
+): string {
   try {
     const recur = ICAL.Recur.fromString(rrule);
 
     const freq = recur.freq?.toLowerCase() || "unknown";
     const interval = recur.interval || 1;
-
     let text = "";
 
-    switch (freq) {
-      case "daily":
-        text = interval === 1 ? "Every day" : `Every ${interval} days`;
-        break;
-      case "weekly":
-        text = interval === 1 ? "Every week" : `Every ${interval} weeks`;
-        if (recur.parts?.BYDAY) {
-          const days = recur.parts.BYDAY.map(dayMap).join(", ");
-          text += ` on ${days}`;
-        }
-        break;
-      case "monthly":
-        text = interval === 1 ? "Every month" : `Every ${interval} months`;
-        break;
-      case "yearly":
-        text = interval === 1 ? "Every year" : `Every ${interval} years`;
-        break;
-      default:
-        text = `Repeats ${freq}`;
-    }
+    if (locale === "ja") {
+      // Japanese format
+      switch (freq) {
+        case "daily":
+          text = interval === 1 ? "毎日" : `${interval}日ごと`;
+          break;
+        case "weekly":
+          text = interval === 1 ? "毎週" : `${interval}週ごと`;
+          if (recur.parts?.BYDAY) {
+            const days = recur.parts.BYDAY.map((d) => dayMapJa(d)).join("・");
+            text += ` (${days})`;
+          }
+          break;
+        case "monthly":
+          text = interval === 1 ? "毎月" : `${interval}ヶ月ごと`;
+          break;
+        case "yearly":
+          text = interval === 1 ? "毎年" : `${interval}年ごと`;
+          break;
+        default:
+          text = `繰り返し (${freq})`;
+      }
 
-    if (recur.count) {
-      text += `, ${recur.count} times`;
-    }
-    if (recur.until) {
-      text += `, until ${recur.until.toJSDate().toLocaleDateString()}`;
+      if (recur.count) {
+        text += ` ${recur.count}回`;
+      } else if (recur.until) {
+        text += ` ${recur.until.toJSDate().toLocaleDateString("ja-JP")}まで`;
+      } else {
+        text += " (永続)";
+      }
+    } else {
+      // English format
+      switch (freq) {
+        case "daily":
+          text = interval === 1 ? "Every day" : `Every ${interval} days`;
+          break;
+        case "weekly":
+          text = interval === 1 ? "Every week" : `Every ${interval} weeks`;
+          if (recur.parts?.BYDAY) {
+            const days = recur.parts.BYDAY.map((d) => dayMapEn(d)).join(", ");
+            text += ` on ${days}`;
+          }
+          break;
+        case "monthly":
+          text = interval === 1 ? "Every month" : `Every ${interval} months`;
+          break;
+        case "yearly":
+          text = interval === 1 ? "Every year" : `Every ${interval} years`;
+          break;
+        default:
+          text = `Repeats ${freq}`;
+      }
+
+      if (recur.count) {
+        text += `, ${recur.count} times`;
+      } else if (recur.until) {
+        text += `, until ${recur.until.toJSDate().toLocaleDateString()}`;
+      } else {
+        text += " (forever)";
+      }
     }
 
     return text;
   } catch {
-    return "Recurring event";
+    return locale === "ja" ? "繰り返し" : "Recurring event";
   }
 }
 
 /**
- * Map BYDAY abbreviations to full day names
+ * Map BYDAY abbreviations to Japanese day names
  */
-function dayMap(day: string | number): string {
+function dayMapJa(day: string | number): string {
+  const days: Record<string, string> = {
+    'SU': '日',
+    'MO': '月',
+    'TU': '火',
+    'WE': '水',
+    'TH': '木',
+    'FR': '金',
+    'SA': '土',
+  };
+  // Handle numeric prefixes like "1MO" (first Monday)
+  const cleanDay = String(day).replace(/[+-]?\d+/, '').toUpperCase();
+  return days[cleanDay] || String(day);
+}
+
+/**
+ * Map BYDAY abbreviations to English day names
+ */
+function dayMapEn(day: string | number): string {
   const days: Record<string, string> = {
     SU: "Sunday",
     MO: "Monday",
@@ -484,5 +552,7 @@ function dayMap(day: string | number): string {
     FR: "Friday",
     SA: "Saturday",
   };
-  return days[String(day).toUpperCase()] || String(day);
+  // Handle numeric prefixes like "1MO" (first Monday)
+  const cleanDay = String(day).replace(/[+-]?\d+/, '').toUpperCase();
+  return days[cleanDay] || String(day);
 }

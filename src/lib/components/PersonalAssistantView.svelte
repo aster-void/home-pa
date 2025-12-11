@@ -1,7 +1,5 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  // LogsView removed from header; settings panel is minimal
-  import LogsView from "./LogsView.svelte";
   import { CircularTimelineCss } from "./pa_components/index.js";
   import {
     calendarEvents,
@@ -12,15 +10,15 @@
     pendingSuggestions,
     acceptedSuggestions,
     tasks,
+    dayBoundaries,
   } from "../stores/index.js";
+  import { eventActions } from "../stores/actions/eventActions.js";
   import { enrichedGaps } from "../stores/gaps.js";
   import type { Event, Gap } from "../types.js";
   import { GapFinder } from "../services/gap-finder.js";
   import { get } from "svelte/store";
 
   // Local state
-  // Settings panel toggle (replaces top header controls)
-  let showSettings = $state(false);
   let selectedGap = $state<Gap | null>(null);
   let selectedEvent = $state<Event | null>(null);
 
@@ -69,6 +67,16 @@
   $effect(() => {
     const unsubscribeTasks = tasks.subscribe((value) => (taskList = value));
     return () => unsubscribeTasks();
+  });
+
+  // Keep active hours in sync with shared day boundaries
+  $effect(() => {
+    const unsubscribeBoundaries = dayBoundaries.subscribe((value) => {
+      activeStart = value.dayStart;
+      activeEnd = value.dayEnd;
+      recomputeGaps();
+    });
+    return () => unsubscribeBoundaries();
   });
 
   function buildScheduleSignature(date: Date): string {
@@ -260,29 +268,29 @@
 </script>
 
 <div class="personal-assistant-view">
-  <!-- Minimal bottom-left Settings trigger -->
-  <button class="settings-trigger" onclick={() => (showSettings = true)}
-    >settings</button
-  >
-
   <!-- Main Content -->
   <main class="pa-main">
     <!-- Timeline Section - Takes majority of space -->
     <section class="timeline-section">
       <div class="timeline-stack">
-        <div class="timeline-container">
-          <CircularTimelineCss
-            externalGaps={computedGaps}
-            pendingSuggestions={$pendingSuggestions}
-            acceptedSuggestions={$acceptedSuggestions}
-            {getTaskTitle}
-            on:eventSelected={(e: any) => (selectedEvent = e.detail)}
-            on:gapSelected={(e: any) => (selectedGap = e.detail)}
-            on:suggestionAccept={handleSuggestionAccept}
-            on:suggestionSkip={handleSuggestionSkip}
-            on:suggestionDelete={handleSuggestionDelete}
-            on:suggestionResize={handleSuggestionResize}
-          />
+      <div class="timeline-container">
+        <CircularTimelineCss
+          externalGaps={computedGaps}
+          pendingSuggestions={$pendingSuggestions}
+          acceptedSuggestions={$acceptedSuggestions}
+          {getTaskTitle}
+          on:eventSelected={(e: any) => (selectedEvent = e.detail)}
+          on:eventDelete={async (e: any) => {
+            if (await eventActions.delete(e.detail.id)) {
+              selectedEvent = null;
+            }
+          }}
+          on:gapSelected={(e: any) => (selectedGap = e.detail)}
+          on:suggestionAccept={handleSuggestionAccept}
+          on:suggestionSkip={handleSuggestionSkip}
+          on:suggestionDelete={handleSuggestionDelete}
+          on:suggestionResize={handleSuggestionResize}
+        />
         </div>
 
         <div class="event-list-panel">
@@ -337,54 +345,6 @@
       {/if}
     </section>-->
   </main>
-
-  <!-- Settings Panel (bottom sheet) -->
-  {#if showSettings}
-    <div
-      class="settings-backdrop"
-      onclick={() => (showSettings = false)}
-      onkeydown={(e) => e.key === "Escape" && (showSettings = false)}
-      role="button"
-      tabindex="-1"
-      aria-label="Close settings"
-    ></div>
-    <section
-      class="settings-section"
-      role="dialog"
-      aria-modal="true"
-      tabindex="-1"
-    >
-      <div class="settings-header">
-        <h3>Settings</h3>
-        <button
-          class="settings-close"
-          onclick={() => (showSettings = false)}
-          aria-label="Close">✕</button
-        >
-      </div>
-      <div class="settings-content">
-        <div class="settings-row">
-          <span class="label">Active hours</span>
-          <div class="inputs">
-            <input
-              type="time"
-              bind:value={activeStart}
-              onchange={recomputeGaps}
-            />
-            <span>–</span>
-            <input
-              type="time"
-              bind:value={activeEnd}
-              onchange={recomputeGaps}
-            />
-          </div>
-        </div>
-        <div class="settings-logs">
-          <LogsView />
-        </div>
-      </div>
-    </section>
-  {/if}
 </div>
 
 <style>
@@ -397,20 +357,6 @@
     display: flex;
     flex-direction: column;
     position: relative;
-  }
-
-  /* Settings trigger (minimal, bottom-left) */
-  .settings-trigger {
-    position: fixed;
-    left: 8px;
-    top: 8px;
-    z-index: 250;
-    background: transparent;
-    border: none;
-    padding: 2px 4px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
   }
 
   /* Main Layout - Side by side on desktop */
@@ -663,114 +609,6 @@
     background: var(--red-200);
     transform: translateY(-2px);
   }*/
-  /* Settings Panel (bottom sheet) */
-  .settings-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    z-index: 499;
-    animation: fadeIn 0.2s ease;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .settings-section {
-    position: fixed;
-    bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    max-height: calc(50vh - var(--bottom-nav-height, 80px));
-    background: var(--bg-card);
-    border-top: 1px solid var(--ui-border);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-lg);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
-    z-index: 500;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease;
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .settings-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--ui-border);
-  }
-
-  .settings-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-normal);
-    color: var(--text-primary);
-  }
-
-  .settings-close {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .settings-close:hover {
-    background: var(--danger);
-    color: white;
-  }
-
-  .settings-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-
-  .settings-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .settings-row .inputs {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .settings-logs {
-    margin-top: var(--space-sm);
-  }
-
   /* Responsive Design */
   @media (max-width: 768px) {
     .pa-main {

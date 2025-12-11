@@ -28,6 +28,7 @@
     localDateTimeToUTC,
     createAllDayUTCRange,
   } from "../utils/date-utils.js";
+  import { isValidRRule, formatRRule } from "../services/calendar/index.js";
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
@@ -491,6 +492,11 @@
       rrule += `;UNTIL=${utcDate.toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`;
     }
 
+    // Validate RRULE using ical.js parser
+    if (!isValidRRule(rrule)) {
+      console.warn("[CalendarView] Invalid RRULE generated:", rrule);
+    }
+
     const recurrenceObj = {
       type: "RRULE" as const,
       rrule,
@@ -568,23 +574,12 @@
     }
   }
 
-  function parseFreqFromRrule(
-    rrule: string | undefined,
-  ): "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY" | null {
-    if (!rrule) return null;
-    const match = rrule.match(/FREQ=([A-Z]+)/);
-    if (match) {
-      const freq = match[1] as "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY";
-      return freq;
-    }
-    return null;
-  }
-
   function formatRecurrenceText(recurrence: any): string {
     if (!recurrence || recurrence.type === "NONE") {
       return "";
     }
 
+    // Handle legacy WEEKLY_BITMASK type (if still used)
     if (recurrence.type === "WEEKLY_BITMASK") {
       const days = ["日", "月", "火", "水", "木", "金", "土"];
       const selectedDays = days.filter(
@@ -597,63 +592,9 @@
       return `${interval}${selectedDays.join("・")}${recurrence.count ? ` (${recurrence.count}回)` : ""}`;
     }
 
-    if (recurrence.type === "RRULE") {
-      const freq =
-        recurrence.frequency || parseFreqFromRrule(recurrence.rrule) || "DAILY";
-      const freqMap: Record<string, string> = {
-        DAILY: "毎日",
-        WEEKLY: "毎週",
-        MONTHLY: "毎月",
-        YEARLY: "毎年",
-      };
-      const freqText = freqMap[freq] || freq;
-
-      let result = freqText;
-
-      if (recurrence.rrule.includes("INTERVAL=")) {
-        const match = recurrence.rrule.match(/INTERVAL=(\d+)/);
-        if (match && parseInt(match[1]) > 1) {
-          result =
-            freq === "DAILY"
-              ? `${match[1]}日ごと`
-              : freq === "WEEKLY"
-                ? `${match[1]}週ごと`
-                : freq === "MONTHLY"
-                  ? `${match[1]}ヶ月ごと`
-                  : `${match[1]}年ごと`;
-        }
-      }
-
-      if (freq === "WEEKLY" && recurrence.rrule.includes("BYDAY=")) {
-        const match = recurrence.rrule.match(/BYDAY=([A-Z,]+)/);
-        if (match) {
-          const dayMap: Record<string, string> = {
-            SU: "日",
-            MO: "月",
-            TU: "火",
-            WE: "水",
-            TH: "木",
-            FR: "金",
-            SA: "土",
-          };
-          const days = match[1].split(",").map((d: string) => {
-            const cleanDay = d.replace(/[+-]?\d+/, "");
-            return dayMap[cleanDay] || d;
-          });
-          result += ` (${days.join("・")})`;
-        }
-      }
-
-      if (recurrence.count) {
-        result += ` ${recurrence.count}回`;
-      } else if (recurrence.until) {
-        const date = new Date(recurrence.until);
-        result += ` ${date.toLocaleDateString("ja-JP")}まで`;
-      } else {
-        result += " (永続)"; // Forever indicator
-      }
-
-      return result;
+    // Use formatRRule for RRULE types - uses ical.js for proper parsing
+    if (recurrence.type === "RRULE" && recurrence.rrule) {
+      return formatRRule(recurrence.rrule, "ja");
     }
 
     return "繰り返し";
@@ -1648,6 +1589,17 @@
           {#if isEventEditing}
             <button
               type="button"
+              class="delete-btn"
+              onclick={async () => {
+                if (confirm(`"${$eventForm.title}"を削除しますか？`)) {
+                  if (await eventActions.delete($eventForm.editingId!)) {
+                    eventActions.cancelEventForm();
+                  }
+                }
+              }}>削除</button
+            >
+            <button
+              type="button"
               class="cancel-btn"
               onclick={() => {
                 eventActions.cancelEventForm();
@@ -2520,7 +2472,8 @@
   }
 
   .cancel-btn,
-  .submit-btn {
+  .submit-btn,
+  .delete-btn {
     flex: 1;
     padding: 12px var(--space-md);
     border: none;
@@ -2529,6 +2482,19 @@
     font-weight: var(--font-weight-normal);
     cursor: pointer;
     transition: all 0.15s ease;
+  }
+
+  .delete-btn {
+    background: var(--danger);
+    color: white;
+    flex: 0 0 auto;
+    margin-right: var(--space-sm);
+  }
+
+  .delete-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
   }
 
   .cancel-btn {

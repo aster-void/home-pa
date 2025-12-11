@@ -47,33 +47,32 @@ export function dbEventToAppEvent(dbEvent: CalendarEvent): Event {
   }
 
   // Convert end date: For all-day events, DB stores exclusive DTEND (iCal standard)
-  // App uses inclusive end dates, so we need to subtract 1 day for multi-day events
+  // App uses inclusive end dates: 
+  // - Single-day: 12/12 00:00:00 to 12/12 23:59:59.999
+  // - Multi-day: 12/12 00:00:00 to 12/15 23:59:59.999 (inclusive of last day)
   let appEndDate: Date;
   if (dbEvent.isAllDay && dbEvent.dtend) {
     // For all-day events, dtend is exclusive (day after event ends)
-    // Convert to inclusive: subtract 1 day (or 1ms before midnight of previous day)
+    // Convert to inclusive: subtract 1 day and set to end of day
+    // This works for both single-day and multi-day events
     const exclusiveEnd = new Date(dbEvent.dtend);
-    const startDate = new Date(dbEvent.dtstart);
-    startDate.setHours(0, 0, 0, 0);
     exclusiveEnd.setHours(0, 0, 0, 0);
-
-    // Check if it's multi-day (exclusive end > start)
-    if (exclusiveEnd.getTime() > startDate.getTime()) {
-      // Multi-day event: convert exclusive to inclusive
-      const inclusiveEnd = new Date(exclusiveEnd);
-      inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
-      inclusiveEnd.setHours(23, 59, 59, 999); // End of the last day
-      appEndDate = inclusiveEnd;
-    } else {
-      // Single-day event: end = start
-      appEndDate = dbEvent.dtstart;
-    }
+    // Convert exclusive to inclusive: subtract 1 day, set to end of that day
+    const inclusiveEnd = new Date(exclusiveEnd);
+    inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+    inclusiveEnd.setHours(23, 59, 59, 999); // End of the last day (inclusive)
+    appEndDate = inclusiveEnd;
   } else if (dbEvent.dtend) {
     // Timed events: use dtend as-is (not exclusive)
     appEndDate = dbEvent.dtend;
   } else {
-    // No end date: use start as end
-    appEndDate = dbEvent.dtstart;
+    // No end date: use start as end (set to end of same day for all-day)
+    if (dbEvent.isAllDay) {
+      appEndDate = new Date(dbEvent.dtstart);
+      appEndDate.setHours(23, 59, 59, 999);
+    } else {
+      appEndDate = dbEvent.dtstart;
+    }
   }
 
   return {
@@ -143,29 +142,20 @@ export function appEventToDbCreate(
 
   const isAllDay = event.timeLabel === "all-day";
 
-  // For all-day events, handle multi-day events correctly
-  // iCalendar uses exclusive DTEND for all-day events (the day after the event ends)
+  // For all-day events, iCalendar uses exclusive DTEND (the day after the event ends)
+  // App uses inclusive end dates (23:59:59.999), so we convert to exclusive (next day 00:00)
+  // This works for both single-day and multi-day events:
+  // - Single-day: 12/12 23:59:59.999 -> 12/13 00:00:00 (exclusive)
+  // - Multi-day: 12/15 23:59:59.999 -> 12/16 00:00:00 (exclusive)
   let dbDtend: Date | null = null;
   if (isAllDay && event.end) {
-    const startDate = new Date(event.start);
-    startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(event.end);
+    // Get the date part (all-day events end at 23:59:59.999, so we need the next day)
     endDate.setHours(0, 0, 0, 0);
-
-    // Check if it's a multi-day event (different days)
-    if (endDate.getTime() > startDate.getTime()) {
-      // Multi-day event: convert inclusive end to exclusive (add 1 day)
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      dbDtend = exclusiveEnd;
-    }
-    // Single-day all-day events: dtend can be null (or same as dtstart + 1 day)
-    // For consistency, we'll set it to start + 1 day
-    else {
-      const exclusiveEnd = new Date(startDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      dbDtend = exclusiveEnd;
-    }
+    // Convert inclusive end to exclusive: add 1 day
+    const exclusiveEnd = new Date(endDate);
+    exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+    dbDtend = exclusiveEnd;
   } else if (!isAllDay) {
     // Timed events: use the end date as-is
     dbDtend = event.end;
@@ -246,23 +236,13 @@ export function appEventToDbUpdate(
         : existingEvent.isAllDay;
 
     if (isAllDay && updates.end) {
-      const startDate = new Date(updates.start ?? existingEvent.dtstart);
-      startDate.setHours(0, 0, 0, 0);
+      // Convert inclusive end (23:59:59.999) to exclusive (next day 00:00)
+      // Works for both single-day and multi-day all-day events
       const endDate = new Date(updates.end);
       endDate.setHours(0, 0, 0, 0);
-
-      // Check if it's a multi-day event
-      if (endDate.getTime() > startDate.getTime()) {
-        // Multi-day: convert inclusive end to exclusive (add 1 day)
-        const exclusiveEnd = new Date(endDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-        result.dtend = exclusiveEnd;
-      } else {
-        // Single-day: set to start + 1 day
-        const exclusiveEnd = new Date(startDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-        result.dtend = exclusiveEnd;
-      }
+      const exclusiveEnd = new Date(endDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+      result.dtend = exclusiveEnd;
     } else {
       result.dtend = updates.end;
     }
@@ -283,20 +263,13 @@ export function appEventToDbUpdate(
       // Already handled above
     } else if (updates.timeLabel === "all-day" && existingEvent.dtend) {
       // Converting timed event to all-day: convert dtend to exclusive format
+      // For all-day, we assume the end date should be end of the same day as start
       const startDate = new Date(updates.start ?? existingEvent.dtstart);
       startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(existingEvent.dtend);
-      endDate.setHours(0, 0, 0, 0);
-
-      if (endDate.getTime() > startDate.getTime()) {
-        const exclusiveEnd = new Date(endDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-        result.dtend = exclusiveEnd;
-      } else {
-        const exclusiveEnd = new Date(startDate);
-        exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-        result.dtend = exclusiveEnd;
-      }
+      // Set exclusive end to start + 1 day (single-day all-day event)
+      const exclusiveEnd = new Date(startDate);
+      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+      result.dtend = exclusiveEnd;
     }
   }
 
@@ -450,23 +423,12 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
   // For all-day events, convert inclusive end to exclusive (iCal standard)
   let parsedDtend: Date | null = null;
   if (isAllDay && event.end) {
-    const startDate = new Date(event.start);
-    startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(event.end);
     endDate.setHours(0, 0, 0, 0);
 
-    // Check if it's a multi-day event
-    if (endDate.getTime() > startDate.getTime()) {
-      // Multi-day: convert inclusive end to exclusive (add 1 day)
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      parsedDtend = exclusiveEnd;
-    } else {
-      // Single-day: set to start + 1 day
-      const exclusiveEnd = new Date(startDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      parsedDtend = exclusiveEnd;
-    }
+    const exclusiveEnd = new Date(endDate);
+    exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
+    parsedDtend = exclusiveEnd;
   } else if (!isAllDay) {
     parsedDtend = event.end;
   }
@@ -497,7 +459,6 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
   };
 }
 
-// ============================================================================
 // JSON SERIALIZATION HELPERS
 // ============================================================================
 

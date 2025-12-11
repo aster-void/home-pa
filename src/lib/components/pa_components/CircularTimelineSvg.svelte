@@ -43,6 +43,7 @@
   // Dispatcher
   const dispatch = createEventDispatcher<{
     eventSelected: MyEvent;
+    eventDelete: MyEvent;
     gapSelected: any;
     suggestionAccept: string;
     suggestionSkip: string;
@@ -120,15 +121,8 @@
   }
 
   function getEffectiveEnd(ev: MyEvent): Date {
-    const end = new Date(ev.end);
-    if (
-      ev.timeLabel === "all-day" &&
-      end.getHours() === 0 &&
-      end.getMinutes() === 0
-    ) {
-      return new Date(end.getTime() - 1);
-    }
-    return end;
+    // All-day events now have inclusive end dates (23:59:59.999), so use as-is
+    return new Date(ev.end);
   }
 
   // Build arc path
@@ -342,12 +336,23 @@
   function onSuggestionClick(
     s: PendingSuggestion | AcceptedSuggestion,
     isAccepted: boolean,
-    e: MouseEvent,
+    e: MouseEvent | KeyboardEvent,
   ) {
+    let x: number, y: number;
+    if (e instanceof MouseEvent) {
+      x = e.clientX + 10;
+      y = e.clientY - 50;
+    } else {
+      // For keyboard events, get position from the target element
+      const target = e.currentTarget as SVGPathElement;
+      const rect = target.getBoundingClientRect();
+      x = rect.left + rect.width / 2;
+      y = rect.top + rect.height / 2;
+    }
     selectedSuggestion = {
       suggestion: s,
       isAccepted,
-      position: { x: e.clientX + 10, y: e.clientY - 50 },
+      position: { x, y },
     };
   }
 
@@ -554,7 +559,16 @@
         class:pending={isPending}
         class:accepted={!isPending}
         filter="url(#glow)"
+        role="button"
+        tabindex="0"
+        aria-label={isPending ? `Pending suggestion: ${getTaskTitle(s.data.memoId)}` : `Accepted suggestion: ${getTaskTitle(s.data.memoId)}`}
         onclick={(e) => onSuggestionClick(s.data, s.isAccepted, e)}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSuggestionClick(s.data, s.isAccepted, e);
+          }
+        }}
       />
       {#if !isPending}
         <circle
@@ -565,8 +579,18 @@
           stroke="rgba(255,255,255,0.9)"
           stroke-width="0.3"
           class="resize-handle"
+          role="button"
+          tabindex="0"
+          aria-label="Resize suggestion duration"
           onmousedown={(e) =>
             startResize(s.data.suggestionId, s.data.duration, e)}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              // For keyboard, we could show a dialog or use arrow keys
+              // For now, just focus the element
+            }
+          }}
         />
       {/if}
     {/each}
@@ -575,21 +599,75 @@
     {#each normalizedEvents as ev (ev.ref.id)}
       {@const radius = eventBaseRadius - ev.lane * (laneWidth + laneGap)}
       {@const isAllDay = ev.ref.timeLabel === "all-day"}
-      <path
-        d={arcPath(ev.startAngle, ev.endAngle, radius)}
-        fill="none"
-        stroke="url(#eventGrad)"
-        stroke-width={isAllDay ? "2" : "3.5"}
-        stroke-linecap="round"
-        stroke-opacity={isAllDay ? 0.5 : 0.95}
-        class="event-arc"
-        class:all-day={isAllDay}
-        filter="url(#glow)"
-        onmouseenter={(e) => hoverEvent(ev.ref, e)}
-        onmousemove={updateMouse}
-        onmouseleave={clearHover}
-        onclick={() => dispatch("eventSelected", ev.ref)}
-      />
+      {@const midAngle = (ev.startAngle + ev.endAngle) / 2}
+      {@const deleteX = center + (radius - 2) * Math.cos(midAngle - Math.PI / 2)}
+      {@const deleteY = center + (radius - 2) * Math.sin(midAngle - Math.PI / 2)}
+      <g class="event-group">
+        <path
+          d={arcPath(ev.startAngle, ev.endAngle, radius)}
+          fill="none"
+          stroke="url(#eventGrad)"
+          stroke-width={isAllDay ? "2" : "3.5"}
+          stroke-linecap="round"
+          stroke-opacity={isAllDay ? 0.5 : 0.95}
+          class="event-arc"
+          class:all-day={isAllDay}
+          filter="url(#glow)"
+          role="button"
+          tabindex="0"
+          aria-label={`Event: ${ev.ref.title}`}
+          onmouseenter={(e) => hoverEvent(ev.ref, e)}
+          onmousemove={updateMouse}
+          onmouseleave={clearHover}
+          onclick={() => dispatch("eventSelected", ev.ref)}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              dispatch("eventSelected", ev.ref);
+            }
+          }}
+        />
+        <!-- Delete button (small, appears on hover) -->
+        <circle
+          cx={deleteX}
+          cy={deleteY}
+          r="1.5"
+          fill="rgba(239, 68, 68, 0.9)"
+          stroke="white"
+          stroke-width="0.3"
+          class="delete-btn"
+          role="button"
+          tabindex="0"
+          aria-label={`Delete event: ${ev.ref.title}`}
+          onclick={(e) => {
+            e.stopPropagation();
+            if (confirm(`Delete "${ev.ref.title}"?`)) {
+              dispatch("eventDelete", ev.ref);
+            }
+          }}
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              if (confirm(`Delete "${ev.ref.title}"?`)) {
+                dispatch("eventDelete", ev.ref);
+              }
+            }
+          }}
+          style="cursor: pointer; opacity: 0; transition: opacity 0.2s;"
+        />
+        <text
+          x={deleteX}
+          y={deleteY}
+          font-size="1.8"
+          fill="white"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          class="delete-icon"
+          aria-hidden="true"
+          style="cursor: pointer; opacity: 0; transition: opacity 0.2s; pointer-events: none;"
+        >×</text>
+      </g>
     {/each}
 
     <!-- Gap arcs (outermost, rendered last to appear on top) -->
@@ -602,10 +680,19 @@
         stroke-linecap="round"
         class="gap-arc"
         filter="url(#softGlow)"
+        role="button"
+        tabindex="0"
+        aria-label={`Free time gap: ${gap.start} to ${gap.end}`}
         onmouseenter={(e) => hoverGap(gap, e)}
         onmousemove={updateMouse}
         onmouseleave={clearHover}
         onclick={() => dispatch("gapSelected", gap)}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            dispatch("gapSelected", gap);
+          }
+        }}
       />
     {/each}
 
@@ -746,6 +833,25 @@
 
   .event-arc.all-day:hover {
     stroke-width: 3 !important;
+  }
+
+  .event-group {
+    position: relative;
+  }
+
+  .event-group:hover .delete-btn {
+    opacity: 1 !important;
+    pointer-events: auto;
+  }
+
+  .event-group:hover .delete-icon {
+    opacity: 1 !important;
+    pointer-events: none;
+  }
+
+  .delete-btn:hover {
+    r: 2;
+    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
   }
 
   .gap-arc {

@@ -19,6 +19,7 @@ export {
   type ParsedEvent,
   type VEventInput,
   type ExpandedOccurrence,
+  type RRuleLocale,
 } from "./ical-service.js";
 
 // Type conversions
@@ -30,7 +31,6 @@ export {
   parsedEventToDbCreate,
   dbEventToParsedEvent,
   dbEventsToParsedEvents,
-  appEventToParsedEvent,
   eventToJSON,
   eventFromJSON,
   eventsFromJSON,

@@ -1,5 +1,5 @@
 // Personal Assistant Components
-export { default as CircularTimelineCss } from "./CircularTimelineCss.svelte";
+export { default as CircularTimelineCss } from "./CircularTimelineSvg.svelte";
 export { default as SchedulePanel } from "./SchedulePanel.svelte";
 export { default as SuggestionCard } from "./SuggestionCard.svelte";
 

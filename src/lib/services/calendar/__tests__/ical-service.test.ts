@@ -3,6 +3,8 @@ import {
   parseVEventString,
   expandRecurrences,
   generateICS,
+  isValidRRule,
+  formatRRule,
 } from "../ical-service.js";
 
 describe("ical-service", () => {
@@ -89,5 +91,63 @@ END:VEVENT
     expect(ics).toContain("DTEND:20251210T110000Z");
     expect(ics).toContain("END:VEVENT");
     expect(ics).toContain("END:VCALENDAR");
+  });
+
+  describe("isValidRRule", () => {
+    it("returns true for valid RRULE strings", () => {
+      expect(isValidRRule("FREQ=DAILY")).toBe(true);
+      expect(isValidRRule("FREQ=WEEKLY;BYDAY=MO,WE,FR")).toBe(true);
+      expect(isValidRRule("FREQ=MONTHLY;INTERVAL=2")).toBe(true);
+      expect(isValidRRule("FREQ=YEARLY;COUNT=5")).toBe(true);
+      expect(isValidRRule("FREQ=WEEKLY;BYDAY=TH;UNTIL=20251231T235959Z")).toBe(true);
+    });
+
+    it("returns false for invalid RRULE strings", () => {
+      expect(isValidRRule("")).toBe(false);
+      expect(isValidRRule("INVALID")).toBe(false);
+      expect(isValidRRule("FREQ=INVALID")).toBe(false);
+    });
+  });
+
+  describe("formatRRule", () => {
+    it("formats daily recurrence in Japanese", () => {
+      expect(formatRRule("FREQ=DAILY", "ja")).toBe("毎日 (永続)");
+      expect(formatRRule("FREQ=DAILY;INTERVAL=3", "ja")).toBe("3日ごと (永続)");
+    });
+
+    it("formats weekly recurrence with days in Japanese", () => {
+      const result = formatRRule("FREQ=WEEKLY;BYDAY=MO,WE,FR", "ja");
+      expect(result).toContain("毎週");
+      expect(result).toContain("月");
+      expect(result).toContain("水");
+      expect(result).toContain("金");
+    });
+
+    it("formats monthly recurrence in Japanese", () => {
+      expect(formatRRule("FREQ=MONTHLY", "ja")).toBe("毎月 (永続)");
+      expect(formatRRule("FREQ=MONTHLY;INTERVAL=2", "ja")).toBe("2ヶ月ごと (永続)");
+    });
+
+    it("formats recurrence with count in Japanese", () => {
+      const result = formatRRule("FREQ=WEEKLY;COUNT=10", "ja");
+      expect(result).toContain("10回");
+    });
+
+    it("formats daily recurrence in English", () => {
+      expect(formatRRule("FREQ=DAILY", "en")).toBe("Every day (forever)");
+      expect(formatRRule("FREQ=DAILY;INTERVAL=3", "en")).toBe("Every 3 days (forever)");
+    });
+
+    it("formats weekly recurrence with days in English", () => {
+      const result = formatRRule("FREQ=WEEKLY;BYDAY=MO,WE,FR", "en");
+      expect(result).toContain("Every week");
+      expect(result).toContain("Monday");
+      expect(result).toContain("Wednesday");
+      expect(result).toContain("Friday");
+    });
+
+    it("defaults to Japanese locale", () => {
+      expect(formatRRule("FREQ=DAILY")).toBe("毎日 (永続)");
+    });
   });
 });

@@ -9,6 +9,7 @@ import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { prisma } from "$lib/server/prisma";
 import {
+  dbEventToAppEvent,
   dbEventsToAppEvents,
   appEventToDbCreate,
   eventToJSON,
@@ -157,23 +158,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     const created = await prisma.calendarEvent.create({
       data: dbInput,
     });
-
-    // Convert back to app format
-    const appEvent = {
-      id: created.id,
-      title: created.summary,
-      start: created.dtstart,
-      end: created.dtend || created.dtstart,
-      description: created.description || undefined,
-      address: created.location || undefined,
-      timeLabel: created.isAllDay ? "all-day" : "timed",
-      tzid: created.dtstartTzid || undefined,
-      recurrence:
-        created.hasRecurrence && created.rrule
-          ? { type: "RRULE" as const, rrule: created.rrule }
-          : { type: "NONE" as const },
-    };
-
+    // Convert back to app format (inclusive end handling) for consistent responses
+    const appEvent = dbEventToAppEvent(created);
     return json(eventToJSON(appEvent as any), { status: 201 });
   } catch (err) {
     if (err instanceof Response) throw err;
