@@ -1,11 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { createEventDispatcher } from "svelte";
-  import {
-    dataState,
-    calendarState,
-    type ExpandedOccurrence,
-  } from "$lib/bootstrap/compat.svelte.ts";
+  import { dataState, calendarState } from "$lib/bootstrap/compat.svelte.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
   import type {
     PendingSuggestion,

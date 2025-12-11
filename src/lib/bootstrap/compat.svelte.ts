@@ -8,14 +8,8 @@
  * For new code, import directly from the .svelte.ts files.
  */
 
-import type { Event, SuggestionLog, ViewMode } from "../types.ts";
-import type { AppView } from "./ui.svelte.ts";
-import type { ExpandedOccurrence } from "../features/calendar/state/calendar.svelte.ts";
-import type { SimpleMemo } from "./data.svelte.ts";
-import type {
-  EventFormData,
-  EventFormErrors,
-} from "../features/calendar/state/eventForm.svelte.ts";
+import type { SuggestionLog } from "../types.ts";
+import type { EventFormData } from "../features/calendar/state/eventForm.svelte.ts";
 
 // ============================================================================
 // Re-export from Svelte 5 reactive modules
@@ -113,6 +107,7 @@ export const uiActions = {
   navigateToToday: dataState.goToToday.bind(dataState),
   navigateDate: (days: number) => {
     const current = dataState.selectedDate;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in action function, not reactive state
     const newDate = new Date(current);
     newDate.setDate(newDate.getDate() + days);
     dataState.setSelectedDate(newDate);

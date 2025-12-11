@@ -404,6 +404,7 @@
     monthlyType = "nthWeekday";
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future use in event form
   function buildRecurrenceObject(): Recurrence {
     if (!isRecurring) {
       return { type: "NONE" } as const;

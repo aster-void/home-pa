@@ -15,7 +15,6 @@ import { GapFinder } from "../services/gap-finder.ts";
 import { dataState } from "../../../bootstrap/data.svelte.ts";
 import { calendarState } from "../../calendar/state/calendar.svelte.ts";
 import type { Event as CalendarEvent } from "$lib/types.ts";
-import type { ExpandedOccurrence } from "../../calendar/state/calendar.svelte.ts";
 import {
   enrichGapsWithLocation,
   type EnrichableEvent,
@@ -74,8 +73,10 @@ function convertCalendarEventToGapEvent(
   const eventEndDate = new Date(calendarEvent.end);
 
   // Calculate day boundaries for target date
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
   const targetDayStart = new Date(targetDate);
   targetDayStart.setHours(0, 0, 0, 0);
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
   const targetDayEnd = new Date(targetDate);
   targetDayEnd.setHours(23, 59, 59, 999);
 
@@ -105,10 +106,13 @@ function convertCalendarEventToGapEvent(
   let endTime: string = "";
 
   // Normalize dates for comparison (ignore time component)
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
   const normalizedTargetDate = new Date(targetDate);
   normalizedTargetDate.setHours(0, 0, 0, 0);
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
   const normalizedEventStart = new Date(eventStartDate);
   normalizedEventStart.setHours(0, 0, 0, 0);
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
   const normalizedEventEnd = new Date(eventEndDate);
   normalizedEventEnd.setHours(0, 0, 0, 0);
 

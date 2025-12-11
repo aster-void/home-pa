@@ -151,7 +151,11 @@
           class="auth-form"
           onsubmit={(e) => {
             e.preventDefault();
-            mode === "signin" ? signIn() : signUp();
+            if (mode === "signin") {
+              signIn();
+            } else {
+              signUp();
+            }
           }}
         >
           {#if mode === "signup"}

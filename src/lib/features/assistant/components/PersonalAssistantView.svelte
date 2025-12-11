@@ -10,7 +10,6 @@
     acceptedSuggestions,
     tasks,
   } from "$lib/bootstrap/compat.svelte.ts";
-  import { enrichedGaps } from "$lib/features/assistant/state/gaps.svelte.ts";
   import type { Event, Gap } from "$lib/types.ts";
   import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
