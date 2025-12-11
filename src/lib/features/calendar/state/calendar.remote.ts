@@ -1,132 +1,117 @@
 /**
- * Calendar API client
+ * Calendar Remote Functions - Client API
  *
- * Pure API functions for calendar operations.
- * These functions handle HTTP requests and response parsing only.
+ * Client-side wrappers for calendar Remote Functions.
+ * Provides API compatible with existing fetch-based code.
  */
 import type { Event } from "$lib/types.ts";
 import type { ImportResult, DateWindow } from "./calendar.types.ts";
+import {
+  fetchEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  importIcs,
+} from "./calendar.functions.remote.ts";
 
 /**
- * Fetch events from API
+ * Fetch events (client-side wrapper for Remote Function)
  */
 export async function fetchEventsApi(window: DateWindow): Promise<Event[]> {
-  const params = new URLSearchParams({
-    start: window.start.toISOString(),
-    end: window.end.toISOString(),
-  });
+  try {
+    const eventsJson = await fetchEvents({
+      start: window.start.toISOString(),
+      end: window.end.toISOString(),
+    });
 
-  const response = await fetch(`/api/calendar/events?${params}`);
-
-  if (!response.ok) {
-    // Handle 401 (Unauthorized) gracefully - user not logged in
-    if (response.status === 401) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return eventsJson.map((e: any) => ({
+      ...e,
+      start: new Date(e.start),
+      end: new Date(e.end),
+      icalData: e.icalData,
+    })) as Event[];
+  } catch (err) {
+    // Handle unauthorized gracefully - user not logged in
+    if (err instanceof Error && err.message === "Unauthorized") {
       return [];
     }
-
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}`);
+    throw err;
   }
-
-  const eventsJson = await response.json();
-
-  // Convert dates from JSON and preserve icalData
-  return eventsJson.map((e: Record<string, unknown>) => ({
-    ...e,
-    start: new Date(e.start as string),
-    end: new Date(e.end as string),
-    icalData: e.icalData as string | undefined,
-  }));
 }
 
 /**
- * Create a new event via API
+ * Create event (client-side wrapper for Remote Function)
  */
 export async function createEventApi(event: Omit<Event, "id">): Promise<Event> {
-  const response = await fetch("/api/calendar/events", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...event,
-      start: event.start.toISOString(),
-      end: event.end.toISOString(),
-    }),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createdJson: any = await createEvent({
+    title: event.title,
+    start: event.start.toISOString(),
+    end: event.end.toISOString(),
+    description: event.description,
+    address: event.address,
+    importance: event.importance,
+    timeLabel: event.timeLabel,
+    tzid: event.tzid,
+    recurrence: event.recurrence,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}`);
-  }
-
-  const createdJson = await response.json();
   return {
     ...createdJson,
     start: new Date(createdJson.start),
     end: new Date(createdJson.end),
-  };
+  } as Event;
 }
 
 /**
- * Update an existing event via API
+ * Update event (client-side wrapper for Remote Function)
  */
 export async function updateEventApi(
   id: string,
   updates: Partial<Omit<Event, "id">>,
 ): Promise<Event> {
-  const body: Record<string, unknown> = { ...updates };
-  if (updates.start) body.start = updates.start.toISOString();
-  if (updates.end) body.end = updates.end.toISOString();
+  const body: Record<string, unknown> = {};
+  if (updates.title !== undefined) body.title = updates.title;
+  if (updates.start !== undefined) body.start = updates.start.toISOString();
+  if (updates.end !== undefined) body.end = updates.end.toISOString();
+  if (updates.description !== undefined) body.description = updates.description;
+  if (updates.address !== undefined) body.address = updates.address;
+  if (updates.importance !== undefined) body.importance = updates.importance;
+  if (updates.timeLabel !== undefined) body.timeLabel = updates.timeLabel;
+  if (updates.tzid !== undefined) body.tzid = updates.tzid;
+  if (updates.recurrence !== undefined) body.recurrence = updates.recurrence;
 
-  const response = await fetch(`/api/calendar/events/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updatedJson: any = await updateEvent({
+    id,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updates: body as any,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}`);
-  }
-
-  const updatedJson = await response.json();
   return {
     ...updatedJson,
     start: new Date(updatedJson.start),
     end: new Date(updatedJson.end),
-  };
+  } as Event;
 }
 
 /**
- * Delete an event via API
+ * Delete event (client-side wrapper for Remote Function)
  */
 export async function deleteEventApi(id: string): Promise<void> {
-  const response = await fetch(`/api/calendar/events/${id}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok && response.status !== 204) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}`);
-  }
+  await deleteEvent({ id });
 }
 
 /**
- * Import events from .ics file content
+ * Import events from .ics file (client-side wrapper for Remote Function)
  */
 export async function importIcsApi(content: string): Promise<ImportResult> {
-  const response = await fetch("/api/calendar/import", {
-    method: "POST",
-    headers: { "Content-Type": "text/calendar" },
-    body: content,
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP ${response.status}`);
-  }
-
-  return response.json();
+  return importIcs(content);
 }
+
+// Re-export Remote Functions for direct use
+export { fetchEvents, createEvent, updateEvent, deleteEvent, importIcs };
 
 /**
  * Get export URL for downloading .ics file

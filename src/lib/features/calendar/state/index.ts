@@ -9,12 +9,5 @@ export {
   type DateWindow,
 } from "./calendar.state.svelte.ts";
 
-// Re-export API functions for direct usage
-export {
-  fetchEventsApi,
-  createEventApi,
-  updateEventApi,
-  deleteEventApi,
-  importIcsApi,
-  getExportUrl,
-} from "./calendar.remote.ts";
+// Re-export Remote Functions
+export { importIcs } from "./calendar.functions.remote.ts";

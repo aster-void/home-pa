@@ -103,7 +103,7 @@ Task added to store (minimal fields)
   ↓
 enrichTaskInBackground() - Async
   ↓
-POST /api/enrich - LLM API call
+enrichMemo() Remote Function - LLM call
   ↓
 Store update - Add enrichment fields
   ↓
@@ -136,8 +136,8 @@ If LLM enrichment fails:
 #### Key Files
 
 - `src/lib/stores/actions/taskActions.ts` - Triggers enrichment after creation
-- `src/routes/api/enrich/+server.ts` - Server endpoint for LLM enrichment
-- `src/lib/services/suggestions/llm-enrichment.ts` - Client-side API wrapper
+- `src/lib/features/assistant/services/suggestions/enrich.remote.ts` - Remote Function for LLM enrichment
+- `src/lib/features/assistant/services/suggestions/llm-enrichment.ts` - Client-side wrapper
 
 ## Design Principles
 

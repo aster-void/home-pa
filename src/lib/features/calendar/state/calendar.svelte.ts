@@ -20,6 +20,13 @@ import {
   type ExpandedOccurrence as IcalOccurrence,
 } from "../services/index.ts";
 import { toastState } from "../../../bootstrap/toast.svelte.ts";
+import {
+  fetchEvents as fetchEventsRemote,
+  createEvent as createEventRemote,
+  updateEvent as updateEventRemote,
+  deleteEvent as deleteEventRemote,
+  importIcs,
+} from "./calendar.functions.remote.ts";
 
 // ============================================================================
 // TYPES
@@ -202,36 +209,17 @@ class CalendarState {
     this.error = null;
 
     try {
-      const params = new URLSearchParams({
+      const eventsJson = (await fetchEventsRemote({
         start: start.toISOString(),
         end: end.toISOString(),
-      });
-
-      const response = await fetch(`/api/calendar/events?${params}`);
-
-      if (!response.ok) {
-        // Handle 401 (Unauthorized) gracefully
-        if (response.status === 401) {
-          this.events = [];
-          this.occurrences = [];
-          this.loading = false;
-          this.error = null;
-          return;
-        }
-
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const eventsJson = await response.json();
+      })) as Array<{ start: string; end: string } & Record<string, unknown>>;
 
       // Convert dates from JSON and preserve icalData
-      const events: Event[] = eventsJson.map((e: Record<string, unknown>) => ({
+      const events: Event[] = eventsJson.map((e) => ({
         ...e,
-        start: new Date(e.start as string),
-        end: new Date(e.end as string),
-        icalData: e.icalData as string | undefined,
-      }));
+        start: new Date(e.start),
+        end: new Date(e.end),
+      })) as Event[];
 
       // Expand recurring events
       const occurrences = expandRecurring
@@ -275,27 +263,23 @@ class CalendarState {
    */
   async createEvent(event: Omit<Event, "id">): Promise<Event | null> {
     try {
-      const response = await fetch("/api/calendar/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...event,
-          start: event.start.toISOString(),
-          end: event.end.toISOString(),
-        }),
+      const createdJson = await createEventRemote({
+        title: event.title,
+        start: event.start.toISOString(),
+        end: event.end.toISOString(),
+        description: event.description,
+        address: event.address,
+        importance: event.importance,
+        timeLabel: event.timeLabel,
+        tzid: event.tzid,
+        recurrence: event.recurrence,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const createdJson = await response.json();
       const created: Event = {
-        ...createdJson,
-        start: new Date(createdJson.start),
-        end: new Date(createdJson.end),
-      };
+        ...(createdJson as object),
+        start: new Date(createdJson.start as string),
+        end: new Date(createdJson.end as string),
+      } as Event;
 
       // Add to local store and re-expand occurrences
       const newEvents = [...this.events, created].sort(
@@ -328,27 +312,33 @@ class CalendarState {
     updates: Partial<Omit<Event, "id">>,
   ): Promise<boolean> {
     try {
-      const body: Record<string, unknown> = { ...updates };
-      if (updates.start) body.start = updates.start.toISOString();
-      if (updates.end) body.end = updates.end.toISOString();
+      const updateInput: Record<string, unknown> = {};
+      if (updates.title !== undefined) updateInput.title = updates.title;
+      if (updates.start !== undefined)
+        updateInput.start = updates.start.toISOString();
+      if (updates.end !== undefined)
+        updateInput.end = updates.end.toISOString();
+      if (updates.description !== undefined)
+        updateInput.description = updates.description;
+      if (updates.address !== undefined) updateInput.address = updates.address;
+      if (updates.importance !== undefined)
+        updateInput.importance = updates.importance;
+      if (updates.timeLabel !== undefined)
+        updateInput.timeLabel = updates.timeLabel;
+      if (updates.tzid !== undefined) updateInput.tzid = updates.tzid;
+      if (updates.recurrence !== undefined)
+        updateInput.recurrence = updates.recurrence;
 
-      const response = await fetch(`/api/calendar/events/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const updatedJson = await updateEventRemote({
+        id,
+        updates: updateInput,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const updatedJson = await response.json();
       const updated: Event = {
-        ...updatedJson,
-        start: new Date(updatedJson.start),
-        end: new Date(updatedJson.end),
-      };
+        ...(updatedJson as object),
+        start: new Date(updatedJson.start as string),
+        end: new Date(updatedJson.end as string),
+      } as Event;
 
       // Update local store
       const newEvents = this.events.map((e) => (e.id === id ? updated : e));
@@ -376,14 +366,7 @@ class CalendarState {
    */
   async deleteEvent(id: string): Promise<boolean> {
     try {
-      const response = await fetch(`/api/calendar/events/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok && response.status !== 204) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
+      await deleteEventRemote({ id });
 
       // Remove from local store
       const newEvents = this.events.filter((e) => e.id !== id);
@@ -412,19 +395,7 @@ class CalendarState {
   async importICS(file: File): Promise<ImportResult> {
     try {
       const content = await file.text();
-
-      const response = await fetch("/api/calendar/import", {
-        method: "POST",
-        headers: { "Content-Type": "text/calendar" },
-        body: content,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
-      }
-
-      const result: ImportResult = await response.json();
+      const result = await importIcs(content);
 
       // Refresh events after import
       if (this.currentWindow) {

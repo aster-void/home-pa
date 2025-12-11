@@ -27,8 +27,8 @@ import {
   createEventApi,
   updateEventApi,
   deleteEventApi,
-  importIcsApi,
   getExportUrl,
+  importIcsApi,
 } from "./calendar.remote.ts";
 
 // ============================================================================

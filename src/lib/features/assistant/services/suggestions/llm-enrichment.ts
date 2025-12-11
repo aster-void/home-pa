@@ -480,8 +480,10 @@ export function getCacheStats(): { size: number; entries: string[] } {
 // Client-Side API Integration
 // ============================================================================
 
+import { enrichMemo as enrichMemoRemote } from "./enrich.remote.ts";
+
 /**
- * Enrich a memo via the server-side API endpoint
+ * Enrich a memo via Remote Function
  *
  * This is the browser-safe way to enrich memos. The API key stays on the server.
  * Falls back to rule-based enrichment if the API is unavailable.
@@ -491,61 +493,30 @@ export function getCacheStats(): { size: number; entries: string[] } {
  */
 export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
   try {
-    // Use absolute URL if available (for SSR/test environments), otherwise relative
-    const baseUrl =
-      typeof window !== "undefined" ? "" : "http://localhost:3000";
-    const url = `${baseUrl}/api/enrich`;
-
-    // Use global fetch (works in both browser and Node.js test environments)
-    const fetchFn =
-      typeof global !== "undefined" && (global as typeof globalThis).fetch
-        ? (global as typeof globalThis).fetch
-        : fetch;
-    const response = await fetchFn(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: memo.id,
-        title: memo.title,
-        type: memo.type,
-        deadline: memo.deadline?.toISOString(),
-        createdAt: memo.createdAt.toISOString(),
-        locationPreference: memo.locationPreference,
-        status: memo.status,
-        // Include existing values so server can respect them
-        genre: memo.genre,
-        importance: memo.importance,
-        sessionDuration: memo.sessionDuration,
-        totalDurationExpected: memo.totalDurationExpected,
-      }),
+    const result = await enrichMemoRemote({
+      id: memo.id,
+      title: memo.title,
+      type: memo.type,
+      createdAt: memo.createdAt.toISOString(),
+      deadline: memo.deadline?.toISOString(),
+      locationPreference: memo.locationPreference,
+      status: {
+        timeSpentMinutes: memo.status.timeSpentMinutes,
+        completionState: memo.status.completionState,
+        completionsThisPeriod: memo.status.completionsThisPeriod,
+        periodStartDate: memo.status.periodStartDate?.toISOString(),
+      },
+      genre: memo.genre,
+      importance: memo.importance,
+      sessionDuration: memo.sessionDuration,
+      totalDurationExpected: memo.totalDurationExpected,
     });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "Unknown error");
-      console.warn(
-        `[LLM Enrichment] API error (${response.status}): ${errorText}, using fallback`,
-      );
-      return getFallbackEnrichment(memo);
-    }
-
-    const enrichment = await response.json();
-
-    // Validate response structure
-    if (
-      typeof enrichment.genre === "string" &&
-      typeof enrichment.importance === "string" &&
-      typeof enrichment.sessionDuration === "number" &&
-      typeof enrichment.totalDurationExpected === "number"
-    ) {
-      return enrichment as EnrichmentResult;
-    } else {
-      console.warn(
-        "[LLM Enrichment] Invalid API response format, using fallback",
-      );
-      return getFallbackEnrichment(memo);
-    }
+    return result as EnrichmentResult;
   } catch (error) {
-    console.warn("[LLM Enrichment] Network error, using fallback:", error);
+    console.warn(
+      "[LLM Enrichment] Remote function error, using fallback:",
+      error,
+    );
     return getFallbackEnrichment(memo);
   }
 }
