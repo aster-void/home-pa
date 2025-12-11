@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { Event } from "$lib/types.ts";
   import {
-    selectedDate,
-    calendarEvents,
+    dataState,
+    calendarState,
     eventActions,
     uiActions,
-  } from "$lib/bootstrap/compat.ts";
+  } from "$lib/bootstrap/compat.svelte.ts";
 
   interface Props {
     events: Event[];
@@ -91,7 +91,7 @@
 
   function handleEventClick(event: Event) {
     const masterEvent =
-      $calendarEvents.find(
+      calendarState.events.find(
         (e) =>
           e.id === (event as Event & { eventId?: string }).eventId ||
           e.id === event.id,
@@ -120,7 +120,9 @@
     tabindex="-1"
   >
     <div class="popup-header">
-      <h3>タイムライン - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
+      <h3>
+        タイムライン - {dataState.selectedDate.toLocaleDateString("ja-JP")}
+      </h3>
       <button
         class="close-button"
         onclick={() => uiActions.hideTimelinePopup()}

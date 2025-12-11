@@ -10,7 +10,7 @@
 
 import { dataState } from "../../../bootstrap/data.svelte.ts";
 import { uiState } from "../../../bootstrap/ui.svelte.ts";
-import { gaps } from "./gaps.ts";
+import { gaps } from "./gaps.svelte.ts";
 import { suggestionService } from "../services/suggestion.ts";
 import type { Gap, SuggestionLog } from "../../../types.ts";
 

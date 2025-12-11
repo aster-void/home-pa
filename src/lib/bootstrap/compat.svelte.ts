@@ -46,7 +46,7 @@ export {
 } from "../features/memo/state/memoForm.svelte.ts";
 
 // ============================================================================
-// Legacy store compatibility wrappers
+// State instances - direct access (no store wrappers)
 // ============================================================================
 
 import { uiState } from "./ui.svelte.ts";
@@ -54,210 +54,6 @@ import { dataState } from "./data.svelte.ts";
 import { calendarState } from "../features/calendar/state/calendar.svelte.ts";
 import { toastState } from "./toast.svelte.ts";
 import { eventFormState } from "../features/calendar/state/eventForm.svelte.ts";
-
-// UI State - writable store wrappers
-export const currentView = {
-  subscribe: (fn: (value: string) => void) => {
-    fn(uiState.currentView);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.currentView));
-      return () => {};
-    });
-  },
-  set: (value: string) => uiState.setView(value as AppView),
-  update: (fn: (value: string) => string) =>
-    uiState.setView(fn(uiState.currentView) as AppView),
-};
-
-export const viewMode = {
-  subscribe: (fn: (value: string) => void) => {
-    fn(uiState.viewMode);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.viewMode));
-      return () => {};
-    });
-  },
-  set: (value: string) => uiState.setViewMode(value as ViewMode),
-  update: (fn: (value: string) => string) =>
-    uiState.setViewMode(fn(uiState.viewMode) as ViewMode),
-};
-
-export const isMemoOpen = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.isMemoOpen);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.isMemoOpen));
-      return () => {};
-    });
-  },
-  set: (value: boolean) => uiState.setMemoOpen(value),
-  update: (fn: (value: boolean) => boolean) =>
-    uiState.setMemoOpen(fn(uiState.isMemoOpen)),
-};
-
-export const showEventForm = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.showEventForm);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.showEventForm));
-      return () => {};
-    });
-  },
-  set: (value: boolean) => {
-    if (value) {
-      uiState.openEventForm();
-    } else {
-      uiState.closeEventForm();
-    }
-  },
-  update: (fn: (value: boolean) => boolean) => {
-    const newVal = fn(uiState.showEventForm);
-    if (newVal) {
-      uiState.openEventForm();
-    } else {
-      uiState.closeEventForm();
-    }
-  },
-};
-
-export const showTimelinePopup = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.showTimelinePopup);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.showTimelinePopup));
-      return () => {};
-    });
-  },
-  set: (value: boolean) => {
-    if (value) {
-      uiState.openTimelinePopup();
-    } else {
-      uiState.closeTimelinePopup();
-    }
-  },
-  update: (fn: (value: boolean) => boolean) => {
-    const newVal = fn(uiState.showTimelinePopup);
-    if (newVal) {
-      uiState.openTimelinePopup();
-    } else {
-      uiState.closeTimelinePopup();
-    }
-  },
-};
-
-export const currentSuggestion = {
-  subscribe: (fn: (value: unknown) => void) => {
-    fn(uiState.currentSuggestion);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.currentSuggestion));
-      return () => {};
-    });
-  },
-  set: (value: unknown) => uiState.setCurrentSuggestion(value),
-  update: (fn: (value: unknown) => unknown) =>
-    uiState.setCurrentSuggestion(fn(uiState.currentSuggestion)),
-};
-
-export const isLoading = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.isLoading);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.isLoading));
-      return () => {};
-    });
-  },
-  set: (value: boolean) => uiState.setLoading(value),
-  update: (fn: (value: boolean) => boolean) =>
-    uiState.setLoading(fn(uiState.isLoading)),
-};
-
-export const errorMessage = {
-  subscribe: (fn: (value: string | null) => void) => {
-    fn(uiState.errorMessage);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.errorMessage));
-      return () => {};
-    });
-  },
-  set: (value: string | null) => uiState.setError(value),
-  update: (fn: (value: string | null) => string | null) =>
-    uiState.setError(fn(uiState.errorMessage)),
-};
-
-// Data State - writable store wrappers
-export const selectedDate = {
-  subscribe: (fn: (value: Date) => void) => {
-    fn(dataState.selectedDate);
-    return $effect.root(() => {
-      $effect(() => fn(dataState.selectedDate));
-      return () => {};
-    });
-  },
-  set: (value: Date) => dataState.setSelectedDate(value),
-  update: (fn: (value: Date) => Date) =>
-    dataState.setSelectedDate(fn(dataState.selectedDate)),
-};
-
-export const memos = {
-  subscribe: (fn: (value: SimpleMemo[]) => void) => {
-    fn(dataState.memos);
-    return $effect.root(() => {
-      $effect(() => fn(dataState.memos));
-      return () => {};
-    });
-  },
-};
-
-export const suggestionLogs = {
-  subscribe: (fn: (value: SuggestionLog[]) => void) => {
-    fn(dataState.suggestionLogs);
-    return $effect.root(() => {
-      $effect(() => fn(dataState.suggestionLogs));
-      return () => {};
-    });
-  },
-};
-
-// Calendar State - writable store wrappers
-export const calendarEvents = {
-  subscribe: (fn: (value: Event[]) => void) => {
-    fn(calendarState.events);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.events));
-      return () => {};
-    });
-  },
-};
-
-export const calendarOccurrences = {
-  subscribe: (fn: (value: ExpandedOccurrence[]) => void) => {
-    fn(calendarState.occurrences);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.occurrences));
-      return () => {};
-    });
-  },
-};
-
-export const calendarLoading = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(calendarState.loading);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.loading));
-      return () => {};
-    });
-  },
-};
-
-export const calendarError = {
-  subscribe: (fn: (value: string | null) => void) => {
-    fn(calendarState.error);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.error));
-      return () => {};
-    });
-  },
-};
 
 // Calendar actions wrapper
 export const calendarActions = {
@@ -270,27 +66,6 @@ export const calendarActions = {
   expandRecurringEvents:
     calendarState.expandRecurringEvents.bind(calendarState),
   clear: calendarState.clear.bind(calendarState),
-};
-
-// Event form store wrapper
-export const eventForm = {
-  subscribe: (fn: (value: EventFormData) => void) => {
-    fn(eventFormState.formData);
-    return $effect.root(() => {
-      $effect(() => fn(eventFormState.formData));
-      return () => {};
-    });
-  },
-};
-
-export const eventFormErrors = {
-  subscribe: (fn: (value: EventFormErrors) => void) => {
-    fn(eventFormState.errors);
-    return $effect.root(() => {
-      $effect(() => fn(eventFormState.errors));
-      return () => {};
-    });
-  },
 };
 
 // Event form actions wrapper
@@ -388,7 +163,7 @@ export {
   gaps,
   gapStats,
   dayBoundaryActions,
-} from "../features/assistant/state/gaps.ts";
+} from "../features/assistant/state/gaps.svelte.ts";
 
 export {
   scheduleResult,
@@ -432,34 +207,3 @@ export {
 export { timezone, timezoneActions, timezoneLabel } from "./timezone.ts";
 export { devtools, devtoolsEnabled } from "./devtools.ts";
 export { formatDate, formatDateTime } from "../utils/date-utils.ts";
-
-// Derived state (computed from reactive state)
-export const isCalendarView = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.isCalendarView);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.isCalendarView));
-      return () => {};
-    });
-  },
-};
-
-export const isPersonalAssistantView = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.isPersonalAssistantView);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.isPersonalAssistantView));
-      return () => {};
-    });
-  },
-};
-
-export const isTasksView = {
-  subscribe: (fn: (value: boolean) => void) => {
-    fn(uiState.isTasksView);
-    return $effect.root(() => {
-      $effect(() => fn(uiState.isTasksView));
-      return () => {};
-    });
-  },
-};

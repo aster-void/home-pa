@@ -69,7 +69,7 @@ export {
   gaps,
   gapStats,
   dayBoundaryActions,
-} from "../features/assistant/state/gaps.ts";
+} from "../features/assistant/state/gaps.svelte.ts";
 
 // Schedule store (not yet migrated)
 export {

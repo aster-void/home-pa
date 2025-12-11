@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   // LogsView removed from header; settings panel is minimal
   import LogsView from "$lib/features/logs/components/LogsView.svelte";
   import CircularTimelineCss from "./CircularTimelineCss.svelte";
@@ -9,8 +9,8 @@
     pendingSuggestions,
     acceptedSuggestions,
     tasks,
-  } from "$lib/bootstrap/compat.ts";
-  import { enrichedGaps } from "$lib/features/assistant/state/gaps.ts";
+  } from "$lib/bootstrap/compat.svelte.ts";
+  import { enrichedGaps } from "$lib/features/assistant/state/gaps.svelte.ts";
   import type { Event, Gap } from "$lib/types.ts";
   import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
@@ -23,10 +23,7 @@
   let activeStart = $state("08:00");
   let activeEnd = $state("23:00");
 
-  // Computed gaps using GapFinder for the selected day
-  let computedGaps = $state<Gap[]>([]);
-  let selectedDayEvents = $state<Event[]>([]);
-  let lastAutoScheduleKey = $state<string | null>(null);
+  // Task list (synced from store)
   let taskList = $state(get(tasks));
 
   // Selected items for details display
@@ -64,36 +61,42 @@
     return startOfDay(date).toLocaleDateString("ja-JP");
   }
 
+  let unsubscribeTasks: (() => void) | undefined;
+
   onMount(() => {
     const now = new Date(Date.now());
     dataState.setSelectedDate(startOfDay(now));
+
+    // Subscribe to tasks store
+    unsubscribeTasks = tasks.subscribe((value) => (taskList = value));
   });
 
-  $effect(() => {
-    const unsubscribeTasks = tasks.subscribe((value) => (taskList = value));
-    return () => unsubscribeTasks();
+  onDestroy(() => {
+    if (unsubscribeTasks) unsubscribeTasks();
   });
 
-  function buildScheduleSignature(date: Date): string {
-    const taskListVal = get(tasks);
-    const gapsList = get(enrichedGaps);
-    return `${dateKey(date)}|t${taskListVal.length}|g${gapsList.length}`;
-  }
-
-  async function maybeAutoGenerateSchedule() {
-    const now = new Date(Date.now());
+  // Reactively compute schedule signature for auto-generation
+  let scheduleSignature = $derived.by(() => {
+    const now = new Date();
     const todayKey = dateKey(now);
     const currentDate = startOfDay(dataState.selectedDate);
-    if (dateKey(currentDate) !== todayKey) {
-      return;
+
+    // Only generate schedule for today
+    if (dateKey(currentDate) !== todayKey) return null;
+
+    return `${dateKey(currentDate)}|t${taskList.length}|g${computedGaps.length}`;
+  });
+
+  // Track last schedule signature to avoid re-triggering
+  let lastScheduleSignature = $state<string | null>(null);
+
+  // Auto-generate schedule when signature changes
+  $effect(() => {
+    if (scheduleSignature && scheduleSignature !== lastScheduleSignature) {
+      lastScheduleSignature = scheduleSignature;
+      scheduleActions.regenerate(taskList, { gaps: computedGaps });
     }
-
-    const signature = buildScheduleSignature(currentDate);
-    if (signature === lastAutoScheduleKey) return;
-
-    lastAutoScheduleKey = signature;
-    await scheduleActions.regenerate(get(tasks), { gaps: get(enrichedGaps) });
-  }
+  });
 
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
     const baseDay = new Date(day.getTime());
@@ -145,8 +148,8 @@
     };
   }
 
-  function recomputeGaps() {
-    const gf = new GapFinder({ dayStart: activeStart, dayEnd: activeEnd });
+  // Reactively compute events for selected day
+  let selectedDayEvents = $derived.by(() => {
     const events = calendarState.events;
     const occurrences = calendarState.occurrences;
     const currentDate = startOfDay(dataState.selectedDate);
@@ -171,27 +174,19 @@
     const todaysEvents = combined.filter((e) =>
       overlapsDay(new Date(e.start), new Date(e.end), currentDate),
     );
-    const mapped = todaysEvents.map((e) => toGapEventForDay(e, currentDate));
 
-    selectedDayEvents = sortEventsByStart(todaysEvents);
-    computedGaps = gf.findGaps(mapped);
-  }
-
-  // Recompute gaps when active hours, events, or date change
-  $effect(() => {
-    // Access reactive state to trigger recomputation on change
-    void calendarState.events;
-    void calendarState.occurrences;
-    void dataState.selectedDate;
-    void activeStart;
-    void activeEnd;
-
-    recomputeGaps();
+    return sortEventsByStart(todaysEvents);
   });
 
-  // Auto-generate schedule for today only
-  $effect(() => {
-    void maybeAutoGenerateSchedule();
+  // Reactively compute gaps based on selected day events
+  let computedGaps = $derived.by(() => {
+    const gf = new GapFinder({ dayStart: activeStart, dayEnd: activeEnd });
+    const currentDate = startOfDay(dataState.selectedDate);
+
+    const mapped = selectedDayEvents.map((e) =>
+      toGapEventForDay(e, currentDate),
+    );
+    return gf.findGaps(mapped);
   });
 
   function parseTimeOnDate(base: Date, time: string): Date {
@@ -391,17 +386,9 @@
         <div class="settings-row">
           <span class="label">Active hours</span>
           <div class="inputs">
-            <input
-              type="time"
-              bind:value={activeStart}
-              onchange={recomputeGaps}
-            />
+            <input type="time" bind:value={activeStart} />
             <span>–</span>
-            <input
-              type="time"
-              bind:value={activeEnd}
-              onchange={recomputeGaps}
-            />
+            <input type="time" bind:value={activeEnd} />
           </div>
         </div>
         <div class="settings-logs">

@@ -1,13 +1,12 @@
 <script lang="ts">
   import type { Recurrence } from "$lib/types.ts";
   import {
-    selectedDate,
-    eventForm,
+    dataState,
+    eventFormState,
     eventFormActions,
-    eventFormErrors,
     eventActions,
     uiActions,
-  } from "$lib/bootstrap/compat.ts";
+  } from "$lib/bootstrap/compat.svelte.ts";
   import {
     utcToLocalDateString,
     utcToLocalTimeString,
@@ -50,7 +49,7 @@
 
   // Sync from store
   $effect(() => {
-    const form = $eventForm;
+    const form = eventFormState.formData;
     eventTitle = form.title;
 
     if (form.start) {
@@ -220,10 +219,10 @@
             type="text"
             bind:value={eventTitle}
             placeholder="予定のタイトルを入力"
-            class:error={$eventFormErrors.title}
+            class:error={eventFormState.errors.title}
           />
-          {#if $eventFormErrors.title}
-            <div class="field-error">{$eventFormErrors.title}</div>
+          {#if eventFormState.errors.title}
+            <div class="field-error">{eventFormState.errors.title}</div>
           {/if}
         </div>
       </div>
@@ -297,7 +296,7 @@
               timeMode = "some-timing";
               eventTimeLabel = "some-timing";
               eventFormActions.switchTimeLabel("some-timing");
-              const dateString = utcToLocalDateString($selectedDate);
+              const dateString = utcToLocalDateString(dataState.selectedDate);
               eventStartDate = dateString;
               eventEndDate = dateString;
               isManualDateOrTimeEdit = false;
@@ -344,7 +343,7 @@
             id="event-start-time"
             type="time"
             bind:value={eventStartTime}
-            class:error={$eventFormErrors.start}
+            class:error={eventFormState.errors.start}
             onfocus={() =>
               (eventTimeLabel === "all-day" ||
                 eventTimeLabel === "some-timing") &&
@@ -354,8 +353,8 @@
                 eventTimeLabel === "some-timing") &&
               switchToTimedMode()}
           />
-          {#if $eventFormErrors.start}
-            <div class="field-error">{$eventFormErrors.start}</div>
+          {#if eventFormState.errors.start}
+            <div class="field-error">{eventFormState.errors.start}</div>
           {/if}
         </div>
         <div class="inline-field">
@@ -364,7 +363,7 @@
             id="event-end-time"
             type="time"
             bind:value={eventEndTime}
-            class:error={$eventFormErrors.end}
+            class:error={eventFormState.errors.end}
             onfocus={() =>
               (eventTimeLabel === "all-day" ||
                 eventTimeLabel === "some-timing") &&
@@ -374,8 +373,8 @@
                 eventTimeLabel === "some-timing") &&
               switchToTimedMode()}
           />
-          {#if $eventFormErrors.end}
-            <div class="field-error">{$eventFormErrors.end}</div>
+          {#if eventFormState.errors.end}
+            <div class="field-error">{eventFormState.errors.end}</div>
           {/if}
         </div>
       </div>
@@ -504,10 +503,10 @@
     </div>
 
     <!-- General Error Display -->
-    {#if $eventFormErrors.general}
+    {#if eventFormState.errors.general}
       <div class="general-error">
         <div class="error-icon">⚠️</div>
-        <div class="error-message">{$eventFormErrors.general}</div>
+        <div class="error-message">{eventFormState.errors.general}</div>
       </div>
     {/if}
 

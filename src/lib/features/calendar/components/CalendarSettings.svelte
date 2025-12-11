@@ -6,7 +6,7 @@
    * Uses ical.js-backed API endpoints
    */
 
-  import { calendarActions } from "$lib/bootstrap/compat.ts";
+  import { calendarActions } from "$lib/bootstrap/compat.svelte.ts";
   import { UserSettings } from "$lib/features/shared/components/index.ts";
 
   // State

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { suggestionLogs } from "$lib/bootstrap/compat.ts";
+  import { dataState } from "$lib/bootstrap/compat.svelte.ts";
   import { utcToLocalDateTimeString } from "$lib/utils/date-utils.ts";
 
   function formatDateTime(d: Date): string {
@@ -12,7 +12,7 @@
     <h2>提案ログ</h2>
   </div>
 
-  {#if $suggestionLogs.length === 0}
+  {#if dataState.suggestionLogs.length === 0}
     <div class="empty-state">
       <p>まだ提案ログがありません</p>
       <p class="help-text">
@@ -21,7 +21,7 @@
     </div>
   {:else}
     <div class="logs-list">
-      {#each $suggestionLogs as log (log.id)}
+      {#each dataState.suggestionLogs as log (log.id)}
         <div class="log-item">
           <div class="log-header">
             <span class="log-time">{formatDateTime(log.at)}</span>

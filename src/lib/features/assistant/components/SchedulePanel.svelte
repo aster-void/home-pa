@@ -17,7 +17,7 @@
     scheduleActions,
   } from "$lib/features/assistant/state/schedule.ts";
   import { tasks } from "$lib/features/tasks/state/taskActions.ts";
-  import { enrichedGaps } from "$lib/features/assistant/state/gaps.ts";
+  import { enrichedGaps } from "$lib/features/assistant/state/gaps.svelte.ts";
   import { get } from "svelte/store";
 
   // Get memo title from memoId

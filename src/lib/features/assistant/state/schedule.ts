@@ -25,7 +25,7 @@ import type {
   PipelineSummary,
 } from "../services/suggestions/index.ts";
 import { createEngine } from "../services/suggestions/index.ts";
-import { enrichedGaps } from "./gaps.ts";
+import { enrichedGaps } from "./gaps.svelte.ts";
 
 // ============================================================================
 // Types for Suggestion Management

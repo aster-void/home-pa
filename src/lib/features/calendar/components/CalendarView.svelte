@@ -2,21 +2,16 @@
   import { onMount } from "svelte";
   import type { Event, Recurrence } from "$lib/types.ts";
   import {
-    calendarEvents,
-    calendarOccurrences,
-    calendarLoading,
-    calendarError,
+    calendarState,
     calendarActions,
-    selectedDate,
-    showEventForm,
-    showTimelinePopup,
-    eventForm,
+    dataState,
+    uiState,
+    eventFormState,
     eventFormActions,
-    eventFormErrors,
     eventActions,
     uiActions,
     type ExpandedOccurrence,
-  } from "$lib/bootstrap/compat.ts";
+  } from "$lib/bootstrap/compat.svelte.ts";
   import {
     localDateTimeToUTC,
     utcToLocalDateString,
@@ -59,7 +54,7 @@
   // Initialize dates when form opens
   function initializeDates() {
     // Use unified date utility to get local date string
-    const dateString = utcToLocalDateString($selectedDate);
+    const dateString = utcToLocalDateString(dataState.selectedDate);
 
     if (!eventStartDate) {
       eventStartDate = dateString;
@@ -100,7 +95,7 @@
 
   // Subscribe to store changes
   $effect(() => {
-    const form = $eventForm;
+    const form = eventFormState.formData;
     eventTitle = form.title;
 
     // Parse the datetime-local format to separate date and time using unified utilities
@@ -144,43 +139,9 @@
     isEventEditing = form.isEditing;
   });
 
-  // Sync local form state to store
-  $effect(() => {
-    eventFormActions.updateField("title", eventTitle);
-  });
-
-  // Sync recurrence data to form store
-  $effect(() => {
-    const recurrence = buildRecurrenceObject();
-    eventFormActions.updateField("recurrence", recurrence);
-  });
-
-  $effect(() => {
-    eventFormActions.updateField("address", eventAddress);
-  });
-
-  $effect(() => {
-    eventFormActions.updateField("importance", eventImportance);
-  });
-
-  $effect(() => {
-    eventFormActions.updateField("timeLabel", eventTimeLabel);
-  });
-
-  // Sync date/time combinations to store
-  $effect(() => {
-    const startDateTime =
-      eventStartDate && eventStartTime
-        ? `${eventStartDate}T${eventStartTime}`
-        : "";
-    const endDateTime =
-      eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "";
-
-    eventFormActions.updateFields({
-      start: startDateTime,
-      end: endDateTime,
-    });
-  });
+  // Note: Form state synchronization now happens via event handlers
+  // instead of $effect to prevent infinite loops
+  // Date/time combinations are updated in input handlers
 
   // Track previous month to only fetch when month actually changes
   let previousMonthKey = $state<string | null>(null);
@@ -224,7 +185,7 @@
   // Also reload occurrences when form data changes (for real-time preview)
   $effect(() => {
     if (isEventEditing) {
-      const currentForm = $eventForm;
+      const currentForm = eventFormState.formData;
       const windowStart = new Date(
         currentMonth.getFullYear(),
         currentMonth.getMonth() - 3,
@@ -253,7 +214,7 @@
         // Debounce to avoid excessive reloads during typing
         const timeout = setTimeout(() => {
           // For preview, manually expand occurrences with the temporary event
-          const eventsWithPreview = $calendarEvents.map((e) =>
+          const eventsWithPreview = calendarState.events.map((e) =>
             e.id === currentForm.editingId ? tempEvent : e,
           );
           // Use the calendar store's expand function for preview
@@ -273,18 +234,18 @@
 
   // Combine regular events with recurring occurrences for display
   let allDisplayEvents = $derived.by(() => {
-    const regularEvents = $calendarEvents.filter(
+    const regularEvents = calendarState.events.filter(
       (e) => !e.recurrence || e.recurrence.type === "NONE",
     );
 
     // Filter occurrences to only include those for events that are still recurring
     const recurringEventIds = new Set(
-      $calendarEvents
+      calendarState.events
         .filter((e) => e.recurrence && e.recurrence.type !== "NONE")
         .map((e) => e.id),
     );
 
-    const occurrences = $calendarOccurrences
+    const occurrences = calendarState.occurrences
       .filter((occ) => recurringEventIds.has(occ.masterEventId))
       .map(
         (occ: ExpandedOccurrence) =>
@@ -319,7 +280,7 @@
         occurrences: occurrences.length,
         total: regularEvents.length + occurrences.length,
         recurringEventIds: Array.from(recurringEventIds),
-        calendarOccurrences: $calendarOccurrences.length,
+        calendarOccurrences: calendarState.occurrences.length,
       });
     }
 
@@ -330,7 +291,7 @@
 
   // Get forever recurring events for special handling
   let foreverEvents = $derived.by(() => {
-    return $calendarOccurrences.filter((occ) => occ.isForever);
+    return calendarState.occurrences.filter((occ) => occ.isForever);
   });
 
   // Debug info
@@ -377,7 +338,7 @@
   }
 
   function isSelected(date: Date) {
-    return date.toDateString() === $selectedDate.toDateString();
+    return date.toDateString() === dataState.selectedDate.toDateString();
   }
 
   function isCurrentMonth(date: Date) {
@@ -389,11 +350,11 @@
     const wasAlreadySelected = isSelected(date);
 
     // Always update the selected date
-    selectedDate.set(date);
+    dataState.setSelectedDate(date);
 
     // Re-click on selected date toggles the timeline popup
     if (wasAlreadySelected) {
-      if ($showTimelinePopup) {
+      if (uiState.showTimelinePopup) {
         uiActions.hideTimelinePopup();
       } else {
         uiActions.showTimelinePopup();
@@ -435,9 +396,9 @@
     recurrenceEndDate = "";
     // Auto-select weekday of selected date
     weeklyDays = [false, false, false, false, false, false, false];
-    weeklyDays[$selectedDate.getDay()] = true;
+    weeklyDays[dataState.selectedDate.getDay()] = true;
     // Calculate week position for monthly
-    const dayOfMonth = $selectedDate.getDate();
+    const dayOfMonth = dataState.selectedDate.getDate();
     monthlyPosition = Math.ceil(dayOfMonth / 7);
     if (monthlyPosition > 4) monthlyPosition = -1;
     monthlyType = "nthWeekday";
@@ -694,9 +655,9 @@
       now.getDate(),
     );
     const selectedDateOnly = new Date(
-      $selectedDate.getFullYear(),
-      $selectedDate.getMonth(),
-      $selectedDate.getDate(),
+      dataState.selectedDate.getFullYear(),
+      dataState.selectedDate.getMonth(),
+      dataState.selectedDate.getDate(),
     );
 
     // Only show current time line if it's today
@@ -1038,8 +999,8 @@
       >
         {showDebugInfo ? "Hide" : "Show"} Debug
       </button>
-      {#if $calendarError}
-        <div class="recurrence-error" title={$calendarError}>
+      {#if calendarState.error}
+        <div class="recurrence-error" title={calendarState.error}>
           ⚠️ Recurring events unavailable
         </div>
       {/if}
@@ -1067,7 +1028,7 @@
         </div>
         <div class="debug-stat">
           <strong>Total Events:</strong>
-          {$calendarEvents.length}
+          {calendarState.events.length}
         </div>
         <div class="debug-stat">
           <strong>Display Events:</strong>
@@ -1079,7 +1040,7 @@
         </div>
         <div class="debug-stat">
           <strong>Calendar Store:</strong>
-          Loading: {$calendarLoading ? "Yes" : "No"}, Error: {$calendarError ||
+          Loading: {calendarState.loading ? "Yes" : "No"}, Error: {calendarState.error ||
             "None"}
         </div>
       </div>
@@ -1168,7 +1129,7 @@
   </div>
 
   <!-- Timeline Popup -->
-  {#if $showTimelinePopup}
+  {#if uiState.showTimelinePopup}
     <div
       class="timeline-popup"
       onclick={() => uiActions.hideTimelinePopup()}
@@ -1186,7 +1147,9 @@
         tabindex="-1"
       >
         <div class="popup-header">
-          <h3>タイムライン - {$selectedDate.toLocaleDateString("ja-JP")}</h3>
+          <h3>
+            タイムライン - {dataState.selectedDate.toLocaleDateString("ja-JP")}
+          </h3>
           <button
             class="close-button"
             onclick={() => uiActions.hideTimelinePopup()}
@@ -1195,7 +1158,7 @@
         </div>
 
         <div class="timeline-container">
-          {#if getEventsForTimeline(allDisplayEvents, $selectedDate).length === 0}
+          {#if getEventsForTimeline(allDisplayEvents, dataState.selectedDate).length === 0}
             <p class="empty-state">この日の予定はありません</p>
           {:else}
             <div class="timeline-view">
@@ -1220,12 +1183,15 @@
 
               <!-- Event columns -->
               <div class="timeline-columns">
-                {#each getEventColumns(getEventsForTimeline(allDisplayEvents, $selectedDate)) as column, columnIndex (columnIndex)}
+                {#each getEventColumns(getEventsForTimeline(allDisplayEvents, dataState.selectedDate)) as column, columnIndex (columnIndex)}
                   <div
                     class="timeline-column"
                     style="width: {100 /
                       getEventColumns(
-                        getEventsForTimeline(allDisplayEvents, $selectedDate),
+                        getEventsForTimeline(
+                          allDisplayEvents,
+                          dataState.selectedDate,
+                        ),
                       ).length}%;"
                   >
                     {#each column as event (event.id)}
@@ -1234,7 +1200,7 @@
                         onclick={() => {
                           // Find master event if this is a recurring occurrence
                           const masterEvent =
-                            $calendarEvents.find(
+                            calendarState.events.find(
                               (e) =>
                                 e.id ===
                                   (event as Event & { eventId?: string })
@@ -1246,7 +1212,7 @@
                         onkeydown={(e) => {
                           if (e.key === "Enter") {
                             const masterEvent =
-                              $calendarEvents.find(
+                              calendarState.events.find(
                                 (evt) =>
                                   evt.id ===
                                     (event as Event & { eventId?: string })
@@ -1289,7 +1255,7 @@
   {/if}
 
   <!-- Event Form Modal -->
-  {#if $showEventForm}
+  {#if uiState.showEventForm}
     <div
       class="event-form-modal"
       onclick={() => uiActions.hideEventForm()}
@@ -1323,11 +1289,13 @@
                 id="event-title"
                 type="text"
                 bind:value={eventTitle}
+                oninput={() =>
+                  eventFormActions.updateField("title", eventTitle)}
                 placeholder="予定のタイトルを入力"
-                class:error={$eventFormErrors.title}
+                class:error={eventFormState.errors.title}
               />
-              {#if $eventFormErrors.title}
-                <div class="field-error">{$eventFormErrors.title}</div>
+              {#if eventFormState.errors.title}
+                <div class="field-error">{eventFormState.errors.title}</div>
               {/if}
             </div>
           </div>
@@ -1339,6 +1307,8 @@
                 id="event-address"
                 type="text"
                 bind:value={eventAddress}
+                oninput={() =>
+                  eventFormActions.updateField("address", eventAddress)}
                 placeholder="場所を入力（任意）"
               />
             </div>
@@ -1350,7 +1320,10 @@
               <button
                 type="button"
                 class="star-button {eventImportance === 'low' ? 'active' : ''}"
-                onclick={() => (eventImportance = "low")}
+                onclick={() => {
+                  eventImportance = "low";
+                  eventFormActions.updateField("importance", "low");
+                }}
               >
                 ⭐
               </button>
@@ -1359,14 +1332,20 @@
                 class="star-button {eventImportance === 'medium'
                   ? 'active'
                   : ''}"
-                onclick={() => (eventImportance = "medium")}
+                onclick={() => {
+                  eventImportance = "medium";
+                  eventFormActions.updateField("importance", "medium");
+                }}
               >
                 ⭐⭐
               </button>
               <button
                 type="button"
                 class="star-button {eventImportance === 'high' ? 'active' : ''}"
-                onclick={() => (eventImportance = "high")}
+                onclick={() => {
+                  eventImportance = "high";
+                  eventFormActions.updateField("importance", "high");
+                }}
               >
                 ⭐⭐⭐
               </button>
@@ -1403,7 +1382,9 @@
                   eventTimeLabel = "some-timing";
                   eventFormActions.switchTimeLabel("some-timing");
                   // Fix date to selected date when some-timing is chosen
-                  const dateString = utcToLocalDateString($selectedDate);
+                  const dateString = utcToLocalDateString(
+                    dataState.selectedDate,
+                  );
                   eventStartDate = dateString;
                   eventEndDate = dateString;
                   isManualDateOrTimeEdit = false;
@@ -1437,6 +1418,12 @@
                     eventTimeLabel = "timed";
                     eventFormActions.switchTimeLabel("timed");
                   }
+                  // Update form state with combined date and time
+                  const startDateTime =
+                    eventStartDate && eventStartTime
+                      ? `${eventStartDate}T${eventStartTime}`
+                      : "";
+                  eventFormActions.updateField("start", startDateTime);
                 }}
               />
             </div>
@@ -1461,6 +1448,12 @@
                     eventTimeLabel = "timed";
                     eventFormActions.switchTimeLabel("timed");
                   }
+                  // Update form state with combined date and time
+                  const endDateTime =
+                    eventEndDate && eventEndTime
+                      ? `${eventEndDate}T${eventEndTime}`
+                      : "";
+                  eventFormActions.updateField("end", endDateTime);
                 }}
               />
             </div>
@@ -1474,7 +1467,7 @@
                 id="event-start-time"
                 type="time"
                 bind:value={eventStartTime}
-                class:error={$eventFormErrors.start}
+                class:error={eventFormState.errors.start}
                 onfocus={() => {
                   if (
                     eventTimeLabel === "all-day" ||
@@ -1496,10 +1489,16 @@
                     eventTimeLabel = "timed";
                     eventFormActions.switchTimeLabel("timed");
                   }
+                  // Update form state with combined date and time
+                  const startDateTime =
+                    eventStartDate && eventStartTime
+                      ? `${eventStartDate}T${eventStartTime}`
+                      : "";
+                  eventFormActions.updateField("start", startDateTime);
                 }}
               />
-              {#if $eventFormErrors.start}
-                <div class="field-error">{$eventFormErrors.start}</div>
+              {#if eventFormState.errors.start}
+                <div class="field-error">{eventFormState.errors.start}</div>
               {/if}
             </div>
             <div class="inline-field">
@@ -1508,7 +1507,7 @@
                 id="event-end-time"
                 type="time"
                 bind:value={eventEndTime}
-                class:error={$eventFormErrors.end}
+                class:error={eventFormState.errors.end}
                 onfocus={() => {
                   if (
                     eventTimeLabel === "all-day" ||
@@ -1530,10 +1529,16 @@
                     eventTimeLabel = "timed";
                     eventFormActions.switchTimeLabel("timed");
                   }
+                  // Update form state with combined date and time
+                  const endDateTime =
+                    eventEndDate && eventEndTime
+                      ? `${eventEndDate}T${eventEndTime}`
+                      : "";
+                  eventFormActions.updateField("end", endDateTime);
                 }}
               />
-              {#if $eventFormErrors.end}
-                <div class="field-error">{$eventFormErrors.end}</div>
+              {#if eventFormState.errors.end}
+                <div class="field-error">{eventFormState.errors.end}</div>
               {/if}
             </div>
           </div>
@@ -1664,10 +1669,10 @@
         </div>
 
         <!-- General Error Display -->
-        {#if $eventFormErrors.general}
+        {#if eventFormState.errors.general}
           <div class="general-error">
             <div class="error-icon">⚠️</div>
-            <div class="error-message">{$eventFormErrors.general}</div>
+            <div class="error-message">{eventFormState.errors.general}</div>
           </div>
         {/if}
 

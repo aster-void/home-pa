@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import { createEventDispatcher } from "svelte";
   import {
-    selectedDate,
-    calendarEvents,
-    calendarOccurrences,
+    dataState,
+    calendarState,
     type ExpandedOccurrence,
-  } from "$lib/bootstrap/compat.ts";
+  } from "$lib/bootstrap/compat.svelte.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
   import type {
     PendingSuggestion,
@@ -60,18 +59,10 @@
     suggestionResize: { suggestionId: string; newDuration: number };
   }>();
 
-  // Subscriptions
-  let masterEvents = $state<MyEvent[]>([]);
-  let occurrences = $state<ExpandedOccurrence[]>([]);
-  let selectedDateCurrent = $state(new Date());
-
-  const unsubEvents = calendarEvents.subscribe((v) => (masterEvents = v));
-  const unsubOccurrences = calendarOccurrences.subscribe(
-    (v) => (occurrences = v),
-  );
-  const unsubSelected = selectedDate.subscribe(
-    (d) => (selectedDateCurrent = new Date(d)),
-  );
+  // Direct state access
+  let masterEvents = $derived(calendarState.events);
+  let occurrences = $derived(calendarState.occurrences);
+  let selectedDateCurrent = $derived(dataState.selectedDate);
 
   let centerDateInput: HTMLInputElement | null = null;
 
@@ -354,7 +345,7 @@
       // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date creation in event handler, not reactive state
       const next = new Date(baseTime);
       next.setHours(0, 0, 0, 0);
-      selectedDate.set(next);
+      dataState.setSelectedDate(next);
     }
   }
 
@@ -445,12 +436,6 @@
       if (resizeTimeout) clearTimeout(resizeTimeout);
       clearInterval(interval);
     };
-  });
-
-  onDestroy(() => {
-    unsubEvents();
-    unsubOccurrences();
-    unsubSelected();
   });
 
   // Helper to get resize handle position

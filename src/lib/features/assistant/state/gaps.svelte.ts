@@ -9,7 +9,7 @@
  * @version 1.0.0
  */
 
-import { writable, derived, type Readable } from "svelte/store";
+import { writable, derived, readable, type Readable } from "svelte/store";
 import type { DayBoundaries, Event } from "../services/gap-finder.ts";
 import { GapFinder } from "../services/gap-finder.ts";
 import { dataState } from "../../../bootstrap/data.svelte.ts";
@@ -21,38 +21,32 @@ import {
   type EnrichableEvent,
 } from "../services/suggestions/index.ts";
 
-// Reactive store wrapper for selectedDate
-const selectedDate: Readable<Date> = {
-  subscribe: (fn: (value: Date) => void) => {
-    fn(dataState.selectedDate);
-    return $effect.root(() => {
-      $effect(() => fn(dataState.selectedDate));
-      return () => {};
-    });
-  },
-};
+/**
+ * Creates a polling-based store from Svelte 5 state
+ * This is a temporary bridge until the module is fully migrated to Svelte 5
+ * Only notifies subscribers when the value actually changes
+ */
+function createPollingStore<T>(getter: () => T): Readable<T> {
+  return readable(getter(), (set) => {
+    let lastValue = getter();
 
-// Reactive store wrapper for calendarEvents
-const calendarEvents: Readable<CalendarEvent[]> = {
-  subscribe: (fn: (value: CalendarEvent[]) => void) => {
-    fn(calendarState.events);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.events));
-      return () => {};
-    });
-  },
-};
+    const interval = setInterval(() => {
+      const newValue = getter();
+      // Only update if the reference changed
+      if (newValue !== lastValue) {
+        lastValue = newValue;
+        set(newValue);
+      }
+    }, 500); // Poll every 500ms (reduced frequency)
 
-// Reactive store wrapper for calendarOccurrences
-const calendarOccurrences: Readable<ExpandedOccurrence[]> = {
-  subscribe: (fn: (value: ExpandedOccurrence[]) => void) => {
-    fn(calendarState.occurrences);
-    return $effect.root(() => {
-      $effect(() => fn(calendarState.occurrences));
-      return () => {};
-    });
-  },
-};
+    return () => clearInterval(interval);
+  });
+}
+
+// Reactive stores bridging Svelte 5 state to Svelte 4 stores
+const selectedDate = createPollingStore(() => dataState.selectedDate);
+const calendarEvents = createPollingStore(() => calendarState.events);
+const calendarOccurrences = createPollingStore(() => calendarState.occurrences);
 
 /**
  * User-configurable day boundaries for gap calculation
