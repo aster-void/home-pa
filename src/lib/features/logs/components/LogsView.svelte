@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { suggestionLogs } from "$lib/state/index.ts";
+  import { suggestionLogs } from "$lib/bootstrap/compat.ts";
   import { utcToLocalDateTimeString } from "$lib/utils/date-utils.ts";
 
   function formatDateTime(d: Date): string {

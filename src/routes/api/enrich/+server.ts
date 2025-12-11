@@ -17,7 +17,7 @@ import {
   buildPrompt,
   parseResponse,
   getFallbackEnrichment,
-} from "$lib/services/suggestions/llm-enrichment.ts";
+} from "$lib/features/assistant/services/suggestions/llm-enrichment.ts";
 import type { Memo } from "$lib/types.ts";
 
 /**
@@ -26,7 +26,7 @@ import type { Memo } from "$lib/types.ts";
  * Enriches a memo with LLM-suggested fields (genre, importance, durations)
  * Falls back to rule-based enrichment if API key not configured or API fails
  */
-export const POST: RequestHandler = async ({ request, locals }) => {
+export const POST: RequestHandler = async ({ request }) => {
   // Auth check (optional - enrichment can work without auth, but good practice)
   // Note: We allow unauthenticated requests for now, but could add auth later
   // if (!locals.user?.id) {

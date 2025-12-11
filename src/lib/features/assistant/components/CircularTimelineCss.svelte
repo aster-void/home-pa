@@ -6,12 +6,12 @@
     calendarEvents,
     calendarOccurrences,
     type ExpandedOccurrence,
-  } from "$lib/state/index.ts";
+  } from "$lib/bootstrap/compat.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
-  } from "$lib/state/schedule.ts";
+  } from "$lib/features/assistant/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
 
   interface Props {
@@ -169,9 +169,12 @@
   }
 
   let normalizedEvents = $derived.by((): NormalizedEvent[] => {
-    const dayStart = new Date(selectedDateCurrent);
+    const baseDate = new Date(selectedDateCurrent.getTime());
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
+    const dayStart = new Date(baseDate);
     dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(selectedDateCurrent);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
+    const dayEnd = new Date(baseDate);
     dayEnd.setHours(23, 59, 59, 999);
     const ds = dayStart.getTime();
     const de = dayEnd.getTime();
@@ -336,14 +339,20 @@
 
   // Handlers
   function handleCenterClick() {
-    centerDateInput?.showPicker?.() ?? centerDateInput?.click();
+    if (centerDateInput?.showPicker) {
+      centerDateInput.showPicker();
+    } else if (centerDateInput?.click) {
+      centerDateInput.click();
+    }
   }
 
   function handleDateChange(e: Event) {
     const val = (e.target as HTMLInputElement)?.value;
     if (val) {
       const [y, m, d] = val.split("-").map(Number);
-      const next = new Date(y, m - 1, d);
+      const baseTime = new Date(Date.UTC(y, m - 1, d)).getTime();
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date creation in event handler, not reactive state
+      const next = new Date(baseTime);
       next.setHours(0, 0, 0, 0);
       selectedDate.set(next);
     }
@@ -519,7 +528,7 @@
     />
 
     <!-- Hour markers -->
-    {#each [0, 6, 12, 18] as hour}
+    {#each [0, 6, 12, 18] as hour (hour)}
       {@const angle = (hour / 24) * TWO_PI - Math.PI / 2}
       {@const x1 = center + (outerRadius - 0.5) * Math.cos(angle)}
       {@const y1 = center + (outerRadius - 0.5) * Math.sin(angle)}
@@ -554,6 +563,8 @@
       {@const isPending = !s.isAccepted}
       {@const handlePos = getHandlePos(s.endAngle, suggestionRingRadius)}
       <path
+        role="button"
+        tabindex="0"
         d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
         fill="none"
         stroke={isPending ? "url(#pendingGrad)" : "url(#acceptedGrad)"}
@@ -565,9 +576,21 @@
         class:accepted={!isPending}
         filter="url(#glow)"
         onclick={(e) => onSuggestionClick(s.data, s.isAccepted, e)}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent("click", {
+              bubbles: true,
+              cancelable: true,
+            });
+            onSuggestionClick(s.data, s.isAccepted, mouseEvent);
+          }
+        }}
       />
       {#if !isPending}
         <circle
+          role="button"
+          tabindex="0"
           cx={handlePos.x}
           cy={handlePos.y}
           r="1.2"
@@ -586,6 +609,8 @@
       {@const radius = eventBaseRadius - ev.lane * (laneWidth + laneGap)}
       {@const isAllDay = ev.ref.timeLabel === "all-day"}
       <path
+        role="button"
+        tabindex="0"
         d={arcPath(ev.startAngle, ev.endAngle, radius)}
         fill="none"
         stroke="url(#eventGrad)"
@@ -599,12 +624,20 @@
         onmousemove={updateMouse}
         onmouseleave={clearHover}
         onclick={() => dispatch("eventSelected", ev.ref)}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            dispatch("eventSelected", ev.ref);
+          }
+        }}
       />
     {/each}
 
     <!-- Gap arcs (outermost, rendered last to appear on top) -->
     {#each normalizedGaps as gap (gap.start + gap.end)}
       <path
+        role="button"
+        tabindex="0"
         d={arcPath(gap.startAngle, gap.endAngle, gapRingRadius)}
         fill="none"
         stroke="url(#gapGrad)"
@@ -616,6 +649,12 @@
         onmousemove={updateMouse}
         onmouseleave={clearHover}
         onclick={() => dispatch("gapSelected", gap)}
+        onkeydown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            dispatch("gapSelected", gap);
+          }
+        }}
       />
     {/each}
 

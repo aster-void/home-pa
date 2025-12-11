@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { uiState } from "$lib/state/index.svelte.ts";
+  import { uiState } from "$lib/bootstrap/index.svelte.ts";
 </script>
 
 <nav class="bottom-navigation" aria-label="Main navigation">

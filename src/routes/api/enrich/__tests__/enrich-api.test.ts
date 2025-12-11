@@ -10,12 +10,12 @@
  * - Manual testing via the actual API
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   buildPrompt,
   parseResponse,
   getFallbackEnrichment,
-} from "$lib/services/suggestions/llm-enrichment.ts";
+} from "$lib/features/assistant/services/suggestions/llm-enrichment.ts";
 import type { Memo } from "$lib/types.ts";
 
 describe("Enrichment API Logic", () => {

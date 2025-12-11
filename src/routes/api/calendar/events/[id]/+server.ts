@@ -13,7 +13,7 @@ import {
   dbEventToAppEvent,
   appEventToDbUpdate,
   eventToJSON,
-} from "$lib/services/calendar/index.ts";
+} from "$lib/features/calendar/services/index.ts";
 
 /**
  * GET /api/calendar/events/[id]
@@ -94,7 +94,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
     if (body.recurrence !== undefined) updates.recurrence = body.recurrence;
 
     // Convert to database update format
-    const dbUpdates = appEventToDbUpdate(updates as any, existing);
+    const dbUpdates = appEventToDbUpdate(updates, existing);
 
     // Update in database
     const updated = await prisma.calendarEvent.update({

@@ -6,28 +6,22 @@
     class?: string;
     children?: import("svelte").Snippet;
   } = $props();
-
-  const {
-    title,
-    status,
-    statusType = "inactive",
-    class: className = "",
-    children,
-  } = p;
 </script>
 
-<div class="card {className}">
+<div class="card {p.class ?? ''}">
   <div class="card-header">
-    <h3>{title}</h3>
-    {#if status}
+    <h3>{p.title}</h3>
+    {#if p.status}
       <div class="status-section">
-        <span class="status-indicator {statusType}">{status}</span>
+        <span class="status-indicator {p.statusType ?? 'inactive'}"
+          >{p.status}</span
+        >
       </div>
     {/if}
   </div>
 
   <div class="card-content">
-    {@render children?.()}
+    {@render p.children?.()}
   </div>
 </div>
 

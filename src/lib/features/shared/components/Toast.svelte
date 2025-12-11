@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { toastState } from "$lib/state/index.svelte.ts";
+  import { toastState } from "$lib/bootstrap/index.svelte.ts";
   import { fly } from "svelte/transition";
 </script>
 

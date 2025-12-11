@@ -8,11 +8,12 @@
 import { json, error } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { prisma } from "$lib/server/prisma";
+import type { Event } from "$lib/types.ts";
 import {
   dbEventsToAppEvents,
   appEventToDbCreate,
   eventToJSON,
-} from "$lib/services/calendar/index.ts";
+} from "$lib/features/calendar/services/index.ts";
 
 /**
  * GET /api/calendar/events
@@ -159,14 +160,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     });
 
     // Convert back to app format
-    const appEvent = {
+    const appEvent: Event = {
       id: created.id,
       title: created.summary,
       start: created.dtstart,
       end: created.dtend || created.dtstart,
       description: created.description || undefined,
       address: created.location || undefined,
-      timeLabel: created.isAllDay ? "all-day" : "timed",
+      timeLabel: (created.isAllDay ? "all-day" : "timed") as
+        | "all-day"
+        | "some-timing"
+        | "timed",
       tzid: created.dtstartTzid || undefined,
       recurrence:
         created.hasRecurrence && created.rrule
@@ -174,7 +178,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
           : { type: "NONE" as const },
     };
 
-    return json(eventToJSON(appEvent as any), { status: 201 });
+    return json(eventToJSON(appEvent), { status: 201 });
   } catch (err) {
     if (err instanceof Response) throw err;
     console.error("[calendar/events POST] Error:", err);

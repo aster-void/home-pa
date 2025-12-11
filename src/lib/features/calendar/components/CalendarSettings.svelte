@@ -6,7 +6,7 @@
    * Uses ical.js-backed API endpoints
    */
 
-  import { calendarActions } from "$lib/state/index.ts";
+  import { calendarActions } from "$lib/bootstrap/compat.ts";
   import { UserSettings } from "$lib/features/shared/components/index.ts";
 
   // State
@@ -129,7 +129,7 @@
           <div class="errors">
             <p class="error-title">⚠️ Errors:</p>
             <ul>
-              {#each importResult.errors as error}
+              {#each importResult.errors as error, idx (idx)}
                 <li>{error}</li>
               {/each}
             </ul>
@@ -210,33 +210,6 @@
 
   .account-section h3 {
     color: white;
-  }
-
-  .api-notice {
-    background: var(--color-warning-bg, #fff8e6);
-    border: 1px solid var(--color-warning, #f59e0b);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .api-notice p {
-    margin: 0 0 0.75rem 0;
-    color: var(--color-warning-text, #92400e);
-  }
-
-  .enable-api-btn {
-    background: var(--color-warning, #f59e0b);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-  }
-
-  .enable-api-btn:hover {
-    background: var(--color-warning-dark, #d97706);
   }
 
   .settings-section {

@@ -14,8 +14,8 @@ import type { Event } from "$lib/types.ts";
 import {
   expandRecurrences,
   type ExpandedOccurrence as IcalOccurrence,
-} from "$lib/services/calendar/index.ts";
-import { toastState } from "$lib/state/index.svelte.ts";
+} from "$lib/features/calendar/services/index.ts";
+import { toastState } from "$lib/bootstrap/index.svelte.ts";
 import type {
   CalendarState,
   ExpandedOccurrence,

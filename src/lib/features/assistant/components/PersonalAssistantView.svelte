@@ -3,23 +3,21 @@
   // LogsView removed from header; settings panel is minimal
   import LogsView from "$lib/features/logs/components/LogsView.svelte";
   import CircularTimelineCss from "./CircularTimelineCss.svelte";
-  import { calendarState, dataState } from "$lib/state/index.svelte.ts";
+  import { calendarState, dataState } from "$lib/bootstrap/index.svelte.ts";
   import {
     scheduleActions,
     pendingSuggestions,
     acceptedSuggestions,
     tasks,
-  } from "$lib/state/index.ts";
-  import { enrichedGaps } from "$lib/state/gaps.ts";
+  } from "$lib/bootstrap/compat.ts";
+  import { enrichedGaps } from "$lib/features/assistant/state/gaps.ts";
   import type { Event, Gap } from "$lib/types.ts";
-  import { GapFinder } from "$lib/services/gap-finder.ts";
+  import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
 
   // Local state
   // Settings panel toggle (replaces top header controls)
   let showSettings = $state(false);
-  let selectedGap = $state<Gap | null>(null);
-  let selectedEvent = $state<Event | null>(null);
 
   // Active hours (day boundaries for gap finding)
   let activeStart = $state("08:00");
@@ -31,7 +29,14 @@
   let lastAutoScheduleKey = $state<string | null>(null);
   let taskList = $state(get(tasks));
 
+  // Selected items for details display
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
+  let selectedEvent = $state<Event | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
+  let _selectedGap = $state<Gap | null>(null);
+
   function startOfDay(date: Date): Date {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     return normalized;
@@ -60,7 +65,8 @@
   }
 
   onMount(() => {
-    dataState.setSelectedDate(startOfDay(new Date()));
+    const now = new Date(Date.now());
+    dataState.setSelectedDate(startOfDay(now));
   });
 
   $effect(() => {
@@ -75,7 +81,8 @@
   }
 
   async function maybeAutoGenerateSchedule() {
-    const todayKey = dateKey(new Date());
+    const now = new Date(Date.now());
+    const todayKey = dateKey(now);
     const currentDate = startOfDay(dataState.selectedDate);
     if (dateKey(currentDate) !== todayKey) {
       return;
@@ -89,9 +96,12 @@
   }
 
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
-    const dayStart = new Date(day);
+    const baseDay = new Date(day.getTime());
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
+    const dayStart = new Date(baseDay);
     dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(day);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
+    const dayEnd = new Date(baseDay);
     dayEnd.setHours(23, 59, 59, 999);
     return (
       eventStart.getTime() <= dayEnd.getTime() &&
@@ -107,10 +117,13 @@
       return { id: e.id, title: e.title, start: dayStart, end: dayEnd };
     }
 
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const targetDay = new Date(day);
     targetDay.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const startDay = new Date(e.start);
     startDay.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const endDay = new Date(e.end);
     endDay.setHours(0, 0, 0, 0);
 
@@ -183,7 +196,9 @@
 
   function parseTimeOnDate(base: Date, time: string): Date {
     const [hours, minutes] = time.split(":").map(Number);
-    const next = new Date(base);
+    const baseTime = new Date(base.getTime());
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
+    const next = new Date(baseTime);
     next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
     return next;
   }
@@ -196,8 +211,8 @@
 
   // Convert accepted suggestions to Event format for display list
   let acceptedEvents = $derived.by(() => {
-    const isTodaySelected =
-      dateKey(dataState.selectedDate) === dateKey(new Date());
+    const now = new Date(Date.now());
+    const isTodaySelected = dateKey(dataState.selectedDate) === dateKey(now);
     if (!isTodaySelected) return [];
 
     const base = startOfDay(dataState.selectedDate);
@@ -268,8 +283,25 @@
             pendingSuggestions={$pendingSuggestions}
             acceptedSuggestions={$acceptedSuggestions}
             {getTaskTitle}
-            on:eventSelected={(e: any) => (selectedEvent = e.detail)}
-            on:gapSelected={(e: any) => (selectedGap = e.detail)}
+            on:eventSelected={(e: CustomEvent<Event>) =>
+              (selectedEvent = e.detail)}
+            on:gapSelected={(
+              e: CustomEvent<{
+                start: string;
+                end: string;
+                duration: number;
+                startAngle: number;
+                endAngle: number;
+              }>,
+            ) => {
+              const gap = e.detail;
+              _selectedGap = {
+                gapId: `gap-${gap.start}-${gap.end}`,
+                start: gap.start,
+                end: gap.end,
+                duration: gap.duration,
+              };
+            }}
             on:suggestionAccept={handleSuggestionAccept}
             on:suggestionSkip={handleSuggestionSkip}
             on:suggestionDelete={handleSuggestionDelete}

@@ -3,7 +3,7 @@
   import UtilitiesView from "$lib/features/utilities/components/UtilitiesView.svelte";
   import { PersonalAssistantView } from "$lib/features/assistant/components/index.ts";
   import { TaskView } from "$lib/features/tasks/components/index.ts";
-  import { uiState } from "$lib/state/index.svelte.ts";
+  import { uiState } from "$lib/bootstrap/index.svelte.ts";
 </script>
 
 <main class="main-content">

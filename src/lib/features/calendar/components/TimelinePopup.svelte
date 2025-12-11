@@ -5,7 +5,7 @@
     calendarEvents,
     eventActions,
     uiActions,
-  } from "$lib/state/index.ts";
+  } from "$lib/bootstrap/compat.ts";
 
   interface Props {
     events: Event[];
@@ -92,7 +92,9 @@
   function handleEventClick(event: Event) {
     const masterEvent =
       $calendarEvents.find(
-        (e) => e.id === (event as any).eventId || e.id === event.id,
+        (e) =>
+          e.id === (event as Event & { eventId?: string }).eventId ||
+          e.id === event.id,
       ) || event;
     eventActions.editEvent(masterEvent);
     parseRecurrenceForEdit(masterEvent);
@@ -135,6 +137,7 @@
         <div class="timeline-view">
           <!-- Hour indicators -->
           <div class="timeline-hours">
+            <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
             {#each Array(24) as _, hour (hour)}
               <div class="hour-indicator" style="top: {hour * 16.67}px;">
                 <span class="hour-label"

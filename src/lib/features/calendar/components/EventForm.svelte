@@ -7,7 +7,7 @@
     eventFormErrors,
     eventActions,
     uiActions,
-  } from "$lib/state/index.ts";
+  } from "$lib/bootstrap/compat.ts";
   import {
     utcToLocalDateString,
     utcToLocalTimeString,
@@ -418,7 +418,7 @@
             <div class="recurrence-field">
               <span class="field-label">曜日</span>
               <div class="day-grid">
-                {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i}
+                {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i (i)}
                   <label class="day-pill {weeklyDays[i] ? 'active' : ''}">
                     <input type="checkbox" bind:checked={weeklyDays[i]} />
                     {day}

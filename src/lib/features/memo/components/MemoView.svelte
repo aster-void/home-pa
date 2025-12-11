@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { memoState, type MemoType } from "$lib/state/index.svelte.ts";
+  import { memoState, type MemoType } from "$lib/bootstrap/index.svelte.ts";
 
   // Local UI state
   let memoText = $state("");

@@ -69,12 +69,12 @@
               {#if showLabel}
                 <span class="event-label">
                   {truncatedEvent.title}
-                  {#if (truncatedEvent as any).isForever}
+                  {#if (truncatedEvent as Event & { isForever?: boolean }).isForever}
                     <span class="forever-indicator" title="Forever recurring"
                       >∞</span
                     >
                   {/if}
-                  {#if (truncatedEvent as any).isDuplicate}
+                  {#if (truncatedEvent as Event & { isDuplicate?: boolean }).isDuplicate}
                     <span
                       class="duplicate-indicator"
                       title="Auto-generated duplicate">↻</span

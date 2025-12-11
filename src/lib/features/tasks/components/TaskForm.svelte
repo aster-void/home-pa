@@ -8,8 +8,8 @@
     showDeadlineField,
     showRecurrenceFields,
     taskFormActions,
-  } from "$lib/state/forms/taskForm.ts";
-  import { taskActions } from "$lib/state/actions/taskActions.ts";
+  } from "$lib/features/tasks/state/taskForm.ts";
+  import { taskActions } from "$lib/features/tasks/state/taskActions.ts";
   import type { MemoType, LocationPreference } from "$lib/types.ts";
 
   // Type options
@@ -100,7 +100,7 @@
         <fieldset class="form-group fieldset-group">
           <legend>Type</legend>
           <div class="type-options" role="radiogroup" aria-label="Task type">
-            {#each typeOptions as option}
+            {#each typeOptions as option (option)}
               <button
                 type="button"
                 class="type-btn"
@@ -152,7 +152,7 @@
                 class="recurrence-period"
                 aria-label="Period"
               >
-                {#each periodOptions as option}
+                {#each periodOptions as option (option.value)}
                   <option value={option.value}>{option.label}</option>
                 {/each}
               </select>
@@ -167,7 +167,7 @@
         <fieldset class="form-group fieldset-group">
           <legend>Location</legend>
           <div class="location-options">
-            {#each locationOptions as option}
+            {#each locationOptions as option (option.value)}
               <label class="radio-option">
                 <input
                   type="radio"
@@ -352,8 +352,7 @@
     box-shadow: 0 0 0 3px rgba(102, 224, 255, 0.2);
   }
 
-  input.error,
-  select.error {
+  input.error {
     border-color: var(--danger);
   }
 

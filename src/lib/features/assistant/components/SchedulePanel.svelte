@@ -15,9 +15,9 @@
     droppedMandatory,
     hasMandatoryDropped,
     scheduleActions,
-  } from "$lib/state/schedule.ts";
-  import { tasks } from "$lib/state/actions/taskActions.ts";
-  import { enrichedGaps } from "$lib/state/gaps.ts";
+  } from "$lib/features/assistant/state/schedule.ts";
+  import { tasks } from "$lib/features/tasks/state/taskActions.ts";
+  import { enrichedGaps } from "$lib/features/assistant/state/gaps.ts";
   import { get } from "svelte/store";
 
   // Get memo title from memoId
@@ -113,7 +113,7 @@
     {#if $nextScheduledBlock}
       {@const next = $nextScheduledBlock}
       {@const title = getMemoTitle(next.memoId)}
-      {@const type = getMemoType(next.memoId)}
+      {@const _type = getMemoType(next.memoId)}
       <div class="next-task-card">
         <div class="next-label">Next</div>
         <h4 class="next-title">{title}</h4>
@@ -121,7 +121,7 @@
           {next.startTime} - {next.endTime}
         </div>
         <div class="next-meta">
-          <span class="type-badge {getTypeBadgeClass(type)}">{type}</span>
+          <span class="type-badge {getTypeBadgeClass(_type)}">{_type}</span>
           <span class="duration">{formatDuration(next.duration)}</span>
         </div>
         <div class="next-actions">
@@ -138,7 +138,6 @@
         <ul class="upcoming-list">
           {#each $scheduledBlocks.slice(1) as block (block.suggestionId)}
             {@const title = getMemoTitle(block.memoId)}
-            {@const type = getMemoType(block.memoId)}
             <li class="upcoming-item">
               <span class="upcoming-time">{block.startTime}</span>
               <span class="upcoming-title">{title}</span>

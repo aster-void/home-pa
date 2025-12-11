@@ -10,7 +10,7 @@ import { prisma } from "$lib/server/prisma";
 import {
   parseICS,
   parsedEventToDbCreate,
-} from "$lib/services/calendar/index.ts";
+} from "$lib/features/calendar/services/index.ts";
 
 /**
  * POST /api/calendar/import

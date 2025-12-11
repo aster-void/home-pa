@@ -3,7 +3,7 @@
   import {
     taskActions,
     enrichingTaskIds,
-  } from "$lib/state/actions/taskActions.ts";
+  } from "$lib/features/tasks/state/taskActions.ts";
 
   interface Props {
     task: Memo;

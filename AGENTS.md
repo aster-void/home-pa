@@ -1,6 +1,6 @@
-# Home-PA (Personal Assistant)
+# AGENTS.md
 
-SvelteKit + Svelte 5 personal assistant application.
+This application is Home-PA (Personal Assistant), SvelteKit + Svelte 5 personal assistant application.
 
 ## Tech Stack & Tools
 

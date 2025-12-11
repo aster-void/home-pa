@@ -216,7 +216,9 @@ export function isFirstDayOfEvent(event: Event, targetDate: Date): boolean {
  */
 export function getEventColor(event: Event): string {
   const importance = event.importance || "medium";
-  const opacity = (event as any).isForever ? 0.85 : 1;
+  const opacity = (event as Event & { isForever?: boolean }).isForever
+    ? 0.85
+    : 1;
 
   const colors: Record<string, string> = {
     high: `rgba(248, 113, 113, ${opacity})`,

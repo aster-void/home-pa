@@ -64,11 +64,12 @@
     <div class="forever-events-list">
       <h4>Forever Recurring Events:</h4>
       <ul>
-        {#each foreverEvents as event}
+        {#each foreverEvents as event (event.id)}
           <li>
             {event.title}
             <span class="forever-indicator">∞</span>
-            (Master ID: {(event as any).eventId || event.id})
+            (Master ID: {(event as Event & { eventId?: string }).eventId ||
+              event.id})
           </li>
         {/each}
       </ul>

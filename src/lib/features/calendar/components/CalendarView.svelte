@@ -16,14 +16,11 @@
     eventActions,
     uiActions,
     type ExpandedOccurrence,
-  } from "$lib/state/index.ts";
+  } from "$lib/bootstrap/compat.ts";
   import {
-    localDateTimeStringToUTC,
     localDateTimeToUTC,
     utcToLocalDateString,
-    utcToLocalDateTimeString,
     utcToLocalTimeString,
-    createAllDayUTCRange,
   } from "$lib/utils/date-utils.ts";
 
   // Local reactive variables for calendar state
@@ -45,14 +42,17 @@
   let isEventEditing = $state(false);
   let isManualDateOrTimeEdit = $state(false);
 
+  // These derived values are computed but not currently used - kept for future UI enhancements
   // Check if time fields have content (for timed events)
-  let hasTimeContent = $derived(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _hasTimeContent = $derived(
     eventTimeLabel === "timed" &&
       (eventStartTime.trim() !== "" || eventEndTime.trim() !== ""),
   );
 
   // Check if we're in timed mode (either explicitly timed or user has manually edited times)
-  let isTimedMode = $derived(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _isTimedMode = $derived(
     eventTimeLabel === "timed" || isManualDateOrTimeEdit,
   );
 
@@ -257,12 +257,13 @@
             e.id === currentForm.editingId ? tempEvent : e,
           );
           // Use the calendar store's expand function for preview
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const previewOccurrences = calendarActions.expandRecurringEvents(
             eventsWithPreview,
             windowStart,
             windowEnd,
           );
-          // Note: This is just for preview - the actual store won't update until save
+          // Note: Preview occurrences computed but not currently rendered - kept for future enhancement
         }, 200);
 
         return () => clearTimeout(timeout);
@@ -310,6 +311,7 @@
       );
 
     // Debug logging (can be disabled for production)
+    // eslint-disable-next-line no-constant-condition
     if (false) {
       // Set to true for debugging
       console.log("[CalendarView] allDisplayEvents update:", {
@@ -341,10 +343,12 @@
 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0); // Last day of the month
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
     const days = [];
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const currentDate = new Date(startDate);
 
     // Calculate how many days we need to show
@@ -577,7 +581,8 @@
     return null;
   }
 
-  function formatRecurrenceText(recurrence: any): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+  function _formatRecurrenceText(recurrence: any): string {
     if (!recurrence || recurrence.type === "NONE") {
       return "";
     }
@@ -715,7 +720,8 @@
     return (hours * 60 + minutes) * (400 / 1440); // Scale to fit 400px height
   }
 
-  function getEventHeight(event: Event): number {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function _getEventHeight(event: Event): number {
     const startTime = event.start;
     const endTime = event.end;
     const durationMs = endTime.getTime() - startTime.getTime();
@@ -723,7 +729,7 @@
     return durationMinutes;
   }
 
-  function getEventHeightScaled(event: Event): number {
+  function _getEventHeightScaled(event: Event): number {
     // All-day events span the full timeline height (00:00 to 23:59 = 24 hours)
     if (event.timeLabel === "all-day") {
       return 400; // Full height (24 hours * 400px / 1440 minutes)
@@ -737,7 +743,8 @@
   }
 
   // Helper function to check if an event should be shown on a specific date
-  function shouldShowEventOnDate(event: Event, targetDate: Date): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function _shouldShowEventOnDate(event: Event, targetDate: Date): boolean {
     const eventStartDate = new Date(event.start);
     const eventEndDate = new Date(event.end);
     const targetDateString = targetDate.toDateString();
@@ -751,8 +758,10 @@
 
   // Helper function to get events for a specific date (including midnight-crossing events)
   function getEventsForDate(events: Event[], targetDate: Date): Event[] {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const targetDateStart = new Date(targetDate);
     targetDateStart.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const targetDateEnd = new Date(targetDate);
     targetDateEnd.setHours(23, 59, 59, 999);
     const targetDateStartTime = targetDateStart.getTime();
@@ -794,6 +803,7 @@
 
         // If event starts on target date but ends next day, truncate at midnight
         if (startsOnTarget && !endsOnTarget) {
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const truncatedEnd = new Date(targetDate);
           truncatedEnd.setHours(23, 59, 59, 999);
           return {
@@ -804,6 +814,7 @@
 
         // If event ends on target date but started yesterday, start at midnight
         if (!startsOnTarget && endsOnTarget) {
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const truncatedStart = new Date(targetDate);
           truncatedStart.setHours(0, 0, 0, 0);
           return {
@@ -814,8 +825,10 @@
 
         // If event spans the target date (starts before and ends after), truncate to full day
         if (spansTarget) {
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const truncatedStart = new Date(targetDate);
           truncatedStart.setHours(0, 0, 0, 0);
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const truncatedEnd = new Date(targetDate);
           truncatedEnd.setHours(23, 59, 59, 999);
           return {
@@ -887,17 +900,22 @@
 
   // Helper to check if this is the first day of an event
   function isFirstDayOfEvent(event: Event, targetDate: Date): boolean {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const eventStartDate = new Date(event.start);
     eventStartDate.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const targetDateOnly = new Date(targetDate);
     targetDateOnly.setHours(0, 0, 0, 0);
     return eventStartDate.getTime() === targetDateOnly.getTime();
   }
 
   // Helper to check if event spans multiple days
-  function isMultiDayEvent(event: Event): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function _isMultiDayEvent(event: Event): boolean {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const eventStartDate = new Date(event.start);
     eventStartDate.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const eventEndDate = new Date(event.end);
     eventEndDate.setHours(0, 0, 0, 0);
     return eventEndDate.getTime() > eventStartDate.getTime();
@@ -909,10 +927,13 @@
     eventEnd: Date,
     targetDate: Date,
   ): "start" | "middle" | "end" | "single" {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const eventStartDate = new Date(eventStart);
     eventStartDate.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const eventEndDate = new Date(eventEnd);
     eventEndDate.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
     const targetDateOnly = new Date(targetDate);
     targetDateOnly.setHours(0, 0, 0, 0);
 
@@ -928,6 +949,7 @@
 
   // Assign row indices to events so multi-day events maintain same row across days
   function assignEventRows(events: Event[]): Map<string, number> {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Map used in utility function, not reactive state
     const eventRows = new Map<string, number>();
 
     // Sort events by start date, then by duration (longer first)
@@ -941,8 +963,10 @@
     });
 
     for (const event of sortedEvents) {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
       const eventStartDate = new Date(event.start);
       eventStartDate.setHours(0, 0, 0, 0);
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
       const eventEndDate = new Date(event.end);
       eventEndDate.setHours(0, 0, 0, 0);
 
@@ -960,8 +984,10 @@
           const otherEvent = events.find((e) => e.id === otherEventId);
           if (!otherEvent) continue;
 
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const otherStartDate = new Date(otherEvent.start);
           otherStartDate.setHours(0, 0, 0, 0);
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
           const otherEndDate = new Date(otherEvent.end);
           otherEndDate.setHours(0, 0, 0, 0);
 
@@ -1061,11 +1087,12 @@
         <div class="forever-events-list">
           <h4>Forever Recurring Events:</h4>
           <ul>
-            {#each foreverEvents as event}
+            {#each foreverEvents as event (event.id)}
               <li>
                 {event.title}
                 <span class="forever-indicator">∞</span>
-                (Master ID: {(event as any).eventId || event.id})
+                (Master ID: {(event as Event & { eventId?: string }).eventId ||
+                  event.id})
               </li>
             {/each}
           </ul>
@@ -1119,12 +1146,12 @@
                 {#if showLabel}
                   <span class="event-label">
                     {truncatedEvent.title}
-                    {#if (truncatedEvent as any).isForever}
+                    {#if (truncatedEvent as Event & { isForever?: boolean }).isForever}
                       <span class="forever-indicator" title="Forever recurring"
                         >∞</span
                       >
                     {/if}
-                    {#if (truncatedEvent as any).isDuplicate}
+                    {#if (truncatedEvent as Event & { isDuplicate?: boolean }).isDuplicate}
                       <span
                         class="duplicate-indicator"
                         title="Auto-generated duplicate">↻</span
@@ -1174,6 +1201,7 @@
             <div class="timeline-view">
               <!-- Hour indicators -->
               <div class="timeline-hours">
+                <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
                 {#each Array(24) as _, hour (hour)}
                   <div class="hour-indicator" style="top: {hour * 16.67}px;">
                     <span class="hour-label"
@@ -1208,8 +1236,9 @@
                           const masterEvent =
                             $calendarEvents.find(
                               (e) =>
-                                e.id === (event as any).eventId ||
-                                e.id === event.id,
+                                e.id ===
+                                  (event as Event & { eventId?: string })
+                                    .eventId || e.id === event.id,
                             ) || event;
                           eventActions.editEvent(masterEvent);
                           parseRecurrenceForEdit(masterEvent);
@@ -1219,8 +1248,9 @@
                             const masterEvent =
                               $calendarEvents.find(
                                 (evt) =>
-                                  evt.id === (event as any).eventId ||
-                                  evt.id === event.id,
+                                  evt.id ===
+                                    (event as Event & { eventId?: string })
+                                      .eventId || evt.id === event.id,
                               ) || event;
                             eventActions.editEvent(masterEvent);
                             parseRecurrenceForEdit(masterEvent);
@@ -1233,7 +1263,7 @@
                           event.start,
                           event.timeLabel,
                         )}px;
-                          height: {getEventHeightScaled(event)}px;
+                          height: {_getEventHeightScaled(event)}px;
                           background-color: {getEventColor(event)};
                           color: white;
                         "
@@ -1546,7 +1576,7 @@
                 <div class="recurrence-field">
                   <span class="field-label">曜日</span>
                   <div class="day-grid">
-                    {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i}
+                    {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i (i)}
                       <label class="day-pill {weeklyDays[i] ? 'active' : ''}">
                         <input type="checkbox" bind:checked={weeklyDays[i]} />
                         {day}
@@ -3086,7 +3116,6 @@
 
   /* responsive adjustment: height→auto, max-height→50vh */
   @media (max-width: 768px) {
-    .recurrence-loading .loading-text,
     .recurrence-error {
       font-size: 0.7rem;
       padding: 0.25rem 0.5rem;
