@@ -236,10 +236,12 @@
   // Component-level event handling is wired directly on the child via on: handlers below
 </script>
 
-<div class="relative m-0 flex h-full w-full flex-col overflow-hidden p-0">
+<div
+  class="relative m-0 flex h-full w-full flex-col overflow-hidden bg-white/40 p-0 backdrop-blur-sm"
+>
   <!-- Minimal top-left Settings trigger -->
   <button
-    class="fixed top-2 left-2 z-[250] cursor-pointer border-none bg-transparent p-1 text-xs text-base-content/60 transition-colors duration-200 hover:text-base-content"
+    class="fixed top-3 left-3 z-[250] cursor-pointer rounded-lg border-none bg-white/60 px-3 py-1.5 text-xs font-medium text-[#718096] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-[#ed8936] hover:shadow-md"
     onclick={() => (showSettings = true)}>settings</button
   >
 
@@ -289,30 +291,34 @@
         </div>
 
         <div
-          class="mb-[calc(var(--bottom-nav-height,80px)+1rem)] w-full max-w-[720px] rounded-xl border border-base-300 bg-base-100 p-4 shadow-sm"
+          class="mb-[calc(var(--bottom-nav-height,80px)+1rem)] w-full max-w-[720px] rounded-2xl border border-[#1a202c]/5 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
         >
           <div
-            class="mb-4 flex items-center justify-between border-b border-base-300 pb-2"
+            class="mb-4 flex items-center justify-between border-b border-[#1a202c]/5 pb-3"
           >
-            <h3 class="m-0 text-lg font-normal">Events</h3>
+            <h3 class="m-0 font-serif text-xl font-normal text-[#1a202c]">
+              Events
+            </h3>
             <span
-              class="rounded-full bg-[color:var(--color-accent)]/10 px-3 py-1 text-sm font-normal text-[color:var(--color-accent)]"
+              class="rounded-full bg-[#ed8936]/10 px-3 py-1 text-sm font-medium text-[#ed8936]"
               >{formatDateLabel(dataState.selectedDate)}</span
             >
           </div>
           {#if displayEvents.length === 0}
-            <p class="m-0 py-6 text-center text-sm text-base-content/40">
+            <p class="m-0 py-6 text-center text-sm text-[#718096]">
               この日の予定はありません
             </p>
           {:else}
             <ul class="m-0 flex list-none flex-col gap-2 p-0">
               {#each displayEvents as event (event.id)}
                 <li
-                  class="flex items-center justify-between rounded-lg border border-transparent bg-base-200 p-2 px-4 transition-all duration-200 hover:border-base-300 hover:bg-base-300"
+                  class="flex items-center justify-between rounded-xl border border-transparent bg-[#faf8f6] p-3 px-4 transition-all duration-200 hover:border-[#ed8936]/20 hover:bg-[#f0ebe6]"
                 >
-                  <div class="text-sm font-normal">{event.title}</div>
+                  <div class="text-sm font-medium text-[#1a202c]">
+                    {event.title}
+                  </div>
                   <div
-                    class="rounded bg-base-100 px-2 py-0.5 text-xs text-base-content/60"
+                    class="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-[#718096] shadow-sm"
                   >
                     {formatEventTime(event)}
                   </div>
@@ -358,7 +364,7 @@
   <!-- Settings Panel (bottom sheet) -->
   {#if showSettings}
     <div
-      class="fixed inset-0 modal-backdrop z-[499] animate-[fadeIn_0.2s_ease] bg-black/40 backdrop-blur-sm"
+      class="fixed inset-0 modal-backdrop z-[499] animate-[fadeIn_0.2s_ease] bg-[#1a202c]/40 backdrop-blur-sm"
       onclick={() => (showSettings = false)}
       onkeydown={(e) => e.key === "Escape" && (showSettings = false)}
       role="button"
@@ -366,35 +372,37 @@
       aria-label="Close settings"
     ></div>
     <section
-      class="fixed right-0 bottom-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom))] left-0 z-[500] modal-box flex max-h-[calc(50vh-var(--bottom-nav-height,80px))] animate-[slideUp_0.3s_ease] flex-col overflow-y-auto rounded-t-xl border-t border-base-300 bg-base-100 p-6 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
+      class="fixed right-0 bottom-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom))] left-0 z-[500] modal-box flex max-h-[calc(50vh-var(--bottom-nav-height,80px))] animate-[slideUp_0.3s_ease] flex-col overflow-y-auto rounded-t-2xl border-t border-[#1a202c]/5 bg-white p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]"
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
       <div
-        class="mb-6 flex items-center justify-between border-b border-base-300 pb-4"
+        class="mb-6 flex items-center justify-between border-b border-[#1a202c]/5 pb-4"
       >
-        <h3 class="m-0 text-lg font-normal">Settings</h3>
+        <h3 class="m-0 font-serif text-xl font-normal text-[#1a202c]">
+          Settings
+        </h3>
         <button
-          class="btn h-8 min-h-8 w-8 p-0 btn-ghost transition-all duration-200 btn-sm hover:bg-error hover:text-white"
+          class="btn h-9 min-h-9 w-9 rounded-xl p-0 text-[#718096] btn-ghost transition-all duration-200 btn-sm hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
           onclick={() => (showSettings = false)}
           aria-label="Close">✕</button
         >
       </div>
       <div class="flex flex-col gap-4">
-        <div class="flex items-center gap-2 text-xs text-base-content/60">
-          <span>Active hours</span>
-          <div class="inline-flex items-center gap-1.5">
+        <div class="flex items-center gap-3 text-sm text-[#4a5568]">
+          <span class="font-medium">Active hours</span>
+          <div class="inline-flex items-center gap-2">
             <input
               type="time"
               bind:value={activeStart}
-              class="input-bordered input input-sm"
+              class="input input-sm rounded-xl border-[#1a202c]/10 bg-[#faf8f6] px-3 py-2 text-sm text-[#1a202c] focus:border-[#ed8936] focus:ring-2 focus:ring-[#ed8936]/20"
             />
-            <span>–</span>
+            <span class="text-[#718096]">–</span>
             <input
               type="time"
               bind:value={activeEnd}
-              class="input-bordered input input-sm"
+              class="input input-sm rounded-xl border-[#1a202c]/10 bg-[#faf8f6] px-3 py-2 text-sm text-[#1a202c] focus:border-[#ed8936] focus:ring-2 focus:ring-[#ed8936]/20"
             />
           </div>
         </div>

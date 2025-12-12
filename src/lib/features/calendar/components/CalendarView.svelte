@@ -228,7 +228,7 @@
 </script>
 
 <div
-  class="flex h-full max-h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-base-300 bg-base-100 backdrop-blur-sm"
+  class="flex h-full max-h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1a202c]/5 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm"
   style="scrollbar-width: none; -ms-overflow-style: none;"
 >
   <!-- Calendar Header -->

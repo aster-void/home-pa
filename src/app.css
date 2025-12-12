@@ -1,12 +1,25 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+/* Fonts - Instrument Serif + Manrope */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap");
+
 /* HomePA Theme Extension */
 @theme {
-  /* Accent Colors */
-  --color-accent: #f08a77;
-  --color-accent-hover: #e87862;
+  /* Accent Colors - Warm Orange */
+  --color-accent: #ed8936;
+  --color-accent-hover: #dd6b20;
   --color-today: #0066cc;
+
+  /* Background Colors */
+  --color-bg-warm-start: #faf8f6;
+  --color-bg-warm-end: #f0ebe6;
+  --color-surface: #ffffff;
+
+  /* Text Colors */
+  --color-text-primary: #1a202c;
+  --color-text-secondary: #4a5568;
+  --color-text-muted: #718096;
 
   /* Event Category Colors */
   --color-event-blue: #4a9eff;
@@ -16,6 +29,10 @@
 
   /* Layout */
   --bottom-nav-height: 80px;
+
+  /* Fonts */
+  --font-serif: "Instrument Serif", serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
 }
 
 /* Base styles */
@@ -23,6 +40,12 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  font-family: var(--font-sans);
+}
+
+/* Utility class for serif headings */
+.font-serif {
+  font-family: var(--font-serif);
 }
 
 /* Focus ring using accent color */

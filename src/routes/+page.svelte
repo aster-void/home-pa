@@ -7,7 +7,7 @@
 </script>
 
 <main
-  class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden bg-base-100"
+  class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden bg-transparent"
 >
   {#if uiState.currentView === "calendar"}
     <CalendarTabView />

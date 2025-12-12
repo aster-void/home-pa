@@ -56,7 +56,9 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="flex h-screen min-h-screen flex-col overflow-hidden bg-base-200">
+<div
+  class="flex h-screen min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#faf8f6] to-[#f0ebe6]"
+>
   {@render children?.()}
   <BottomNavigation />
   <Toast />

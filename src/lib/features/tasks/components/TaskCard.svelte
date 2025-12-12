@@ -101,24 +101,23 @@
 </script>
 
 <div
-  class="card relative mb-2 rounded-xl border border-l-4 border-base-300 bg-base-100 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg {task.type ===
+  class="card relative mb-3 rounded-2xl border border-l-4 border-[#1a202c]/5 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] {task.type ===
   '期限付き'
-    ? 'border-l-[color:var(--color-accent)]'
+    ? 'border-l-[#ed8936]'
     : task.type === 'ルーティン'
-      ? 'border-l-[color:var(--color-primary)]'
-      : 'border-l-base-content/30'}"
+      ? 'border-l-[#4a9eff]'
+      : 'border-l-[#718096]/30'}"
   class:opacity-60={task.status.completionState === "completed"}
-  class:bg-base-200={task.status.completionState === "completed"}
+  class:bg-[#f0ebe6]={task.status.completionState === "completed"}
 >
   {#if isEnriching}
     <div
-      class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/70 backdrop-blur-sm"
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-[#1a202c]/70 backdrop-blur-sm"
     >
       <div
-        class="h-6 w-6 animate-spin rounded-full border-2 border-base-300 border-t-[color:var(--color-primary)]"
+        class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[#ed8936]"
       ></div>
-      <span
-        class="text-xs font-medium tracking-wide text-[color:var(--color-primary)]"
+      <span class="text-xs font-medium tracking-wide text-[#ed8936]"
         >AI analyzing...</span
       >
     </div>
@@ -126,7 +125,7 @@
   <div class="mb-2">
     <div class="flex items-center justify-between gap-2">
       <h3
-        class="m-0 flex-1 text-base font-semibold text-base-content"
+        class="m-0 flex-1 text-base font-semibold text-[#1a202c]"
         class:line-through={task.status.completionState === "completed"}
       >
         {task.title}
