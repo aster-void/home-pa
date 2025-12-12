@@ -13,7 +13,11 @@
   import type { Event, Gap } from "$lib/types.ts";
   import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
-  import { startOfDay, parseTimeOnDate } from "$lib/utils/date-utils.ts";
+  import {
+    startOfDay,
+    endOfDay,
+    parseTimeOnDate,
+  } from "$lib/utils/date-utils.ts";
 
   // Local state
   // Settings panel toggle (replaces top header controls)
@@ -91,9 +95,7 @@
 
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
     const dayStart = startOfDay(day);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
+    const dayEnd = endOfDay(day);
     return (
       eventStart.getTime() <= dayEnd.getTime() &&
       eventEnd.getTime() >= dayStart.getTime()

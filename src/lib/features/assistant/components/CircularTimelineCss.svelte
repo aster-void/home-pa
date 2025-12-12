@@ -8,7 +8,7 @@
     AcceptedSuggestion,
   } from "$lib/features/assistant/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
-  import { startOfDay } from "$lib/utils/date-utils.ts";
+  import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
 
   interface Props {
     showLog?: boolean;
@@ -157,9 +157,7 @@
 
   let normalizedEvents = $derived.by((): NormalizedEvent[] => {
     const dayStart = startOfDay(selectedDateCurrent);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
+    const dayEnd = endOfDay(selectedDateCurrent);
     const ds = dayStart.getTime();
     const de = dayEnd.getTime();
 

@@ -15,7 +15,7 @@
   import CalendarDebugInfo from "./CalendarDebugInfo.svelte";
   import EventForm from "./EventForm.svelte";
   import TimelinePopup from "./TimelinePopup.svelte";
-  import { startOfDay } from "$lib/utils/date-utils.ts";
+  import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
@@ -204,9 +204,7 @@
   // Helper function to get events for timeline (includes timed and all-day events)
   function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
     const targetDateStart = startOfDay(targetDate);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
-    const targetDateEnd = new Date(targetDateStart);
-    targetDateEnd.setHours(23, 59, 59, 999);
+    const targetDateEnd = endOfDay(targetDate);
     const targetDateStartTime = targetDateStart.getTime();
     const targetDateEndTime = targetDateEnd.getTime();
 

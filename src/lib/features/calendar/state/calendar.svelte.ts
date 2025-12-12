@@ -15,6 +15,7 @@
  */
 
 import type { Event } from "../../../types.ts";
+import { buildCalendarExportUrl } from "$lib/utils/date-utils.ts";
 import {
   expandRecurrences,
   type ExpandedOccurrence as IcalOccurrence,
@@ -427,16 +428,7 @@ class CalendarState {
    * Get export URL for downloading .ics file
    */
   getExportUrl(start?: Date, end?: Date, name?: string): string {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- URLSearchParams for query string building, not reactive state
-    const params = new URLSearchParams();
-    if (start) params.set("start", start.toISOString());
-    if (end) params.set("end", end.toISOString());
-    if (name) params.set("name", name);
-
-    const queryString = params.toString();
-    return queryString
-      ? `/api/calendar/export?${queryString}`
-      : "/api/calendar/export";
+    return buildCalendarExportUrl(start, end, name);
   }
 
   /**

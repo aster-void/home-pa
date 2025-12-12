@@ -19,7 +19,7 @@ import {
   enrichGapsWithLocation,
   type EnrichableEvent,
 } from "../services/suggestions/index.ts";
-import { startOfDay } from "$lib/utils/date-utils.ts";
+import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
 
 /**
  * Creates a polling-based store from Svelte 5 state
@@ -75,9 +75,7 @@ function convertCalendarEventToGapEvent(
 
   // Calculate day boundaries for target date
   const targetDayStart = startOfDay(targetDate);
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
-  const targetDayEnd = new Date(targetDayStart);
-  targetDayEnd.setHours(23, 59, 59, 999);
+  const targetDayEnd = endOfDay(targetDate);
 
   // Check if event overlaps with target date (handles multi-day events)
   const eventStartsBeforeDayEnd =

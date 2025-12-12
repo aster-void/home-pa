@@ -226,3 +226,43 @@ export function addDays(date: Date, days: number): Date {
   newDate.setDate(newDate.getDate() + days);
   return newDate;
 }
+
+/**
+ * Normalizes a Date to end of day (23:59:59.999)
+ * Creates a new Date instance without mutating the original
+ */
+export function endOfDay(date: Date): Date {
+  const normalized = new Date(date);
+  normalized.setHours(23, 59, 59, 999);
+  return normalized;
+}
+
+/**
+ * Returns both start and end of day bounds for a given date
+ * Useful for range comparisons
+ */
+export function getDayBounds(date: Date): { start: Date; end: Date } {
+  return {
+    start: startOfDay(date),
+    end: endOfDay(date),
+  };
+}
+
+/**
+ * Builds calendar export URL with optional date range and name
+ */
+export function buildCalendarExportUrl(
+  start?: Date,
+  end?: Date,
+  name?: string,
+): string {
+  const params = new URLSearchParams();
+  if (start) params.set("start", start.toISOString());
+  if (end) params.set("end", end.toISOString());
+  if (name) params.set("name", name);
+
+  const queryString = params.toString();
+  return queryString
+    ? `/api/calendar/export?${queryString}`
+    : "/api/calendar/export";
+}
