@@ -6,7 +6,9 @@
   import { uiState } from "$lib/bootstrap/index.svelte.ts";
 </script>
 
-<main class="main-content">
+<main
+  class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden bg-base-100"
+>
   {#if uiState.currentView === "calendar"}
     <CalendarTabView />
   {:else if uiState.currentView === "personal-assistant"}
@@ -17,23 +19,3 @@
     <UtilitiesView />
   {/if}
 </main>
-
-<style>
-  .main-content {
-    display: flex;
-    flex-direction: column;
-    height: calc(
-      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
-    ); /* Account for bottom nav + safe area */
-    max-height: calc(
-      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
-    );
-    min-height: calc(
-      100vh - var(--bottom-nav-height, 80px) - env(safe-area-inset-bottom)
-    );
-    width: 100%;
-    background: var(--bg-card);
-    overflow: hidden;
-    box-sizing: border-box;
-  }
-</style>

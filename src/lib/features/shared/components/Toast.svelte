@@ -3,22 +3,39 @@
   import { fly } from "svelte/transition";
 </script>
 
-<div class="toast-container">
+<div
+  class="pointer-events-none fixed top-4 right-4 z-[9999] flex flex-col gap-2 sm:top-3 sm:right-3 sm:left-3"
+>
   {#each toastState.toasts as toast (toast.id)}
     <div
-      class="toast toast-{toast.type}"
+      class="pointer-events-auto flex max-w-[400px] min-w-[250px] items-center gap-2 rounded-lg border-l-4 bg-base-100 px-4 py-2 text-sm shadow-[0_4px_16px_rgba(0,0,0,0.15)] sm:max-w-none sm:min-w-0 {toast.type ===
+      'success'
+        ? 'border-l-success bg-gradient-to-br from-success/10 to-base-100'
+        : ''} {toast.type === 'error'
+        ? 'border-l-error bg-gradient-to-br from-error/10 to-base-100'
+        : ''} {toast.type === 'info'
+        ? 'border-l-info bg-gradient-to-br from-info/10 to-base-100'
+        : ''}"
       transition:fly={{ y: -20, duration: 300 }}
       role="status"
       aria-live="polite"
     >
-      <span class="toast-icon">
+      <span
+        class="flex-shrink-0 text-lg font-bold {toast.type === 'success'
+          ? 'text-success'
+          : ''} {toast.type === 'error' ? 'text-error' : ''} {toast.type ===
+        'info'
+          ? 'text-info'
+          : ''}"
+      >
         {#if toast.type === "success"}✓{/if}
         {#if toast.type === "error"}✕{/if}
         {#if toast.type === "info"}ℹ{/if}
       </span>
-      <span class="toast-message">{toast.message}</span>
+      <span class="flex-1 leading-[1.4] text-base-content">{toast.message}</span
+      >
       <button
-        class="toast-close"
+        class="flex h-5 min-h-[44px] w-5 min-w-[44px] flex-shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-sm text-base-content/60 transition-all duration-[180ms] ease-out hover:bg-black/10 hover:text-base-content"
         onclick={() => toastState.remove(toast.id)}
         aria-label="Close notification"
       >
@@ -27,118 +44,3 @@
     </div>
   {/each}
 </div>
-
-<style>
-  .toast-container {
-    position: fixed;
-    top: var(--space-lg);
-    right: var(--space-lg);
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-    pointer-events: none;
-  }
-
-  .toast {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: var(--bg-card);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    border-left: 4px solid;
-    min-width: 250px;
-    max-width: 400px;
-    pointer-events: auto;
-    font-family: var(--font-family);
-    font-size: var(--fs-sm);
-  }
-
-  .toast-success {
-    border-left-color: #10b981;
-    background: linear-gradient(
-      135deg,
-      rgba(16, 185, 129, 0.1) 0%,
-      var(--bg-card) 100%
-    );
-  }
-
-  .toast-error {
-    border-left-color: #ef4444;
-    background: linear-gradient(
-      135deg,
-      rgba(239, 68, 68, 0.1) 0%,
-      var(--bg-card) 100%
-    );
-  }
-
-  .toast-info {
-    border-left-color: #3b82f6;
-    background: linear-gradient(
-      135deg,
-      rgba(59, 130, 246, 0.1) 0%,
-      var(--bg-card) 100%
-    );
-  }
-
-  .toast-icon {
-    font-size: 1.125rem;
-    font-weight: bold;
-    flex-shrink: 0;
-  }
-
-  .toast-success .toast-icon {
-    color: #10b981;
-  }
-
-  .toast-error .toast-icon {
-    color: #ef4444;
-  }
-
-  .toast-info .toast-icon {
-    color: #3b82f6;
-  }
-
-  .toast-message {
-    flex: 1;
-    color: var(--text);
-    line-height: 1.4;
-  }
-
-  .toast-close {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: all 0.18s ease;
-    font-size: 0.875rem;
-  }
-
-  .toast-close:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: var(--text);
-  }
-
-  @media (max-width: 640px) {
-    .toast-container {
-      top: var(--space-md);
-      right: var(--space-md);
-      left: var(--space-md);
-    }
-
-    .toast {
-      min-width: auto;
-      max-width: none;
-    }
-  }
-</style>

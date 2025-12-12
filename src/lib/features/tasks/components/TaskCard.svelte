@@ -109,356 +109,147 @@
 </script>
 
 <div
-  class="task-card {typeClass}"
-  class:completed={task.status.completionState === "completed"}
-  class:enriching={isEnriching}
+  class="card relative mb-2 rounded-xl border border-base-300 bg-base-100 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg {typeClass}"
+  class:opacity-60={task.status.completionState === "completed"}
+  class:bg-base-200={task.status.completionState === "completed"}
 >
   {#if isEnriching}
-    <div class="enriching-overlay">
-      <div class="enriching-spinner"></div>
-      <span class="enriching-text">AI analyzing...</span>
+    <div
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/70 backdrop-blur-sm"
+    >
+      <div
+        class="h-6 w-6 animate-spin rounded-full border-2 border-base-300 border-t-[color:var(--color-primary)]"
+      ></div>
+      <span
+        class="text-xs font-medium tracking-wide text-[color:var(--color-primary)]"
+        >AI analyzing...</span
+      >
     </div>
   {/if}
-  <div class="task-header">
-    <div class="task-title-row">
-      <h3 class="task-title">{task.title}</h3>
-      <div class="pills">
-        <span class="task-type">{typeLabel}</span>
+  <div class="mb-2">
+    <div class="flex items-center justify-between gap-2">
+      <h3
+        class="m-0 flex-1 text-base font-semibold text-base-content"
+        class:line-through={task.status.completionState === "completed"}
+      >
+        {task.title}
+      </h3>
+      <div class="flex items-center gap-1.5">
+        <span class="badge badge-sm text-[0.7rem] tracking-wider uppercase"
+          >{typeLabel}</span
+        >
         {#if genreLabel()}
-          <span class="pill pill-genre">{genreLabel()}</span>
+          <span
+            class="badge bg-purple-500/10 badge-sm font-medium text-purple-600"
+            >{genreLabel()}</span
+          >
         {/if}
         {#if sessionDurationLabel()}
-          <span class="pill pill-time">{sessionDurationLabel()}</span>
+          <span
+            class="badge bg-[color:var(--color-today)]/10 badge-sm font-semibold text-[color:var(--color-today)]"
+            >{sessionDurationLabel()}</span
+          >
         {/if}
       </div>
     </div>
   </div>
 
-  <div class="task-meta">
+  <div class="mb-2 flex flex-col gap-1.5">
     {#if task.type === "期限付き" && task.deadline}
-      <div class="meta-item" class:urgent={isUrgent()}>
-        <span class="meta-icon">📅</span>
-        <span class="meta-text">{deadlineText()}</span>
+      <div
+        class="flex items-center gap-1 text-sm"
+        class:text-error={isUrgent()}
+        class:font-semibold={isUrgent()}
+      >
+        <span class="text-[0.9rem]">📅</span>
+        <span>{deadlineText()}</span>
       </div>
     {/if}
 
     {#if task.type === "ルーティン" && routineProgress()}
       {@const prog = routineProgress()}
-      <div class="meta-item">
-        <span class="meta-icon">🔄</span>
-        <span class="meta-text"
-          >{prog?.done}/{prog?.goal} this {task.recurrenceGoal?.period}</span
+      <div class="flex items-center gap-1 text-sm text-base-content/70">
+        <span class="text-[0.9rem]">🔄</span>
+        <span>{prog?.done}/{prog?.goal} this {task.recurrenceGoal?.period}</span
         >
       </div>
     {/if}
 
-    <div class="meta-item">
-      <span class="meta-icon">📍</span>
-      <span class="meta-text location">{locationLabel}</span>
+    <div class="flex items-center gap-1 text-sm text-base-content/70">
+      <span class="text-[0.9rem]">📍</span>
+      <span class="opacity-70">{locationLabel}</span>
     </div>
   </div>
 
-  <!-- Progress bar -->
-  <div class="progress-section">
+  <div class="mb-2 flex items-center gap-2">
     {#if task.type === "ルーティン" && routineProgress()}
       {@const prog = routineProgress()}
-      <div class="progress-bar">
+      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-base-200">
         <div
-          class="progress-fill routine"
+          class="h-full rounded-full bg-[color:var(--color-primary)] transition-all duration-300"
           style="width: {prog?.percent}%"
         ></div>
       </div>
-      <span class="progress-label">Progress: {prog?.done}/{prog?.goal}</span>
+      <span class="min-w-[60px] text-right text-[0.7rem] text-base-content/50"
+        >Progress: {prog?.done}/{prog?.goal}</span
+      >
     {:else}
       {@const prog = timeProgress()}
-      <div class="progress-bar">
-        <div class="progress-fill time" style="width: {prog.percent}%"></div>
+      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-base-200">
+        <div
+          class="h-full rounded-full bg-[color:var(--color-accent)] transition-all duration-300"
+          style="width: {prog.percent}%"
+        ></div>
       </div>
-      <span class="progress-label">Progress: {prog.spent}/{prog.total} min</span
+      <span class="min-w-[60px] text-right text-[0.7rem] text-base-content/50"
+        >Progress: {prog.spent}/{prog.total} min</span
       >
     {/if}
   </div>
 
-  <!-- Actions -->
-  <div class="task-actions">
+  <div
+    class="flex justify-end gap-2 opacity-0 transition-opacity duration-200 max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+  >
     {#if task.status.completionState !== "completed"}
       <button
-        class="action-btn complete"
+        class="btn h-7 min-h-0 w-7 border border-success bg-base-200 text-success transition-all duration-150 btn-xs hover:scale-110 hover:bg-success hover:text-white"
         onclick={handleComplete}
         title="Mark complete"
       >
         ✓
       </button>
     {/if}
-    <button class="action-btn edit" onclick={handleEdit} title="Edit">
+    <button
+      class="btn h-7 min-h-0 w-7 border border-[color:var(--color-primary)] bg-base-200 transition-all duration-150 btn-xs hover:scale-110 hover:bg-[color:var(--color-primary)] hover:text-base-100"
+      onclick={handleEdit}
+      title="Edit"
+    >
       ✏️
     </button>
-    <button class="action-btn delete" onclick={handleDelete} title="Delete">
+    <button
+      class="btn h-7 min-h-0 w-7 border border-error bg-base-200 text-error transition-all duration-150 btn-xs hover:scale-110 hover:bg-error hover:text-white"
+      onclick={handleDelete}
+      title="Delete"
+    >
       🗑️
     </button>
   </div>
 </div>
 
 <style>
-  .task-card {
-    background: var(--bg-card);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: var(--space-md);
-    margin-bottom: var(--space-sm);
-    position: relative;
-    transition: all 0.2s ease;
+  .deadline {
+    border-left: 4px solid var(--color-accent);
   }
 
-  .task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  .routine {
+    border-left: 4px solid var(--color-primary);
   }
 
-  .task-card.completed {
-    opacity: 0.6;
-    background: var(--bg-secondary);
+  .backlog {
+    border-left: 4px solid oklch(var(--bc) / 0.3);
   }
 
-  .task-card.completed .task-title {
-    text-decoration: line-through;
-  }
-
-  /* Enriching state */
-  .task-card.enriching {
-    position: relative;
-  }
-
-  .enriching-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(var(--bg-rgb, 0, 0, 0), 0.7);
-    backdrop-filter: blur(2px);
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-xs);
-    z-index: 10;
-  }
-
-  .enriching-spinner {
-    width: 24px;
-    height: 24px;
-    border: 2px solid var(--glass-border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-
-  .enriching-text {
-    font-size: 0.75rem;
-    color: var(--primary);
-    font-weight: 500;
-    letter-spacing: 0.02em;
-  }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* Type-specific left border */
-  .task-card.deadline {
-    border-left: 4px solid var(--coral);
-  }
-
-  .task-card.routine {
-    border-left: 4px solid var(--primary);
-  }
-
-  .task-card.backlog {
-    border-left: 4px solid var(--muted);
-  }
-
-  .task-header {
-    margin-bottom: var(--space-sm);
-  }
-
-  .task-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-sm);
-  }
-
-  .task-title {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text);
-    flex: 1;
-  }
-
-  .task-type {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: var(--bg-secondary);
-    color: var(--muted);
-    font-weight: 500;
-  }
-
-  .pills {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-
-  .pill {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-  }
-
-  .pill-time {
-    background: rgba(0, 102, 204, 0.1);
-    color: var(--primary);
-  }
-
-  .pill-genre {
-    background: rgba(139, 92, 246, 0.1);
-    color: rgb(139, 92, 246);
-    font-weight: 500;
-  }
-
-  .task-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: var(--space-sm);
-  }
-
-  .meta-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-  }
-
-  .meta-item.urgent {
-    color: var(--danger);
-    font-weight: 600;
-  }
-
-  .meta-icon {
-    font-size: 0.9rem;
-  }
-
-  .location {
-    opacity: 0.7;
-  }
-
-  .progress-section {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-sm);
-  }
-
-  .progress-bar {
-    flex: 1;
-    height: 6px;
-    background: var(--bg-secondary);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.3s ease;
-  }
-
-  .progress-fill.routine {
-    background: var(--primary);
-  }
-
-  .progress-fill.time {
-    background: var(--coral);
-  }
-
-  .progress-label {
-    font-size: 0.7rem;
-    color: var(--muted);
-    min-width: 60px;
-    text-align: right;
-  }
-
-  .task-actions {
-    display: flex;
-    gap: var(--space-xs);
-    justify-content: flex-end;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .task-card:hover .task-actions {
+  .card:hover .opacity-0 {
     opacity: 1;
-  }
-
-  .action-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--glass-border);
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    transition: all 0.15s ease;
-  }
-
-  .action-btn:hover {
-    transform: scale(1.1);
-  }
-
-  .action-btn.complete {
-    border-color: var(--success);
-    color: var(--success);
-  }
-
-  .action-btn.complete:hover {
-    background: var(--success);
-    color: white;
-  }
-
-  .action-btn.edit {
-    border-color: var(--primary);
-  }
-
-  .action-btn.edit:hover {
-    background: var(--primary);
-    color: var(--bg);
-  }
-
-  .action-btn.delete {
-    border-color: var(--danger);
-  }
-
-  .action-btn.delete:hover {
-    background: var(--danger);
-    color: white;
-  }
-
-  @media (max-width: 768px) {
-    .task-actions {
-      opacity: 1;
-    }
   }
 </style>

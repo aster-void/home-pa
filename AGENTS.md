@@ -15,13 +15,15 @@ This application is Home-PA (Personal Assistant), SvelteKit + Svelte 5 personal 
 
 ```
 src/lib/
-├── features/           # Feature-based components (calendar, tasks, assistant, memo, utilities)
-├── state/              # Global state. Better not extend.
-│   ├── *.svelte.ts     # Svelte 5 reactive classes
-│   ├── forms/          # Form state
-│   ├── actions/        # Business logic
-│   └── index.ts        # Store wrappers (for compatibility)
-├── services/           # External service integrations
+├── features/           # Feature modules
+│   ├── {feature}/      # assistant, calendar, tasks, memo, utilities, logs, etc
+│   │   ├── components/ # UI components
+│   │   ├── state/      # Svelte 5 reactive state classes
+│   │   └── services/   # Business logic (optional)
+│   └── shared/         # Shared components across features
+├── utils/              # Utility functions
+├── server/             # Server-only code
+├── bootstrap/          # App initialization
 └── types.ts            # Shared type definitions
 ```
 
@@ -34,7 +36,7 @@ src/lib/
 ## State Management
 
 ```typescript
-// src/lib/state/example.svelte.ts
+// src/lib/features/{feature}/state/example.svelte.ts
 import { createContext } from "svelte";
 
 export class ExampleState {
@@ -49,22 +51,22 @@ export class ExampleState {
   }
 }
 
-// type-safe context API (new!)
 export const [getExample, setExample] = createContext<ExampleState>();
 ```
 
 ```svelte
 <script>
-  // Usage
-  import { ExampleState, setExample } from "$lib/state/example.svelte.ts";
+  import {
+    ExampleState,
+    setExample,
+  } from "$lib/features/{feature}/state/example.svelte.ts";
 
   const exampleState = new ExampleState();
-  setExample(exampleState); // to use in child components
+  setExample(exampleState);
 
   exampleState.add(item);
 </script>
 
-<!-- it will just work -->
 <span>Current count: {exampleState.count}</span>
 ```
 
@@ -87,3 +89,4 @@ bun run check      # Full check (type + lint + format)
 ## Application design & Documentation
 
 - Read `docs/` for application design and documentation.
+- **UI work**: Always refer to `docs/skills/designer.md` for design guidelines.

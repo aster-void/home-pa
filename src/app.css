@@ -1,309 +1,43 @@
-/* HomePA Design System - White Theme */
-:root {
-  /* Core Background Colors */
-  --bg-primary: #ffffff; /* Main background */
-  --bg-secondary: #f8f9fa; /* Secondary surfaces (cards, panels) */
-  --bg-tertiary: #f1f3f5; /* Elevated surfaces, sections */
-  --bg-card: #ffffff; /* Card backgrounds */
-  --bg-legend: #f8f9fa; /* Legend background */
+@import "tailwindcss";
+@plugin "daisyui";
 
-  /* Text Colors */
-  --text-primary: #1a1a1a; /* Main readable text (near black) */
-  --text-secondary: #6c757d; /* Supporting text, muted content */
-  --text-tertiary: #adb5bd; /* Placeholder text, less important */
-  --text-today: #0066cc; /* Today/current date highlight */
-
+/* HomePA Theme Extension */
+@theme {
   /* Accent Colors */
-  --accent-primary: #f08a77; /* Coral - Primary actions, highlights */
-  --accent-secondary: #9ca3af; /* Secondary actions */
-  --accent-hover: #e87862; /* Hover state for accent */
-  --coral: var(--accent-primary); /* Alias for compatibility */
+  --color-accent: #f08a77;
+  --color-accent-hover: #e87862;
+  --color-today: #0066cc;
 
   /* Event Category Colors */
-  --event-blue: #4a9eff; /* Blue category events */
-  --event-orange: #f7a700; /* Orange category events */
-  --event-green: #99c66d; /* Green category events */
-  --event-yellow: #f9e900; /* Yellow category events */
-
-  /* UI Element Colors */
-  --ui-arrow: #9ca3af; /* Navigation arrows */
-  --ui-border: #e5e7eb; /* Borders, dividers */
-  --ui-empty: #f1f3f5; /* Empty states */
-  --danger: #ef4444; /* Error states, delete actions */
-  --success: #22c55e; /* Success states */
-
-  /* Glass/Frosted Effects */
-  --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-
-  /* Legacy Compatibility Colors */
-  --white: #ffffff;
-  --navy-900: #1a1a1a; /* Dark text (alias) */
-  --navy-800: #2d2d2d;
-  --navy-700: #4a4a4a;
-  --muted: var(--text-secondary); /* Secondary text */
-  --primary: #0066cc; /* Primary accent (blue) */
-  --text: var(--text-primary); /* Text color (alias) */
-  --panel: var(--bg-secondary); /* Panel background */
-  --bg: var(--bg-secondary); /* Page background */
-
-  /* Typography */
-  --font-family:
-    "HelveticaNeue-UltraLight", "Helvetica Neue UltraLight", "Helvetica Neue",
-    Arial, Helvetica, sans-serif;
-  --font-sans:
-    "Inter", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial;
-  --font-display: var(--font-sans);
-  --font-body: var(--font-sans);
-
-  /* Font Weights */
-  --font-weight-light: 100; /* UltraLight weight */
-  --font-weight-normal: 400; /* Normal weight */
-  --font-weight-bold: 600; /* Bold weight */
-
-  /* Font Sizes */
-  --fs-xs: 9px; /* Day names, small labels */
-  --fs-sm: 13px; /* Captions, metadata */
-  --fs-md: 16px; /* Body text, events */
-  --fs-lg: 18px; /* Subheadings, headers */
-  --fs-xl: 20px; /* Page titles */
-  --fs-xxl: 22px; /* Hero text (rare) */
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
-  /* Shadows */
-  --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.05);
-  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.12);
-
-  /* Spacing Scale */
-  --space-xs: 6px;
-  --space-sm: 12px;
-  --space-md: 20px;
-  --space-lg: 32px;
+  --color-event-blue: #4a9eff;
+  --color-event-orange: #f7a700;
+  --color-event-green: #99c66d;
+  --color-event-yellow: #f9e900;
 
   /* Layout */
   --bottom-nav-height: 80px;
 }
 
-/* Base / Global rules */
+/* Base styles */
 html,
 body {
   height: 100%;
-  margin: 0;
-  padding: 0;
   overflow: hidden;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  font-weight: var(--font-weight-light);
-  font-size: var(--fs-md);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-weight: var(--font-weight-normal);
-  color: var(--text-primary);
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-h1 {
-  font-size: var(--fs-xl);
-}
-
-h2 {
-  font-size: var(--fs-lg);
-}
-
-small {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  letter-spacing: 0.2px;
-}
-
-/* Focus styles for accessibility */
-:focus {
-  outline: 2px solid var(--accent-primary);
+/* Focus ring using accent color */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-/* Respect reduced motion */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-    transform: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-}
-
-/* Utility classes */
-.u-hidden {
-  display: none;
-}
-
-.u-center {
-  text-align: center;
-}
-
-.gap-sm {
-  gap: var(--space-sm);
-}
-
-.p-md {
-  padding: var(--space-md);
-}
-
-.mt-lg {
-  margin-top: var(--space-lg);
-}
-
-/* Layout utilities */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--space-lg);
-}
-
-.row {
-  display: flex;
-  gap: var(--space-lg);
-  align-items: flex-start;
-}
-
-.col-70 {
-  flex: 0 0 70%;
-}
-
-.col-30 {
-  flex: 0 0 30%;
-}
-
-/* Responsive typography */
-@media (max-width: 720px) {
-  .container {
-    padding: var(--space-md);
-  }
-  .row {
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-  .col-70,
-  .col-30 {
-    flex: 1;
-  }
-}
-
-/* Component Styles */
-
-/* Cards & Panels */
-.panel {
-  background: var(--bg-card);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
-}
-
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-subtle);
-}
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px 18px;
-  min-height: 44px; /* Accessibility: minimum touch target */
-  border-radius: var(--radius-md);
-  font-weight: var(--font-weight-normal);
-  font-family: var(--font-family);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-primary {
-  background: var(--accent-primary);
-  color: var(--white);
-  box-shadow: var(--shadow-subtle);
-}
-
-.btn-primary:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(240, 138, 119, 0.3);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-  box-shadow: var(--shadow-subtle);
-}
-
-.btn-ghost {
-  background: transparent;
-  border: 1px solid var(--ui-border);
-  color: var(--text-primary);
-}
-
-.btn-ghost:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--accent-primary);
-}
-
-.btn-ghost:active {
-  background: var(--bg-secondary);
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* Inputs */
-.input {
-  padding: 12px 16px;
-  min-height: 44px; /* Accessibility: minimum touch target */
-  border-radius: var(--radius-md);
-  border: 1px solid var(--ui-border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-family);
-  font-weight: var(--font-weight-normal);
-  font-size: var(--fs-md);
-  transition: all 0.2s ease;
-}
-
-.input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(240, 138, 119, 0.1);
-}
-
-.input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: var(--bg-tertiary);
 }

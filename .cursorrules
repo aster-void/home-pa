@@ -1,18 +1,38 @@
-# Cursor AI Rules for home-pa project
+<git>
+Push to `fork dev` by default: `git push fork dev`
+Use `fork` remote for personal development, `origin` only when requested.
+</git>
 
-## Git Preferences
-- Always push to `fork dev` branch by default: `git push fork dev`
-- Use `fork` remote for personal development work
-- Use `origin` remote only when specifically requested
-- Add debugs
+<stack>
+SvelteKit + Prisma (MongoDB) + better-auth
+Svelte 5 runes syntax for all new components
+</stack>
 
-## Project Context
-- This is a SvelteKit + Prisma (MongoDB) + better-auth project
-- Use Svelte 5 runes syntax for all new components
+<structure>
+src/lib/
+├── features/           # Feature modules
+│   ├── {feature}/      # assistant, calendar, tasks, memo, utilities, logs
+│   │   ├── components/ # UI components
+│   │   ├── state/      # Svelte 5 reactive state classes
+│   │   └── services/   # Business logic (optional)
+│   └── shared/         # Shared components across features
+├── utils/              # Utility functions
+├── server/             # Server-only code
+├── bootstrap/          # App initialization
+└── types.ts            # Shared type definitions
+</structure>
 
-## Code Quality
-- Run `bun run check` before committing to verify type checking, linting, and formatting
+<check>
+Run `bun run check` before committing (type + lint + format)
+</check>
 
-Read AGENTS.md for the specific code examples.
+<skills>
+MUST read `docs/skills/` before working on related areas.
+- UI/styling → docs/skills/designer.md
+</skills>
+
+<reference>
+Code examples: AGENTS.md
+</reference>
 
 @AGENTS.md

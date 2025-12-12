@@ -57,19 +57,8 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="app-container">
+<div class="flex h-screen min-h-screen flex-col overflow-hidden bg-base-200">
   {@render children?.()}
   <BottomNavigation />
   <Toast />
 </div>
-
-<style>
-  .app-container {
-    height: 100vh;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--bg-primary);
-    overflow: hidden;
-  }
-</style>

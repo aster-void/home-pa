@@ -18,164 +18,47 @@
   }: Props = $props();
 </script>
 
-<div class="calendar-header">
-  <div class="month-nav">
-    <button onclick={() => onNavigateMonth(-1)}>←</button>
-    <h2>
+<div
+  class="sticky top-0 z-10 flex flex-shrink-0 items-center justify-between border-b border-base-300 bg-base-100 p-4"
+>
+  <div class="flex items-center gap-4">
+    <button
+      class="btn h-9 min-h-0 w-9 border border-base-300 p-0 btn-ghost btn-sm"
+      onclick={() => onNavigateMonth(-1)}>←</button
+    >
+    <h2
+      class="m-0 min-w-[140px] text-center text-lg font-normal whitespace-nowrap text-base-content"
+    >
       {currentMonth.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "long",
       })}
     </h2>
-    <button onclick={() => onNavigateMonth(1)}>→</button>
+    <button
+      class="btn h-9 min-h-0 w-9 border border-base-300 p-0 btn-ghost btn-sm"
+      onclick={() => onNavigateMonth(1)}>→</button
+    >
   </div>
 
-  <div class="header-actions">
+  <div class="flex items-center gap-2">
     <button
-      class="debug-toggle"
+      class="btn hidden border border-base-300 btn-ghost btn-xs md:flex"
       onclick={onToggleDebug}
       title="Toggle debug information"
     >
       {showDebugInfo ? "Hide" : "Show"} Debug
     </button>
     {#if calendarError}
-      <div class="recurrence-error" title={calendarError}>
+      <div
+        class="cursor-help rounded-lg border border-error/30 bg-error/10 px-2 py-1 text-xs text-error"
+        title={calendarError}
+      >
         ⚠️ Recurring events unavailable
       </div>
     {/if}
-    <button class="add-event-button" onclick={onCreateEvent}>+</button>
+    <button
+      class="btn btn-circle h-10 min-h-0 w-10 border-none bg-[#F08A77] text-xl font-medium text-white shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#E87862]"
+      onclick={onCreateEvent}>+</button
+    >
   </div>
 </div>
-
-<style>
-  .calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-md);
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--glass-border);
-    flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .month-nav {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-  }
-
-  .month-nav h2 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    font-family: var(--font-display);
-    letter-spacing: 0.02em;
-    min-width: 140px;
-    text-align: center;
-  }
-
-  .month-nav button {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--ui-border);
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .month-nav button:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--primary);
-    color: var(--primary);
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-  }
-
-  .debug-toggle {
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--ui-border);
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    transition: all 0.15s ease;
-  }
-
-  .debug-toggle:hover {
-    background: var(--bg-tertiary);
-  }
-
-  .recurrence-error {
-    padding: var(--space-xs) var(--space-sm);
-    background: rgba(248, 113, 113, 0.1);
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    border-radius: var(--radius-md);
-    font-size: 0.7rem;
-    color: var(--danger);
-    cursor: help;
-  }
-
-  .add-event-button {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: var(--coral);
-    color: white;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 1.5rem;
-    font-weight: 500;
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
-  }
-
-  .add-event-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(240, 138, 119, 0.4);
-  }
-
-  @media (max-width: 768px) {
-    .calendar-header {
-      padding: var(--space-sm) var(--space-md);
-    }
-
-    .month-nav h2 {
-      font-size: var(--fs-md);
-      min-width: 110px;
-    }
-
-    .month-nav button {
-      width: 32px;
-      height: 32px;
-    }
-
-    .debug-toggle {
-      display: none;
-    }
-
-    .add-event-button {
-      width: 36px;
-      height: 36px;
-      font-size: 1.25rem;
-    }
-  }
-</style>

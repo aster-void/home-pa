@@ -4,82 +4,17 @@
   // No props required for this component
 </script>
 
-<div class="utilities-view">
-  <div class="utilities-header">
-    <h2>Utilities</h2>
-    <p class="utilities-subtitle">
+<div
+  class="scrollbar-thin scrollbar-thumb-[#F08A77] scrollbar-track-transparent mx-auto max-h-[calc(100vh-120px)] min-h-[calc(100vh-120px)] max-w-screen-xl overflow-y-auto p-8 max-md:p-4"
+>
+  <div class="mb-8 border-b border-base-300 pb-4 max-md:mb-4">
+    <h2 class="m-0 mb-2 text-2xl font-normal text-base-content">Utilities</h2>
+    <p class="m-0 text-base text-base-content/60">
       Account settings, calendar import/export, and other tools
     </p>
   </div>
 
-  <div class="utilities-content">
+  <div class="flex flex-col gap-8 max-md:gap-4">
     <CalendarSettings />
   </div>
 </div>
-
-<style>
-  .utilities-view {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: var(--space-lg);
-    min-height: calc(100vh - 120px);
-    overflow-y: auto;
-    max-height: calc(100vh - 120px);
-    scrollbar-width: thin;
-    scrollbar-color: var(--coral) transparent;
-  }
-
-  .utilities-view::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .utilities-view::-webkit-scrollbar-thumb {
-    background: var(--coral);
-    border-radius: 4px;
-  }
-
-  .utilities-view::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .utilities-header {
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
-  }
-
-  .utilities-header h2 {
-    margin: 0 0 var(--space-sm) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--navy-900);
-  }
-
-  .utilities-subtitle {
-    margin: 0;
-    color: var(--muted);
-    font-size: var(--fs-md);
-  }
-
-  .utilities-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .utilities-view {
-      padding: var(--space-md);
-    }
-
-    .utilities-header {
-      margin-bottom: var(--space-md);
-    }
-
-    .utilities-content {
-      gap: var(--space-md);
-    }
-  }
-</style>

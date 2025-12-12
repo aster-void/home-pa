@@ -676,44 +676,69 @@
   </svg>
 
   <!-- Center display -->
-  <button class="center-display" onclick={handleCenterClick}>
-    <div class="date-text">{formatDate(selectedDateCurrent)}</div>
-    <div class="date-label">tap to change</div>
+  <button
+    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-2 text-center"
+    onclick={handleCenterClick}
+  >
+    <div
+      class="text-[clamp(10px,3vw,16px)] font-light tracking-wide text-black/80"
+    >
+      {formatDate(selectedDateCurrent)}
+    </div>
+    <div
+      class="mt-0.5 text-[clamp(6px,1.5vw,8px)] tracking-widest text-black/50 uppercase"
+    >
+      tap to change
+    </div>
   </button>
 
   <input
     bind:this={centerDateInput}
     type="date"
-    class="hidden-input"
+    class="pointer-events-none absolute opacity-0"
     value={selectedDateCurrent.toISOString().slice(0, 10)}
     onchange={handleDateChange}
   />
 
   <!-- Tooltips (fixed position) -->
   {#if hoveredEvent}
-    <div class="tooltip" style="left: {mousePos.x}px; top: {mousePos.y}px;">
-      <div class="tooltip-title">{hoveredEvent.title}</div>
-      <div class="tooltip-time">
+    <div
+      class="pointer-events-none fixed z-[1000] max-w-[220px] animate-[fadeIn_0.15s_ease] rounded-lg border border-black/10 bg-white/98 p-3 shadow-lg backdrop-blur-md"
+      style="left: {mousePos.x}px; top: {mousePos.y}px;"
+    >
+      <div class="mb-1 text-sm font-medium">{hoveredEvent.title}</div>
+      <div class="text-xs text-black/70">
         {hoveredEvent.timeLabel === "all-day"
           ? "All day"
           : `${dateToHM(new Date(hoveredEvent.start))} - ${dateToHM(new Date(hoveredEvent.end))}`}
       </div>
       {#if hoveredEvent.description}
-        <div class="tooltip-desc">{hoveredEvent.description}</div>
+        <div class="mt-1 text-[10px] text-black/60 italic">
+          {hoveredEvent.description}
+        </div>
       {/if}
     </div>
   {/if}
 
   {#if hoveredGap}
-    <div class="tooltip gap" style="left: {mousePos.x}px; top: {mousePos.y}px;">
-      <div class="tooltip-title">Free Time</div>
-      <div class="tooltip-time">{hoveredGap.start} - {hoveredGap.end}</div>
-      <div class="tooltip-duration">{hoveredGap.duration} min available</div>
+    <div
+      class="pointer-events-none fixed z-[1000] max-w-[220px] animate-[fadeIn_0.15s_ease] rounded-lg border border-[#a8edea]/40 bg-white/98 p-3 shadow-lg backdrop-blur-md"
+      style="left: {mousePos.x}px; top: {mousePos.y}px;"
+    >
+      <div class="mb-1 text-sm font-medium">Free Time</div>
+      <div class="text-xs text-black/70">
+        {hoveredGap.start} - {hoveredGap.end}
+      </div>
+      <div class="mt-0.5 text-xs text-[#11998e]">
+        {hoveredGap.duration} min available
+      </div>
     </div>
   {/if}
 
   {#if showLog}
-    <div class="debug">
+    <div
+      class="pointer-events-none absolute bottom-1 left-1 text-[8px] text-black/40"
+    >
       events: {normalizedEvents.length} | gaps: {normalizedGaps.length} | suggestions:
       {normalizedSuggestions.length}
     </div>
@@ -722,7 +747,8 @@
   <!-- Suggestion Card -->
   {#if selectedSuggestion}
     <div
-      class="backdrop"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm"
+      style="z-index: 2100;"
       onclick={closeSuggestionCard}
       onkeydown={(e) => e.key === "Escape" && closeSuggestionCard()}
       role="button"
@@ -803,99 +829,6 @@
 
   .resize-handle:hover {
     r: 1.8;
-  }
-
-  .center-display {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-    padding: 8px;
-  }
-
-  .date-text {
-    font-size: clamp(10px, 3vw, 16px);
-    font-weight: 300;
-    color: rgba(0, 0, 0, 0.8);
-    letter-spacing: 0.05em;
-  }
-
-  .date-label {
-    font-size: clamp(6px, 1.5vw, 8px);
-    color: rgba(0, 0, 0, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 2px;
-  }
-
-  .hidden-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .tooltip {
-    position: fixed;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 10px 14px;
-    z-index: 1000;
-    pointer-events: none;
-    max-width: 220px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: fadeIn 0.15s ease;
-  }
-
-  .tooltip.gap {
-    border-color: rgba(168, 237, 234, 0.4);
-  }
-
-  .tooltip-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.9);
-    margin-bottom: 4px;
-  }
-
-  .tooltip-time {
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.7);
-  }
-
-  .tooltip-desc {
-    font-size: 10px;
-    color: rgba(0, 0, 0, 0.6);
-    margin-top: 4px;
-    font-style: italic;
-  }
-
-  .tooltip-duration {
-    font-size: 11px;
-    color: #11998e;
-    margin-top: 2px;
-  }
-
-  .debug {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    font-size: 8px;
-    color: rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-  }
-
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 998;
   }
 
   @keyframes fadeIn {
