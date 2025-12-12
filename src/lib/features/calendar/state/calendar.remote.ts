@@ -5,7 +5,15 @@
  * Provides API compatible with existing fetch-based code.
  */
 import type { Event } from "$lib/types.ts";
-import type { ImportResult, DateWindow } from "./calendar.types.ts";
+import {
+  eventFromJSON,
+  eventsFromJSON,
+} from "$lib/features/calendar/services/event-converter.ts";
+import type {
+  ImportResult,
+  DateWindow,
+  EventUpdateInput,
+} from "./calendar.types.ts";
 import {
   fetchEvents,
   createEvent,
@@ -23,14 +31,7 @@ export async function fetchEventsApi(window: DateWindow): Promise<Event[]> {
       start: window.start.toISOString(),
       end: window.end.toISOString(),
     });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return eventsJson.map((e: any) => ({
-      ...e,
-      start: new Date(e.start),
-      end: new Date(e.end),
-      icalData: e.icalData,
-    })) as Event[];
+    return eventsFromJSON(eventsJson);
   } catch (err) {
     // Handle unauthorized gracefully - user not logged in
     if (err instanceof Error && err.message === "Unauthorized") {
@@ -44,8 +45,7 @@ export async function fetchEventsApi(window: DateWindow): Promise<Event[]> {
  * Create event (client-side wrapper for Remote Function)
  */
 export async function createEventApi(event: Omit<Event, "id">): Promise<Event> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const createdJson: any = await createEvent({
+  const createdJson = await createEvent({
     title: event.title,
     start: event.start.toISOString(),
     end: event.end.toISOString(),
@@ -56,12 +56,7 @@ export async function createEventApi(event: Omit<Event, "id">): Promise<Event> {
     tzid: event.tzid,
     recurrence: event.recurrence,
   });
-
-  return {
-    ...createdJson,
-    start: new Date(createdJson.start),
-    end: new Date(createdJson.end),
-  } as Event;
+  return eventFromJSON(createdJson);
 }
 
 /**
@@ -71,7 +66,7 @@ export async function updateEventApi(
   id: string,
   updates: Partial<Omit<Event, "id">>,
 ): Promise<Event> {
-  const body: Record<string, unknown> = {};
+  const body: EventUpdateInput = {};
   if (updates.title !== undefined) body.title = updates.title;
   if (updates.start !== undefined) body.start = updates.start.toISOString();
   if (updates.end !== undefined) body.end = updates.end.toISOString();
@@ -82,18 +77,8 @@ export async function updateEventApi(
   if (updates.tzid !== undefined) body.tzid = updates.tzid;
   if (updates.recurrence !== undefined) body.recurrence = updates.recurrence;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updatedJson: any = await updateEvent({
-    id,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    updates: body as any,
-  });
-
-  return {
-    ...updatedJson,
-    start: new Date(updatedJson.start),
-    end: new Date(updatedJson.end),
-  } as Event;
+  const updatedJson = await updateEvent({ id, updates: body });
+  return eventFromJSON(updatedJson);
 }
 
 /**

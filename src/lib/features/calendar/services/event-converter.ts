@@ -8,7 +8,7 @@
  */
 
 import type { CalendarEvent } from "@prisma/client";
-import type { Event, Recurrence } from "$lib/types.ts";
+import type { Event, EventJSON, Recurrence } from "$lib/types.ts";
 import { createVEvent, type ParsedEvent } from "./ical-service.ts";
 
 // ============================================================================
@@ -501,14 +501,13 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
  * Prepare app Event for JSON serialization (API response)
  * Converts Date objects to ISO strings
  */
-export function eventToJSON(event: Event): Record<string, unknown> {
+export function eventToJSON(event: Event): EventJSON {
   return {
     ...event,
     start: event.start.toISOString(),
     end: event.end.toISOString(),
-    recurrence: event.recurrence,
-    // Include icalData for recurrence expansion on client
-    icalData: event.icalData,
+    rdateUtc: event.rdateUtc?.map((d) => d.toISOString()),
+    exdateUtc: event.exdateUtc?.map((d) => d.toISOString()),
   };
 }
 
@@ -516,19 +515,19 @@ export function eventToJSON(event: Event): Record<string, unknown> {
  * Parse JSON back to app Event
  * Converts ISO strings to Date objects
  */
-export function eventFromJSON(json: Record<string, unknown>): Event {
+export function eventFromJSON(json: EventJSON): Event {
   return {
     ...json,
-    start: new Date(json.start as string),
-    end: new Date(json.end as string),
-    // Preserve icalData for recurrence expansion
-    icalData: json.icalData as string | undefined,
-  } as Event;
+    start: new Date(json.start),
+    end: new Date(json.end),
+    rdateUtc: json.rdateUtc?.map((d) => new Date(d)),
+    exdateUtc: json.exdateUtc?.map((d) => new Date(d)),
+  };
 }
 
 /**
  * Parse array of events from JSON
  */
-export function eventsFromJSON(jsonArray: Record<string, unknown>[]): Event[] {
+export function eventsFromJSON(jsonArray: EventJSON[]): Event[] {
   return jsonArray.map(eventFromJSON);
 }

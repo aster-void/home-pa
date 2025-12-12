@@ -59,3 +59,16 @@ export interface DateWindow {
   start: Date;
   end: Date;
 }
+
+/** Input type for updateEvent Remote Function */
+export interface EventUpdateInput {
+  title?: string;
+  start?: string;
+  end?: string;
+  description?: string;
+  address?: string;
+  importance?: "low" | "medium" | "high";
+  timeLabel?: "all-day" | "some-timing" | "timed";
+  tzid?: string;
+  recurrence?: unknown;
+}
