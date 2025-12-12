@@ -31,6 +31,7 @@ services:
       - MONGO_HOST=mongo
       - MONGO_PORT=27017
       - REPLICA_SET_NAME=rs0
+      - RS_MEMBER_HOST=localhost
     volumes:
       - ../scripts/init-replica-set.sh:/init-replica-set.sh:ro
     command: ["/bin/bash", "/init-replica-set.sh"]
