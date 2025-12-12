@@ -28,7 +28,7 @@ src/lib/
 ### How to Use
 
 ```typescript
-import { eventOperations } from "$lib/stores/data";
+import { eventOperations } from "$lib/state/data";
 
 // Create a weekly recurring event
 eventOperations.create({

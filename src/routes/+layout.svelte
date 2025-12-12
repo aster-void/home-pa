@@ -1,9 +1,11 @@
 <script lang="ts">
   import "../app.css";
   import favicon from "@/assets/favicon.svg";
-  import BottomNavigation from "$lib/components/BottomNavigation.svelte";
-  import Toast from "$lib/components/Toast.svelte";
-  import { initializeStores } from "$lib/stores/bootstrap.js";
+  import {
+    BottomNavigation,
+    Toast,
+  } from "$lib/features/shared/components/index.ts";
+  import { initializeStores } from "$lib/bootstrap/bootstrap.ts";
   import { authClient } from "$lib/auth-client";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
@@ -32,6 +34,7 @@
 
     if (!isLoading && !isAuthenticated && !isPublicRoute(pathname)) {
       const redirectTo = encodeURIComponent(pathname + $page.url.search);
+      // eslint-disable-next-line svelte/no-navigation-without-resolve -- Dynamic redirect URL based on current pathname, cannot be statically resolved
       goto(`/auth?redirectTo=${redirectTo}`, { replaceState: true });
     }
   });

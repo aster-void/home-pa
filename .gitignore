@@ -18,6 +18,9 @@ Thumbs.db
 !.env.sample
 !.env.test
 .direnv
+.devenv
+.devenv.flake.nix
+devenv.lock
 
 # Vite
 vite.config.js.timestamp-*

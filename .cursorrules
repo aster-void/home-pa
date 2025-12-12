@@ -8,5 +8,11 @@
 
 ## Project Context
 - This is a SvelteKit + Prisma (MongoDB) + better-auth project
-- Follow the conventions in AGENTS.md
 - Use Svelte 5 runes syntax for all new components
+
+## Code Quality
+- Run `bun run check` before committing to verify type checking, linting, and formatting
+
+Read AGENTS.md for the specific code examples.
+
+@AGENTS.md

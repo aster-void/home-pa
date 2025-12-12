@@ -1,0 +1,7 @@
+allowUnfree: true
+
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  nix-prisma-utils:
+    url: github:VanCoding/nix-prisma-utils
