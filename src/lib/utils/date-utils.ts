@@ -188,3 +188,41 @@ export function isDateOnlyEvent(event: {
 export function getEventDateString(event: { start: Date; end: Date }): string {
   return utcToLocalDateString(event.start);
 }
+
+/**
+ * Normalizes a Date to start of day (00:00:00.000)
+ * Creates a new Date instance without mutating the original
+ */
+export function startOfDay(date: Date): Date {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
+}
+
+/**
+ * Normalizes a Date to start of day (alias for startOfDay)
+ */
+export function normalizeDate(date: Date): Date {
+  return startOfDay(date);
+}
+
+/**
+ * Parses a time string (HH:MM) and applies it to a base date
+ * Returns a new Date with the specified time on the base date
+ */
+export function parseTimeOnDate(base: Date, time: string): Date {
+  const [hours, minutes] = time.split(":").map(Number);
+  const baseTime = new Date(base.getTime());
+  const next = new Date(baseTime);
+  next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
+  return next;
+}
+
+/**
+ * Creates a new Date with an offset in days from the given date
+ */
+export function addDays(date: Date, days: number): Date {
+  const newDate = new Date(date);
+  newDate.setDate(newDate.getDate() + days);
+  return newDate;
+}

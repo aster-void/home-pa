@@ -8,6 +8,7 @@
     AcceptedSuggestion,
   } from "$lib/features/assistant/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
+  import { startOfDay } from "$lib/utils/date-utils.ts";
 
   interface Props {
     showLog?: boolean;
@@ -33,7 +34,6 @@
 
   // DOM refs & sizing
   let containerElement: HTMLDivElement | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _size = $state(300);
 
   // Gap type for dispatcher
@@ -156,12 +156,9 @@
   }
 
   let normalizedEvents = $derived.by((): NormalizedEvent[] => {
-    const baseDate = new Date(selectedDateCurrent.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
-    const dayStart = new Date(baseDate);
-    dayStart.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
-    const dayEnd = new Date(baseDate);
+    const dayStart = startOfDay(selectedDateCurrent);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
+    const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     const ds = dayStart.getTime();
     const de = dayEnd.getTime();
@@ -338,9 +335,7 @@
     if (val) {
       const [y, m, d] = val.split("-").map(Number);
       const baseTime = new Date(Date.UTC(y, m - 1, d)).getTime();
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date creation in event handler, not reactive state
-      const next = new Date(baseTime);
-      next.setHours(0, 0, 0, 0);
+      const next = startOfDay(new Date(baseTime));
       dataState.setSelectedDate(next);
     }
   }

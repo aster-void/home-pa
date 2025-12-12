@@ -48,6 +48,7 @@ import { dataState } from "./data.svelte.ts";
 import { calendarState } from "../features/calendar/state/calendar.svelte.ts";
 import { toastState } from "./toast.svelte.ts";
 import { eventFormState } from "../features/calendar/state/eventForm.svelte.ts";
+import { addDays } from "../utils/date-utils.ts";
 
 // Calendar actions wrapper
 export const calendarActions = {
@@ -107,9 +108,7 @@ export const uiActions = {
   navigateToToday: dataState.goToToday.bind(dataState),
   navigateDate: (days: number) => {
     const current = dataState.selectedDate;
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in action function, not reactive state
-    const newDate = new Date(current);
-    newDate.setDate(newDate.getDate() + days);
+    const newDate = addDays(current, days);
     dataState.setSelectedDate(newDate);
   },
 };

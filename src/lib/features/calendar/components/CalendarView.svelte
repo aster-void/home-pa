@@ -15,6 +15,7 @@
   import CalendarDebugInfo from "./CalendarDebugInfo.svelte";
   import EventForm from "./EventForm.svelte";
   import TimelinePopup from "./TimelinePopup.svelte";
+  import { startOfDay } from "$lib/utils/date-utils.ts";
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
@@ -156,12 +157,8 @@
     });
 
     for (const event of sortedEvents) {
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-      const eventStartDate = new Date(event.start);
-      eventStartDate.setHours(0, 0, 0, 0);
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-      const eventEndDate = new Date(event.end);
-      eventEndDate.setHours(0, 0, 0, 0);
+      const eventStartDate = startOfDay(event.start);
+      const eventEndDate = startOfDay(event.end);
 
       // Find the first available row
       let row = 0;
@@ -177,12 +174,8 @@
           const otherEvent = events.find((e) => e.id === otherEventId);
           if (!otherEvent) continue;
 
-          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-          const otherStartDate = new Date(otherEvent.start);
-          otherStartDate.setHours(0, 0, 0, 0);
-          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-          const otherEndDate = new Date(otherEvent.end);
-          otherEndDate.setHours(0, 0, 0, 0);
+          const otherStartDate = startOfDay(otherEvent.start);
+          const otherEndDate = startOfDay(otherEvent.end);
 
           // Check if events overlap in date range
           if (
@@ -210,11 +203,9 @@
 
   // Helper function to get events for timeline (includes timed and all-day events)
   function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-    const targetDateStart = new Date(targetDate);
-    targetDateStart.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
-    const targetDateEnd = new Date(targetDate);
+    const targetDateStart = startOfDay(targetDate);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
+    const targetDateEnd = new Date(targetDateStart);
     targetDateEnd.setHours(23, 59, 59, 999);
     const targetDateStartTime = targetDateStart.getTime();
     const targetDateEndTime = targetDateEnd.getTime();
@@ -233,7 +224,6 @@
     });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function parseRecurrenceForEdit(_event: Event) {
     // Passed to TimelinePopup - implementation can be added if needed
   }

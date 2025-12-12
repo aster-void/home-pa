@@ -427,7 +427,7 @@ class CalendarState {
    * Get export URL for downloading .ics file
    */
   getExportUrl(start?: Date, end?: Date, name?: string): string {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local variable, not reactive state
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- URLSearchParams for query string building, not reactive state
     const params = new URLSearchParams();
     if (start) params.set("start", start.toISOString());
     if (end) params.set("end", end.toISOString());

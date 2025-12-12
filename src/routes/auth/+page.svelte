@@ -21,7 +21,6 @@
   // Redirect authenticated users away from auth page
   $effect(() => {
     if ($session.data?.user) {
-      // eslint-disable-next-line svelte/no-navigation-without-resolve -- Dynamic redirect URL from query params, cannot be statically resolved
       goto(getRedirectTo(), { replaceState: true });
     }
   });

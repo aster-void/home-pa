@@ -13,6 +13,7 @@
   import type { Event, Gap } from "$lib/types.ts";
   import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
+  import { startOfDay, parseTimeOnDate } from "$lib/utils/date-utils.ts";
 
   // Local state
   // Settings panel toggle (replaces top header controls)
@@ -26,17 +27,8 @@
   let taskList = $state(get(tasks));
 
   // Selected items for details display
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
-  let selectedEvent = $state<Event | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
+  let _selectedEvent = $state<Event | null>(null);
   let _selectedGap = $state<Gap | null>(null);
-
-  function startOfDay(date: Date): Date {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const normalized = new Date(date);
-    normalized.setHours(0, 0, 0, 0);
-    return normalized;
-  }
 
   function dateKey(date: Date): string {
     return startOfDay(date).toISOString().slice(0, 10);
@@ -98,12 +90,9 @@
   });
 
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
-    const baseDay = new Date(day.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const dayStart = new Date(baseDay);
-    dayStart.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const dayEnd = new Date(baseDay);
+    const dayStart = startOfDay(day);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
+    const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     return (
       eventStart.getTime() <= dayEnd.getTime() &&
@@ -119,15 +108,9 @@
       return { id: e.id, title: e.title, start: dayStart, end: dayEnd };
     }
 
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const targetDay = new Date(day);
-    targetDay.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const startDay = new Date(e.start);
-    startDay.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const endDay = new Date(e.end);
-    endDay.setHours(0, 0, 0, 0);
+    const targetDay = startOfDay(day);
+    const startDay = startOfDay(e.start);
+    const endDay = startOfDay(e.end);
 
     const startsToday = startDay.getTime() === targetDay.getTime();
     const endsToday = endDay.getTime() === targetDay.getTime();
@@ -187,15 +170,6 @@
     );
     return gf.findGaps(mapped);
   });
-
-  function parseTimeOnDate(base: Date, time: string): Date {
-    const [hours, minutes] = time.split(":").map(Number);
-    const baseTime = new Date(base.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const next = new Date(baseTime);
-    next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
-    return next;
-  }
 
   // Helper to get task title from memoId
   function getTaskTitle(memoId: string): string {
@@ -287,7 +261,7 @@
             acceptedSuggestions={$acceptedSuggestions}
             {getTaskTitle}
             on:eventSelected={(e: CustomEvent<Event>) =>
-              (selectedEvent = e.detail)}
+              (_selectedEvent = e.detail)}
             on:gapSelected={(
               e: CustomEvent<{
                 start: string;
@@ -363,12 +337,12 @@
       {/if}
 
       
-      {#if selectedEvent}
+      {#if _selectedEvent}
         <div class="event-details">
-          <h3>{selectedEvent.title}</h3>
-          <p>{selectedEvent.start.toTimeString().slice(0, 5)} - {selectedEvent.end.toTimeString().slice(0, 5)}</p>
-          {#if selectedEvent.description}
-            <p class="description">{selectedEvent.description}</p>
+          <h3>{_selectedEvent.title}</h3>
+          <p>{_selectedEvent.start.toTimeString().slice(0, 5)} - {_selectedEvent.end.toTimeString().slice(0, 5)}</p>
+          {#if _selectedEvent.description}
+            <p class="description">{_selectedEvent.description}</p>
           {/if}
           <div class="event-actions">
             <button class="action-btn secondary">Edit</button>

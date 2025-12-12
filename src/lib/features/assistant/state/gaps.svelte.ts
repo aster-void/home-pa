@@ -19,6 +19,7 @@ import {
   enrichGapsWithLocation,
   type EnrichableEvent,
 } from "../services/suggestions/index.ts";
+import { startOfDay } from "$lib/utils/date-utils.ts";
 
 /**
  * Creates a polling-based store from Svelte 5 state
@@ -73,11 +74,9 @@ function convertCalendarEventToGapEvent(
   const eventEndDate = new Date(calendarEvent.end);
 
   // Calculate day boundaries for target date
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-  const targetDayStart = new Date(targetDate);
-  targetDayStart.setHours(0, 0, 0, 0);
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-  const targetDayEnd = new Date(targetDate);
+  const targetDayStart = startOfDay(targetDate);
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- temporary date for day boundary calculation
+  const targetDayEnd = new Date(targetDayStart);
   targetDayEnd.setHours(23, 59, 59, 999);
 
   // Check if event overlaps with target date (handles multi-day events)
@@ -106,15 +105,9 @@ function convertCalendarEventToGapEvent(
   let endTime: string = "";
 
   // Normalize dates for comparison (ignore time component)
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-  const normalizedTargetDate = new Date(targetDate);
-  normalizedTargetDate.setHours(0, 0, 0, 0);
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-  const normalizedEventStart = new Date(eventStartDate);
-  normalizedEventStart.setHours(0, 0, 0, 0);
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-  const normalizedEventEnd = new Date(eventEndDate);
-  normalizedEventEnd.setHours(0, 0, 0, 0);
+  const normalizedTargetDate = startOfDay(targetDate);
+  const normalizedEventStart = startOfDay(eventStartDate);
+  const normalizedEventEnd = startOfDay(eventEndDate);
 
   // Determine start time: use event start if it's on this day, otherwise use 00:00
   const eventStartsOnTarget =

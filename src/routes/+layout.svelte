@@ -47,7 +47,6 @@
 
     if (!isLoading && !isAuthenticated && !isPublicRoute(pathname)) {
       const redirectTo = encodeURIComponent(pathname + $page.url.search);
-      // eslint-disable-next-line svelte/no-navigation-without-resolve -- Dynamic redirect URL based on current pathname, cannot be statically resolved
       goto(`/auth?redirectTo=${redirectTo}`, { replaceState: true });
     }
   });

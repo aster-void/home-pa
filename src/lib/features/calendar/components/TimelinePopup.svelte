@@ -143,7 +143,6 @@
         <div class="relative h-[400px] min-h-[400px]">
           <!-- Hour indicators -->
           <div class="absolute top-0 left-0 h-full w-[50px]">
-            <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
             {#each Array(24) as _, hour (hour)}
               <div
                 class="absolute left-0 flex w-full items-center"

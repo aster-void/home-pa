@@ -242,7 +242,6 @@ export const eventActions = {
 /**
  * Validation function for event form data
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _validateEventForm(formData: EventFormData): {
   isValid: boolean;
   errors: Record<string, string>;

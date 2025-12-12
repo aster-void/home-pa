@@ -59,8 +59,7 @@ interface MutableGap {
 /**
  * Allocation state for tracking progress through gaps
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface AllocationState {
+interface _AllocationState {
   gaps: MutableGap[];
   currentGapIndex: number;
 }
