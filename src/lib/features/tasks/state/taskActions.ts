@@ -3,6 +3,7 @@
  *
  * CRUD operations for rich Memo objects (tasks).
  * These memos have type, deadline, recurrence, location, etc.
+ * All operations persist to database via Remote Functions.
  */
 
 import { writable, derived, get } from "svelte/store";
@@ -20,6 +21,12 @@ import {
 } from "./taskForm.ts";
 import { toastState } from "../../../bootstrap/toast.svelte.ts";
 import { enrichMemoViaAPI } from "../../assistant/services/suggestions/llm-enrichment.ts";
+import {
+  fetchMemos,
+  createMemo,
+  updateMemo,
+  deleteMemo,
+} from "./memo.functions.remote.ts";
 
 // Toast compatibility wrapper
 const toasts = {
@@ -35,14 +42,113 @@ const toasts = {
 
 /**
  * Store for rich Memo objects (tasks)
- * Separate from old simple memos in data.ts
+ * Persisted to database via Remote Functions.
  */
 export const tasks = writable<Memo[]>([]);
+
+/**
+ * Whether tasks are currently being loaded from DB
+ */
+export const isTasksLoading = writable<boolean>(false);
 
 /**
  * Set of task IDs currently being enriched by LLM
  */
 export const enrichingTaskIds = writable<Set<string>>(new Set());
+
+// ============================================================================
+// DB Sync Helpers
+// ============================================================================
+
+/**
+ * Convert JSON response to Memo (parse date strings)
+ */
+function jsonToMemo(json: {
+  id: string;
+  title: string;
+  genre?: string;
+  type: string;
+  createdAt: string;
+  deadline?: string;
+  recurrenceGoal?: { count: number; period: "day" | "week" | "month" };
+  locationPreference: string;
+  status: {
+    timeSpentMinutes: number;
+    completionState: string;
+    completionsThisPeriod?: number;
+    periodStartDate?: string;
+  };
+  sessionDuration?: number;
+  totalDurationExpected?: number;
+  lastActivity?: string;
+  importance?: string;
+}): Memo {
+  return {
+    id: json.id,
+    title: json.title,
+    genre: json.genre,
+    type: json.type as Memo["type"],
+    createdAt: new Date(json.createdAt),
+    deadline: json.deadline ? new Date(json.deadline) : undefined,
+    recurrenceGoal: json.recurrenceGoal,
+    locationPreference: json.locationPreference as Memo["locationPreference"],
+    status: {
+      timeSpentMinutes: json.status.timeSpentMinutes,
+      completionState: json.status
+        .completionState as MemoStatus["completionState"],
+      completionsThisPeriod: json.status.completionsThisPeriod,
+      periodStartDate: json.status.periodStartDate
+        ? new Date(json.status.periodStartDate)
+        : undefined,
+    },
+    sessionDuration: json.sessionDuration,
+    totalDurationExpected: json.totalDurationExpected,
+    lastActivity: json.lastActivity ? new Date(json.lastActivity) : undefined,
+    importance: json.importance as ImportanceLevel | undefined,
+  };
+}
+
+/**
+ * Convert Memo to JSON for API (serialize dates)
+ */
+function memoToJson(memo: Memo) {
+  return {
+    title: memo.title,
+    genre: memo.genre,
+    type: memo.type,
+    createdAt: memo.createdAt.toISOString(),
+    deadline: memo.deadline?.toISOString(),
+    recurrenceGoal: memo.recurrenceGoal,
+    locationPreference: memo.locationPreference,
+    status: {
+      timeSpentMinutes: memo.status.timeSpentMinutes,
+      completionState: memo.status.completionState,
+      completionsThisPeriod: memo.status.completionsThisPeriod,
+      periodStartDate: memo.status.periodStartDate?.toISOString(),
+    },
+    sessionDuration: memo.sessionDuration,
+    totalDurationExpected: memo.totalDurationExpected,
+    lastActivity: memo.lastActivity?.toISOString(),
+    importance: memo.importance,
+  };
+}
+
+/**
+ * Load all tasks from database
+ */
+export async function loadTasks(): Promise<void> {
+  isTasksLoading.set(true);
+  try {
+    const memosJson = await fetchMemos({});
+    const memos = memosJson.map(jsonToMemo);
+    tasks.set(memos);
+  } catch (err) {
+    console.error("[loadTasks] Failed to load tasks:", err);
+    toasts.error("タスクの読み込みに失敗しました");
+  } finally {
+    isTasksLoading.set(false);
+  }
+}
 
 /**
  * Check if a specific task is being enriched
@@ -155,7 +261,7 @@ function validateTaskForm(formData: TaskFormData): {
 
 /**
  * Enrich a task with LLM in background
- * Updates the task in store when complete
+ * Updates the task in store and DB when complete
  */
 async function enrichTaskInBackground(taskId: string): Promise<void> {
   // Mark as enriching
@@ -193,16 +299,34 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
       return;
     }
 
-    // Apply enrichment to task (only fill missing fields)
-    // Use latestTask to preserve any changes that happened during enrichment
-    const enrichedTask: Memo = {
-      ...latestTask,
-      genre: latestTask.genre ?? enrichment.genre,
-      importance: latestTask.importance ?? enrichment.importance,
-      sessionDuration: latestTask.sessionDuration ?? enrichment.sessionDuration,
-      totalDurationExpected:
-        latestTask.totalDurationExpected ?? enrichment.totalDurationExpected,
-    };
+    // Build enrichment updates (only fill missing fields)
+    const enrichmentUpdates: Record<string, unknown> = {};
+    if (!latestTask.genre && enrichment.genre) {
+      enrichmentUpdates.genre = enrichment.genre;
+    }
+    if (!latestTask.importance && enrichment.importance) {
+      enrichmentUpdates.importance = enrichment.importance;
+    }
+    if (!latestTask.sessionDuration && enrichment.sessionDuration) {
+      enrichmentUpdates.sessionDuration = enrichment.sessionDuration;
+    }
+    if (!latestTask.totalDurationExpected && enrichment.totalDurationExpected) {
+      enrichmentUpdates.totalDurationExpected =
+        enrichment.totalDurationExpected;
+    }
+
+    // Skip if nothing to update
+    if (Object.keys(enrichmentUpdates).length === 0) {
+      console.log(`[Enrichment] No fields to update for task ${taskId}`);
+      return;
+    }
+
+    // Update in DB
+    const updatedJson = await updateMemo({
+      id: taskId,
+      updates: enrichmentUpdates,
+    });
+    const enrichedTask = jsonToMemo(updatedJson);
 
     // Update task in store with enriched data
     tasks.update((currentTasks) => {
@@ -239,7 +363,7 @@ async function enrichTaskInBackground(taskId: string): Promise<void> {
 export const taskActions = {
   /**
    * Create a new task from the current form data
-   * Task is added to store immediately, then enriched by LLM in background
+   * Task is saved to DB, added to store, then enriched by LLM in background
    */
   async create(): Promise<Memo | null> {
     const formData = get(taskForm);
@@ -262,17 +386,21 @@ export const taskActions = {
       // Create the memo (without enrichment fields)
       const newMemo = createMemoFromForm(formData);
 
-      // Add to store immediately (shows task right away)
-      tasks.update((currentTasks) => [...currentTasks, newMemo]);
+      // Save to DB
+      const savedJson = await createMemo(memoToJson(newMemo));
+      const savedMemo = jsonToMemo(savedJson);
+
+      // Add to store
+      tasks.update((currentTasks) => [...currentTasks, savedMemo]);
 
       // Close form and show success
       taskFormActions.closeForm();
       toasts.show("タスクを作成しました", "success");
 
       // Start LLM enrichment in background
-      enrichTaskInBackground(newMemo.id);
+      enrichTaskInBackground(savedMemo.id);
 
-      return newMemo;
+      return savedMemo;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "タスクの作成に失敗しました";
@@ -309,48 +437,52 @@ export const taskActions = {
     try {
       taskFormActions.setSubmitting(true);
 
-      let updatedMemo: Memo | null = null;
+      const currentTasks = get(tasks);
+      const existing = currentTasks.find((t) => t.id === formData.editingId);
+      if (!existing) {
+        taskFormActions.setGeneralError("タスクが見つかりません");
+        return null;
+      }
 
+      // Build updates
+      const updates = {
+        title: formData.title.trim(),
+        type: formData.type,
+        deadline:
+          formData.type === "期限付き" && formData.deadline
+            ? new Date(formData.deadline).toISOString()
+            : undefined,
+        recurrenceGoal:
+          formData.type === "ルーティン"
+            ? {
+                count: formData.recurrenceCount,
+                period: formData.recurrencePeriod,
+              }
+            : undefined,
+        locationPreference: formData.locationPreference,
+        importance:
+          formData.importance && formData.importance.length > 0
+            ? (formData.importance as ImportanceLevel)
+            : undefined,
+      };
+
+      // Update in DB
+      const updatedJson = await updateMemo({
+        id: formData.editingId,
+        updates,
+      });
+      const updatedMemo = jsonToMemo(updatedJson);
+
+      // Update store
       tasks.update((currentTasks) => {
         const index = currentTasks.findIndex(
           (t) => t.id === formData.editingId,
         );
         if (index === -1) return currentTasks;
-
-        const existing = currentTasks[index];
-
-        // Build updated memo (preserve some fields)
-        updatedMemo = {
-          ...existing,
-          title: formData.title.trim(),
-          type: formData.type,
-          deadline:
-            formData.type === "期限付き" && formData.deadline
-              ? new Date(formData.deadline)
-              : undefined,
-          recurrenceGoal:
-            formData.type === "ルーティン"
-              ? {
-                  count: formData.recurrenceCount,
-                  period: formData.recurrencePeriod,
-                }
-              : undefined,
-          locationPreference: formData.locationPreference,
-          importance:
-            formData.importance && formData.importance.length > 0
-              ? (formData.importance as ImportanceLevel)
-              : undefined,
-        };
-
         const newTasks = [...currentTasks];
         newTasks[index] = updatedMemo;
         return newTasks;
       });
-
-      if (!updatedMemo) {
-        taskFormActions.setGeneralError("タスクが見つかりません");
-        return null;
-      }
 
       // Close form and show success
       taskFormActions.closeForm();
@@ -370,57 +502,69 @@ export const taskActions = {
   /**
    * Delete a task by ID
    */
-  delete(taskId: string): boolean {
-    let deleted = false;
+  async delete(taskId: string): Promise<boolean> {
+    try {
+      // Delete from DB
+      await deleteMemo({ id: taskId });
 
-    tasks.update((currentTasks) => {
-      const index = currentTasks.findIndex((t) => t.id === taskId);
-      if (index === -1) return currentTasks;
+      // Remove from store
+      tasks.update((currentTasks) => {
+        return currentTasks.filter((t) => t.id !== taskId);
+      });
 
-      deleted = true;
-      const newTasks = [...currentTasks];
-      newTasks.splice(index, 1);
-      return newTasks;
-    });
-
-    if (deleted) {
       toasts.show("タスクを削除しました", "success");
-    } else {
-      toasts.show("タスクが見つかりません", "error");
+      return true;
+    } catch (err) {
+      console.error("[delete] Failed:", err);
+      toasts.show("タスクの削除に失敗しました", "error");
+      return false;
     }
-
-    return deleted;
   },
 
   /**
    * Mark a task as complete
    */
-  markComplete(taskId: string): Memo | null {
-    let updatedMemo: Memo | null = null;
+  async markComplete(taskId: string): Promise<Memo | null> {
+    try {
+      const currentTasks = get(tasks);
+      const existing = currentTasks.find((t) => t.id === taskId);
+      if (!existing) return null;
 
-    tasks.update((currentTasks) => {
-      const index = currentTasks.findIndex((t) => t.id === taskId);
-      if (index === -1) return currentTasks;
-
-      const existing = currentTasks[index];
-      updatedMemo = {
-        ...existing,
-        status: {
-          ...existing.status,
-          completionState: "completed",
-        },
+      const newStatus = {
+        ...existing.status,
+        completionState: "completed" as const,
       };
 
-      const newTasks = [...currentTasks];
-      newTasks[index] = updatedMemo;
-      return newTasks;
-    });
+      // Update in DB
+      const updatedJson = await updateMemo({
+        id: taskId,
+        updates: {
+          status: {
+            timeSpentMinutes: newStatus.timeSpentMinutes,
+            completionState: newStatus.completionState,
+            completionsThisPeriod: newStatus.completionsThisPeriod,
+            periodStartDate: newStatus.periodStartDate?.toISOString(),
+          },
+        },
+      });
+      const updatedMemo = jsonToMemo(updatedJson);
 
-    if (updatedMemo) {
+      // Update store
+      tasks.update((currentTasks) => {
+        const index = currentTasks.findIndex((t) => t.id === taskId);
+        if (index === -1) return currentTasks;
+        const newTasks = [...currentTasks];
+        newTasks[index] = updatedMemo;
+        return newTasks;
+      });
+
       toasts.show("タスクを完了しました", "success");
+      return updatedMemo;
+    } catch (err) {
+      console.error("[markComplete] Failed:", err);
+      toasts.show("タスクの更新に失敗しました", "error");
+      return null;
     }
-
-    return updatedMemo;
   },
 
   /**

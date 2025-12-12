@@ -6,6 +6,7 @@
     Toast,
   } from "$lib/features/shared/components/index.ts";
   import { initializeStores } from "$lib/bootstrap/bootstrap.ts";
+  import { loadTasks } from "$lib/features/tasks/state/taskActions.ts";
   import { authClient } from "$lib/auth-client";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
@@ -25,6 +26,18 @@
       (route) => pathname === route || pathname.startsWith(route + "/"),
     );
   }
+
+  // Load tasks once when authenticated
+  let tasksLoaded = false;
+  $effect(() => {
+    const isLoading = $session.isPending;
+    const isAuthenticated = !!$session.data?.user;
+
+    if (!isLoading && isAuthenticated && !tasksLoaded) {
+      tasksLoaded = true;
+      loadTasks();
+    }
+  });
 
   // Client-side auth guard (backup for server-side redirect)
   $effect(() => {
