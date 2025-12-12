@@ -56,10 +56,20 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div
-  class="flex h-screen min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#faf8f6] to-[#f0ebe6]"
->
-  {@render children?.()}
-  <BottomNavigation />
-  <Toast />
-</div>
+{#if isPublicRoute($page.url.pathname)}
+  <div class="flex h-screen min-h-screen flex-col overflow-hidden">
+    {@render children?.()}
+  </div>
+{:else}
+  <div
+    class="flex h-screen min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#faf8f6] to-[#f0ebe6]"
+  >
+    <main
+      class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden bg-transparent"
+    >
+      {@render children?.()}
+    </main>
+    <BottomNavigation />
+    <Toast />
+  </div>
+{/if}

@@ -1,8 +1,10 @@
 /**
  * @fileoverview UI State - Reactive Class
  *
- * Manages UI state that affects the overall application layout and navigation.
- * This includes current view, view modes, panel states, and navigation state.
+ * Manages UI state that affects the overall application layout.
+ * This includes view modes, panel states, and modal state.
+ *
+ * Navigation is handled via SvelteKit path-based routing, not this state.
  *
  * Migrated from writable stores to Svelte 5 reactive class ($state).
  */
@@ -10,28 +12,16 @@
 import type { ViewMode } from "../types.ts";
 
 /**
- * Application view type
- */
-export type AppView = "calendar" | "personal-assistant" | "tasks" | "utilities";
-
-/**
  * UI State reactive class
  *
  * Usage:
  *   import { uiState } from "$lib/bootstrap/ui.svelte.ts";
- *   // In template: {uiState.currentView}
- *   // In script: uiState.setView("calendar")
+ *   // In template: {uiState.viewMode}
  */
 class UIState {
   // ============================================================================
   // Reactive State
   // ============================================================================
-
-  /**
-   * Current application view
-   * Controls which main view is displayed
-   */
-  currentView = $state<AppView>("calendar");
 
   /**
    * Current view mode for the calendar
@@ -76,47 +66,8 @@ class UIState {
   errorMessage = $state<string | null>(null);
 
   // ============================================================================
-  // Derived State (getters)
-  // ============================================================================
-
-  /**
-   * Whether the calendar view is currently active
-   */
-  get isCalendarView(): boolean {
-    return this.currentView === "calendar";
-  }
-
-  /**
-   * Whether the personal assistant view is currently active
-   */
-  get isPersonalAssistantView(): boolean {
-    return this.currentView === "personal-assistant";
-  }
-
-  /**
-   * Whether the tasks view is currently active
-   */
-  get isTasksView(): boolean {
-    return this.currentView === "tasks";
-  }
-
-  /**
-   * Whether the utilities view is currently active
-   */
-  get isUtilitiesView(): boolean {
-    return this.currentView === "utilities";
-  }
-
-  // ============================================================================
   // Actions
   // ============================================================================
-
-  /**
-   * Switch between application views
-   */
-  setView(view: AppView): void {
-    this.currentView = view;
-  }
 
   /**
    * Change the calendar view mode
@@ -213,7 +164,6 @@ class UIState {
    * Reset all UI state to defaults
    */
   reset(): void {
-    this.currentView = "calendar";
     this.viewMode = "day";
     this.isMemoOpen = false;
     this.showEventForm = false;

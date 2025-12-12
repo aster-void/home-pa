@@ -18,7 +18,7 @@
 // ============================================================================
 
 // UI State
-export { uiState, type AppView } from "./ui.svelte.ts";
+export { uiState } from "./ui.svelte.ts";
 
 // Data State (memos, suggestion logs, selected date)
 export { dataState, type SimpleMemo } from "./data.svelte.ts";

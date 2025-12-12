@@ -15,7 +15,7 @@ import type { EventFormData } from "../features/calendar/state/eventForm.svelte.
 // Re-export from Svelte 5 reactive modules
 // ============================================================================
 
-export { uiState, type AppView } from "./ui.svelte.ts";
+export { uiState } from "./ui.svelte.ts";
 
 export { dataState, type SimpleMemo } from "./data.svelte.ts";
 
@@ -90,7 +90,6 @@ export const eventFormActions = {
 
 // UI actions wrapper
 export const uiActions = {
-  setView: uiState.setView.bind(uiState),
   setViewMode: uiState.setViewMode.bind(uiState),
   toggleMemo: uiState.toggleMemo.bind(uiState),
   setMemoOpen: uiState.setMemoOpen.bind(uiState),

@@ -2,14 +2,14 @@
  * @fileoverview UI Actions
  *
  * Contains all business logic and operations for UI state management.
- * This includes navigation, view switching, and UI state coordination.
+ * Navigation is handled via SvelteKit path-based routing.
  *
  * @author Personal Assistant Team
  * @version 2.0.0
  */
 
 import { dataState } from "./data.svelte.ts";
-import { uiState, type AppView } from "./ui.svelte.ts";
+import { uiState } from "./ui.svelte.ts";
 import { suggestionService } from "../features/assistant/services/suggestion.ts";
 
 /**
@@ -17,18 +17,6 @@ import { suggestionService } from "../features/assistant/services/suggestion.ts"
  * Functions that handle UI business logic and operations
  */
 export const uiActions = {
-  /**
-   * Switch between calendar, personal assistant, tasks, and utilities views
-   */
-  setView(view: AppView): void {
-    uiState.setView(view);
-
-    // Check for suggestions when returning to calendar
-    if (view === "calendar") {
-      this.checkForSuggestion();
-    }
-  },
-
   /**
    * Change the calendar view mode
    */
