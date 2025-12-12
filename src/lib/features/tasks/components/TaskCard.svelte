@@ -23,14 +23,6 @@
         : "Backlog",
   );
 
-  let typeClass = $derived(
-    task.type === "期限付き"
-      ? "deadline"
-      : task.type === "ルーティン"
-        ? "routine"
-        : "backlog",
-  );
-
   // Deadline info
   let daysUntilDeadline = $derived(() => {
     if (!task.deadline) return null;
@@ -109,7 +101,12 @@
 </script>
 
 <div
-  class="card relative mb-2 rounded-xl border border-base-300 bg-base-100 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg {typeClass}"
+  class="card relative mb-2 rounded-xl border border-l-4 border-base-300 bg-base-100 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg {task.type ===
+  '期限付き'
+    ? 'border-l-[color:var(--color-accent)]'
+    : task.type === 'ルーティン'
+      ? 'border-l-[color:var(--color-primary)]'
+      : 'border-l-base-content/30'}"
   class:opacity-60={task.status.completionState === "completed"}
   class:bg-base-200={task.status.completionState === "completed"}
 >
@@ -235,21 +232,3 @@
     </button>
   </div>
 </div>
-
-<style>
-  .deadline {
-    border-left: 4px solid var(--color-accent);
-  }
-
-  .routine {
-    border-left: 4px solid var(--color-primary);
-  }
-
-  .backlog {
-    border-left: 4px solid oklch(var(--bc) / 0.3);
-  }
-
-  .card:hover .opacity-0 {
-    opacity: 1;
-  }
-</style>

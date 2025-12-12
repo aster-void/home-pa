@@ -66,7 +66,7 @@
     tabindex="-1"
   >
     <div
-      class="animate-slide-up mb-[calc(80px+env(safe-area-inset-bottom))] max-h-[calc(90vh-80px)] w-full max-w-[500px] overflow-y-auto rounded-t-2xl bg-base-100 p-6 pb-[calc(1.5rem+80px+env(safe-area-inset-bottom))] md:mb-0 md:rounded-2xl md:pb-6"
+      class="mb-[calc(80px+env(safe-area-inset-bottom))] max-h-[calc(90vh-80px)] w-full max-w-[500px] [animation:slideUp_0.3s_ease-out] overflow-y-auto rounded-t-2xl bg-base-100 p-6 pb-[calc(1.5rem+80px+env(safe-area-inset-bottom))] md:mb-0 md:rounded-2xl md:pb-6"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.key === "Escape" && handleClose()}
       role="dialog"
@@ -122,7 +122,7 @@
                 type="button"
                 class="flex flex-col items-start rounded-lg border p-3 text-left transition-all duration-150 hover:border-[color:var(--color-primary)] {$taskForm.type ===
                 option.value
-                  ? 'type-selected border-[color:var(--color-primary)]'
+                  ? 'border-[color:var(--color-primary)] bg-[color:color-mix(in_oklab,var(--color-primary)_10%,transparent)]'
                   : 'border-base-300 bg-base-200'}"
                 onclick={() => handleTypeChange(option.value)}
                 aria-pressed={$taskForm.type === option.value}
@@ -204,7 +204,7 @@
               <label
                 class="flex cursor-pointer items-center gap-2 rounded-lg border p-3 transition-all duration-150 hover:border-[color:var(--color-primary)] {$taskForm.locationPreference ===
                 option.value
-                  ? 'location-selected border-[color:var(--color-primary)]'
+                  ? 'border-[color:var(--color-primary)] bg-[color:color-mix(in_oklab,var(--color-primary)_10%,transparent)]'
                   : 'border-base-300'}"
               >
                 <input
@@ -255,28 +255,3 @@
     </div>
   </div>
 {/if}
-
-<style>
-  @keyframes slide-up {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-  }
-
-  .type-selected {
-    background: color-mix(in oklab, var(--color-primary) 10%, transparent);
-  }
-
-  .location-selected {
-    background: color-mix(in oklab, var(--color-primary) 10%, transparent);
-  }
-</style>

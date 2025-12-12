@@ -429,32 +429,3 @@
     </section>
   {/if}
 </div>
-
-<style>
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  @media (max-width: 768px) {
-    main {
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-  }
-</style>

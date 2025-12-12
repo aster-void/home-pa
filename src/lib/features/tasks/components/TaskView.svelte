@@ -61,8 +61,8 @@
     <button
       class="btn flex-1 border-none transition-all duration-150 btn-sm {filter ===
       'active'
-        ? 'filter-active'
-        : 'filter-inactive'}"
+        ? 'bg-[color:var(--color-primary)] text-[color:oklch(var(--b1))]'
+        : 'bg-transparent text-base-content/50 hover:bg-[color:oklch(var(--b1))] hover:text-base-content'}"
       onclick={() => (filter = "active")}
     >
       Active ({stats().active})
@@ -70,8 +70,8 @@
     <button
       class="btn flex-1 border-none transition-all duration-150 btn-sm {filter ===
       'all'
-        ? 'filter-active'
-        : 'filter-inactive'}"
+        ? 'bg-[color:var(--color-primary)] text-[color:oklch(var(--b1))]'
+        : 'bg-transparent text-base-content/50 hover:bg-[color:oklch(var(--b1))] hover:text-base-content'}"
       onclick={() => (filter = "all")}
     >
       All ({stats().total})
@@ -79,8 +79,8 @@
     <button
       class="btn flex-1 border-none transition-all duration-150 btn-sm {filter ===
       'completed'
-        ? 'filter-active'
-        : 'filter-inactive'}"
+        ? 'bg-[color:var(--color-primary)] text-[color:oklch(var(--b1))]'
+        : 'bg-transparent text-base-content/50 hover:bg-[color:oklch(var(--b1))] hover:text-base-content'}"
       onclick={() => (filter = "completed")}
     >
       Done ({stats().completed})
@@ -118,20 +118,3 @@
 </div>
 
 <TaskForm />
-
-<style>
-  .filter-active {
-    background: var(--color-primary);
-    color: oklch(var(--b1));
-  }
-
-  .filter-inactive {
-    background: transparent;
-    color: oklch(var(--bc) / 0.5);
-  }
-
-  .filter-inactive:hover {
-    background: oklch(var(--b1));
-    color: oklch(var(--bc));
-  }
-</style>

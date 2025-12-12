@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { SvelteMap } from "svelte/reactivity";
   import type { Event } from "$lib/types.ts";
   import {
     calendarState,
@@ -141,8 +142,8 @@
   }
 
   // Assign row indices to events so multi-day events maintain same row across days
-  function assignEventRows(events: Event[]): Map<string, number> {
-    const eventRows = new Map<string, number>();
+  function assignEventRows(events: Event[]): SvelteMap<string, number> {
+    const eventRows = new SvelteMap<string, number>();
 
     // Sort events by start date, then by duration (longer first)
     const sortedEvents = [...events].sort((a, b) => {
@@ -155,8 +156,10 @@
     });
 
     for (const event of sortedEvents) {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
       const eventStartDate = new Date(event.start);
       eventStartDate.setHours(0, 0, 0, 0);
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
       const eventEndDate = new Date(event.end);
       eventEndDate.setHours(0, 0, 0, 0);
 
@@ -174,8 +177,10 @@
           const otherEvent = events.find((e) => e.id === otherEventId);
           if (!otherEvent) continue;
 
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
           const otherStartDate = new Date(otherEvent.start);
           otherStartDate.setHours(0, 0, 0, 0);
+          // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
           const otherEndDate = new Date(otherEvent.end);
           otherEndDate.setHours(0, 0, 0, 0);
 
@@ -205,8 +210,10 @@
 
   // Helper function to get events for timeline (includes timed and all-day events)
   function getEventsForTimeline(events: Event[], targetDate: Date): Event[] {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
     const targetDateStart = new Date(targetDate);
     targetDateStart.setHours(0, 0, 0, 0);
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local computation only
     const targetDateEnd = new Date(targetDate);
     targetDateEnd.setHours(23, 59, 59, 999);
     const targetDateStartTime = targetDateStart.getTime();
