@@ -6,8 +6,7 @@
     calendarState,
     calendarActions,
     dataState,
-    uiState,
-    uiActions,
+    eventFormState,
     type ExpandedOccurrence,
   } from "$lib/bootstrap/compat.svelte.ts";
   import CalendarHeader from "./CalendarHeader.svelte";
@@ -19,6 +18,7 @@
 
   // Local reactive variables for calendar state
   let currentMonth = $state(new Date());
+  let showTimelinePopup = $state(false);
 
   // Track previous month to only fetch when month actually changes
   let previousMonthKey = $state<string | null>(null);
@@ -120,7 +120,7 @@
   }
 
   function createEvent() {
-    uiActions.showEventForm();
+    eventFormState.open();
   }
 
   function selectDate(date: Date) {
@@ -128,13 +128,9 @@
     dataState.setSelectedDate(date);
 
     if (wasAlreadySelected) {
-      if (uiState.showTimelinePopup) {
-        uiActions.hideTimelinePopup();
-      } else {
-        uiActions.showTimelinePopup();
-      }
+      showTimelinePopup = !showTimelinePopup;
     } else {
-      uiActions.hideTimelinePopup();
+      showTimelinePopup = false;
     }
   }
 
@@ -263,15 +259,16 @@
   />
 
   <!-- Timeline Popup -->
-  {#if uiState.showTimelinePopup}
+  {#if showTimelinePopup}
     <TimelinePopup
       events={getEventsForTimeline(allDisplayEvents, dataState.selectedDate)}
       {parseRecurrenceForEdit}
+      onClose={() => (showTimelinePopup = false)}
     />
   {/if}
 
   <!-- Event Form Modal -->
-  {#if uiState.showEventForm}
+  {#if eventFormState.isOpen}
     <EventForm />
   {/if}
 </div>

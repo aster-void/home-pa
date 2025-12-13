@@ -91,13 +91,6 @@ export const eventFormActions = {
 // UI actions wrapper
 export const uiActions = {
   setViewMode: uiState.setViewMode.bind(uiState),
-  toggleMemo: uiState.toggleMemo.bind(uiState),
-  setMemoOpen: uiState.setMemoOpen.bind(uiState),
-  showEventForm: uiState.openEventForm.bind(uiState),
-  hideEventForm: uiState.closeEventForm.bind(uiState),
-  toggleEventForm: uiState.toggleEventForm.bind(uiState),
-  showTimelinePopup: uiState.openTimelinePopup.bind(uiState),
-  hideTimelinePopup: uiState.closeTimelinePopup.bind(uiState),
   setCurrentSuggestion: uiState.setCurrentSuggestion.bind(uiState),
   clearCurrentSuggestion: uiState.clearCurrentSuggestion.bind(uiState),
   setLoading: uiState.setLoading.bind(uiState),

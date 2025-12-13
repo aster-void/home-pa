@@ -5,7 +5,6 @@
     eventFormState,
     eventFormActions,
     eventActions,
-    uiActions,
   } from "$lib/bootstrap/compat.svelte.ts";
   import {
     utcToLocalDateString,
@@ -184,8 +183,8 @@
 
 <div
   class="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-  onclick={() => uiActions.hideEventForm()}
-  onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+  onclick={() => eventFormState.close()}
+  onkeydown={(e) => e.key === "Escape" && eventFormState.close()}
   role="button"
   tabindex="-1"
   aria-label="Close event form"
@@ -193,7 +192,7 @@
   <div
     class="modal-box max-h-[90vh] w-full max-w-[500px] overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+    onkeydown={(e) => e.key === "Escape" && eventFormState.close()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -206,7 +205,7 @@
       </h3>
       <button
         class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-error hover:text-white"
-        onclick={() => uiActions.hideEventForm()}
+        onclick={() => eventFormState.close()}
         aria-label="Close"
       >
         ✕

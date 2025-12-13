@@ -52,6 +52,9 @@ class EventFormState {
   // Reactive State
   // ============================================================================
 
+  /** Whether the event form is currently visible */
+  isOpen = $state(false);
+
   title = $state("");
   start = $state("");
   end = $state("");
@@ -265,6 +268,16 @@ class EventFormState {
   setCreateMode(): void {
     this.isEditing = false;
     this.editingId = null;
+  }
+
+  /** Open the event form */
+  open(): void {
+    this.isOpen = true;
+  }
+
+  /** Close the event form */
+  close(): void {
+    this.isOpen = false;
   }
 
   /**

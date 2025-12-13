@@ -12,7 +12,6 @@ import type { Event } from "../../../types.ts";
 import { dataState } from "../../../bootstrap/data.svelte.ts";
 import { calendarState } from "./calendar.svelte.ts";
 import { eventFormState, type EventFormData } from "./eventForm.svelte.ts";
-import { uiState } from "../../../bootstrap/ui.svelte.ts";
 import { toastState } from "../../../bootstrap/toast.svelte.ts";
 import {
   utcToLocalDateString,
@@ -79,7 +78,7 @@ export const eventActions = {
 
       // Reset form and hide it
       eventFormState.reset();
-      uiState.closeEventForm();
+      eventFormState.close();
 
       // Show success message
       toastState.success("Event created successfully");
@@ -149,7 +148,7 @@ export const eventActions = {
 
       // Reset form and hide it
       eventFormState.reset();
-      uiState.closeEventForm();
+      eventFormState.close();
 
       // Show success message
       toastState.success("Event updated successfully");
@@ -201,7 +200,7 @@ export const eventActions = {
     });
 
     // Show the form
-    uiState.openEventForm();
+    eventFormState.open();
   },
 
   /**
@@ -214,7 +213,7 @@ export const eventActions = {
     eventFormState.initializeForNewEvent();
 
     // Show the form
-    uiState.openEventForm();
+    eventFormState.open();
   },
 
   /**
@@ -222,7 +221,7 @@ export const eventActions = {
    */
   cancelEventForm(): void {
     eventFormState.reset();
-    uiState.closeEventForm();
+    eventFormState.close();
   },
 
   /**

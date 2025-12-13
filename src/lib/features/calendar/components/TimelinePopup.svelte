@@ -4,15 +4,15 @@
     dataState,
     calendarState,
     eventActions,
-    uiActions,
   } from "$lib/bootstrap/compat.svelte.ts";
 
   interface Props {
     events: Event[];
     parseRecurrenceForEdit: (event: Event) => void;
+    onClose: () => void;
   }
 
-  let { events, parseRecurrenceForEdit }: Props = $props();
+  let { events, parseRecurrenceForEdit, onClose }: Props = $props();
 
   function getCurrentTimePositionScaled(): number {
     const now = new Date();
@@ -105,8 +105,8 @@
 
 <div
   class="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-  onclick={() => uiActions.hideTimelinePopup()}
-  onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+  onclick={() => onClose()}
+  onkeydown={(e) => e.key === "Escape" && onClose()}
   role="button"
   tabindex="-1"
   aria-label="Close timeline"
@@ -114,7 +114,7 @@
   <div
     class="modal-box flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-lg"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+    onkeydown={(e) => e.key === "Escape" && onClose()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -127,7 +127,7 @@
       </h3>
       <button
         class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-error hover:text-white"
-        onclick={() => uiActions.hideTimelinePopup()}
+        onclick={() => onClose()}
         aria-label="Close"
       >
         ✕
