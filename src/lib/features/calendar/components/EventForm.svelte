@@ -228,11 +228,11 @@
           placeholder="予定のタイトルを入力"
         />
         {#if eventFormState.errors.title}
-          <label class="label">
+          <p class="label">
             <span class="label-text-alt text-error"
               >{eventFormState.errors.title}</span
             >
-          </label>
+          </p>
         {/if}
       </div>
 
@@ -252,10 +252,10 @@
 
       <!-- Importance -->
       <div class="form-control">
-        <label class="label">
+        <span class="label">
           <span class="label-text text-sm text-base-content/60">重要度</span>
-        </label>
-        <div class="flex gap-2">
+        </span>
+        <div class="flex gap-2" role="group" aria-label="重要度">
           <button
             type="button"
             class="btn flex-1 btn-sm {eventImportance === 'low'
@@ -393,11 +393,11 @@
                 switchToTimedMode()}
             />
             {#if eventFormState.errors.start}
-              <label class="label">
+              <p class="label">
                 <span class="label-text-alt text-error"
                   >{eventFormState.errors.start}</span
                 >
-              </label>
+              </p>
             {/if}
           </div>
           <div>
@@ -423,11 +423,11 @@
                 switchToTimedMode()}
             />
             {#if eventFormState.errors.end}
-              <label class="label">
+              <p class="label">
                 <span class="label-text-alt text-error"
                   >{eventFormState.errors.end}</span
                 >
-              </label>
+              </p>
             {/if}
           </div>
         </div>
@@ -477,11 +477,11 @@
 
           {#if recurrenceFrequency === "WEEKLY"}
             <div class="form-control">
-              <label class="label">
+              <span class="label">
                 <span class="label-text text-sm text-base-content/60">曜日</span
                 >
-              </label>
-              <div class="flex flex-wrap gap-1">
+              </span>
+              <div class="flex flex-wrap gap-1" role="group" aria-label="曜日">
                 {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i (i)}
                   <label
                     class="btn btn-sm {weeklyDays[i]
@@ -511,12 +511,12 @@
             {@const positionText =
               weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
 
-            <div class="form-control">
-              <label class="label">
+            <fieldset class="form-control">
+              <legend class="label">
                 <span class="label-text text-sm text-base-content/60"
                   >繰り返しパターン</span
                 >
-              </label>
+              </legend>
               <div class="flex flex-col gap-2">
                 <label
                   class="card cursor-pointer border border-base-300 p-2 transition-all duration-200 {monthlyType ===
@@ -553,7 +553,7 @@
                   </div>
                 </label>
               </div>
-            </div>
+            </fieldset>
           {/if}
 
           {#if recurrenceFrequency === "YEARLY"}
@@ -564,11 +564,11 @@
             {@const day = startDate.getDate()}
 
             <div class="form-control">
-              <label class="label">
+              <span class="label">
                 <span class="label-text text-sm text-base-content/60"
                   >繰り返しパターン</span
                 >
-              </label>
+              </span>
               <div class="rounded bg-base-100 p-2 text-sm text-base-content">
                 毎年{month}月{day}日
               </div>
