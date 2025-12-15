@@ -493,23 +493,41 @@ import { enrichMemo as enrichMemoRemote } from "./enrich.remote.ts";
  */
 export async function enrichMemoViaAPI(memo: Memo): Promise<EnrichmentResult> {
   try {
+    // Safely convert dates to ISO strings (handle both Date and string)
+    const toISOString = (
+      val: Date | string | undefined | null,
+    ): string | undefined => {
+      if (val === null || val === undefined) return undefined;
+      if (typeof val === "string") return val;
+      return val.toISOString();
+    };
+
+    // Convert null to undefined for optional fields (schema doesn't accept null)
+    const nullToUndefined = <T>(val: T | null | undefined): T | undefined => {
+      return val === null ? undefined : val;
+    };
+
     const result = await enrichMemoRemote({
       id: memo.id,
       title: memo.title,
       type: memo.type,
-      createdAt: memo.createdAt.toISOString(),
-      deadline: memo.deadline?.toISOString(),
-      locationPreference: memo.locationPreference,
-      status: {
-        timeSpentMinutes: memo.status.timeSpentMinutes,
-        completionState: memo.status.completionState,
-        completionsThisPeriod: memo.status.completionsThisPeriod,
-        periodStartDate: memo.status.periodStartDate?.toISOString(),
-      },
-      genre: memo.genre,
-      importance: memo.importance,
-      sessionDuration: memo.sessionDuration,
-      totalDurationExpected: memo.totalDurationExpected,
+      createdAt: toISOString(memo.createdAt) ?? new Date().toISOString(),
+      deadline: toISOString(memo.deadline),
+      locationPreference: nullToUndefined(memo.locationPreference),
+      status: memo.status
+        ? {
+            timeSpentMinutes: memo.status.timeSpentMinutes ?? 0,
+            completionState: memo.status.completionState ?? "not_started",
+            completionsThisPeriod: nullToUndefined(
+              memo.status.completionsThisPeriod,
+            ),
+            periodStartDate: toISOString(memo.status.periodStartDate),
+          }
+        : undefined,
+      genre: nullToUndefined(memo.genre),
+      importance: nullToUndefined(memo.importance),
+      sessionDuration: nullToUndefined(memo.sessionDuration),
+      totalDurationExpected: nullToUndefined(memo.totalDurationExpected),
     });
     return result as EnrichmentResult;
   } catch (error) {

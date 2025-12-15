@@ -6,13 +6,12 @@
     calendarState,
     calendarActions,
     dataState,
-    eventFormState,
+    eventActions,
     type ExpandedOccurrence,
   } from "$lib/bootstrap/compat.svelte.ts";
   import CalendarHeader from "./CalendarHeader.svelte";
   import CalendarGrid from "./CalendarGrid.svelte";
   import CalendarDebugInfo from "./CalendarDebugInfo.svelte";
-  import EventForm from "./EventForm.svelte";
   import TimelinePopup from "./TimelinePopup.svelte";
   import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
 
@@ -21,7 +20,7 @@
   let showTimelinePopup = $state(false);
 
   // Track previous month to only fetch when month actually changes
-  let previousMonthKey = $state<string | null>(null);
+  let previousMonthKey: string | null = null;
 
   function getMonthKey(month: Date): string {
     return `${month.getFullYear()}-${month.getMonth()}`;
@@ -120,7 +119,7 @@
   }
 
   function createEvent() {
-    eventFormState.open();
+    eventActions.createNewEvent();
   }
 
   function selectDate(date: Date) {
@@ -224,7 +223,7 @@
 </script>
 
 <div
-  class="flex h-full max-h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1a202c]/5 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm"
+  class="flex h-full max-h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
   style="scrollbar-width: none; -ms-overflow-style: none;"
 >
   <!-- Calendar Header -->
@@ -257,18 +256,13 @@
     {eventRowMap}
     onSelectDate={selectDate}
   />
-
-  <!-- Timeline Popup -->
-  {#if showTimelinePopup}
-    <TimelinePopup
-      events={getEventsForTimeline(allDisplayEvents, dataState.selectedDate)}
-      {parseRecurrenceForEdit}
-      onClose={() => (showTimelinePopup = false)}
-    />
-  {/if}
-
-  <!-- Event Form Modal -->
-  {#if eventFormState.isOpen}
-    <EventForm />
-  {/if}
 </div>
+
+<!-- Timeline Popup -->
+{#if showTimelinePopup}
+  <TimelinePopup
+    events={getEventsForTimeline(allDisplayEvents, dataState.selectedDate)}
+    {parseRecurrenceForEdit}
+    onClose={() => (showTimelinePopup = false)}
+  />
+{/if}

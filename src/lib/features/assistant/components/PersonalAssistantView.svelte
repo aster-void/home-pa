@@ -83,7 +83,7 @@
   });
 
   // Track last schedule signature to avoid re-triggering
-  let lastScheduleSignature = $state<string | null>(null);
+  let lastScheduleSignature: string | null = null;
 
   // Auto-generate schedule when signature changes
   $effect(() => {
@@ -237,11 +237,11 @@
 </script>
 
 <div
-  class="relative m-0 flex h-full w-full flex-col overflow-hidden bg-white/40 p-0 backdrop-blur-sm"
+  class="relative m-0 flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg-app)]/60 p-0 backdrop-blur-sm"
 >
   <!-- Minimal top-left Settings trigger -->
   <button
-    class="fixed top-3 left-3 z-[250] cursor-pointer rounded-lg border-none bg-white/60 px-3 py-1.5 text-xs font-medium text-[#718096] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-[#ed8936] hover:shadow-md"
+    class="fixed top-3 left-3 z-[250] cursor-pointer rounded-lg border-none bg-[var(--color-bg-app)]/80 px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-bg-app)] hover:text-[var(--color-primary)] hover:shadow-md"
     onclick={() => (showSettings = true)}>settings</button
   >
 
@@ -291,34 +291,40 @@
         </div>
 
         <div
-          class="mb-[calc(var(--bottom-nav-height,80px)+1rem)] w-full max-w-[720px] rounded-2xl border border-[#1a202c]/5 bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
+          class="mb-[calc(var(--bottom-nav-height,80px)+1rem)] w-full max-w-[720px] rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-5 shadow-sm"
         >
           <div
-            class="mb-4 flex items-center justify-between border-b border-[#1a202c]/5 pb-3"
+            class="mb-4 flex items-center justify-between border-b border-[var(--color-border-default)] pb-3"
           >
-            <h3 class="m-0 font-serif text-xl font-normal text-[#1a202c]">
+            <h3
+              class="m-0 text-xl font-normal text-[var(--color-text-primary)]"
+            >
               Events
             </h3>
             <span
-              class="rounded-full bg-[#ed8936]/10 px-3 py-1 text-sm font-medium text-[#ed8936]"
+              class="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--color-primary)]"
               >{formatDateLabel(dataState.selectedDate)}</span
             >
           </div>
           {#if displayEvents.length === 0}
-            <p class="m-0 py-6 text-center text-sm text-[#718096]">
+            <p
+              class="m-0 py-6 text-center text-sm text-[var(--color-text-muted)]"
+            >
               この日の予定はありません
             </p>
           {:else}
             <ul class="m-0 flex list-none flex-col gap-2 p-0">
               {#each displayEvents as event (event.id)}
                 <li
-                  class="flex items-center justify-between rounded-xl border border-transparent bg-[#faf8f6] p-3 px-4 transition-all duration-200 hover:border-[#ed8936]/20 hover:bg-[#f0ebe6]"
+                  class="flex items-center justify-between rounded-xl border border-transparent bg-[var(--color-bg-surface)] p-3 px-4 transition-all duration-200 hover:border-[var(--color-primary)]/20 hover:bg-[var(--color-surface-100)]"
                 >
-                  <div class="text-sm font-medium text-[#1a202c]">
+                  <div
+                    class="text-sm font-medium text-[var(--color-text-primary)]"
+                  >
                     {event.title}
                   </div>
                   <div
-                    class="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-[#718096] shadow-sm"
+                    class="rounded-lg bg-[var(--color-bg-app)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm"
                   >
                     {formatEventTime(event)}
                   </div>
@@ -364,7 +370,7 @@
   <!-- Settings Panel (bottom sheet) -->
   {#if showSettings}
     <div
-      class="fixed inset-0 modal-backdrop z-[499] animate-[fadeIn_0.2s_ease] bg-[#1a202c]/40 backdrop-blur-sm"
+      class="fixed inset-0 modal-backdrop z-[499] animate-[fadeIn_0.2s_ease] bg-black/40 backdrop-blur-sm"
       onclick={() => (showSettings = false)}
       onkeydown={(e) => e.key === "Escape" && (showSettings = false)}
       role="button"
@@ -372,37 +378,39 @@
       aria-label="Close settings"
     ></div>
     <section
-      class="fixed right-0 bottom-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom))] left-0 z-[500] modal-box flex max-h-[calc(50vh-var(--bottom-nav-height,80px))] animate-[slideUp_0.3s_ease] flex-col overflow-y-auto rounded-t-2xl border-t border-[#1a202c]/5 bg-white p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]"
+      class="fixed right-0 bottom-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom))] left-0 z-[500] modal-box flex max-h-[calc(50vh-var(--bottom-nav-height,80px))] animate-[slideUp_0.3s_ease] flex-col overflow-y-auto rounded-t-xl border-t border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]"
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
       <div
-        class="mb-6 flex items-center justify-between border-b border-[#1a202c]/5 pb-4"
+        class="mb-6 flex items-center justify-between border-b border-[var(--color-border-default)] pb-4"
       >
-        <h3 class="m-0 font-serif text-xl font-normal text-[#1a202c]">
+        <h3 class="m-0 text-xl font-normal text-[var(--color-text-primary)]">
           Settings
         </h3>
         <button
-          class="btn h-9 min-h-9 w-9 rounded-xl p-0 text-[#718096] btn-ghost transition-all duration-200 btn-sm hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
+          class="btn h-9 min-h-9 w-9 rounded-xl p-0 text-[var(--color-text-secondary)] btn-ghost transition-all duration-200 btn-sm hover:bg-[var(--color-error-100)] hover:text-[var(--color-error-500)]"
           onclick={() => (showSettings = false)}
           aria-label="Close">✕</button
         >
       </div>
       <div class="flex flex-col gap-4">
-        <div class="flex items-center gap-3 text-sm text-[#4a5568]">
+        <div
+          class="flex items-center gap-3 text-sm text-[var(--color-text-secondary)]"
+        >
           <span class="font-medium">Active hours</span>
           <div class="inline-flex items-center gap-2">
             <input
               type="time"
               bind:value={activeStart}
-              class="input input-sm rounded-xl border-[#1a202c]/10 bg-[#faf8f6] px-3 py-2 text-sm text-[#1a202c] focus:border-[#ed8936] focus:ring-2 focus:ring-[#ed8936]/20"
+              class="input input-sm rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
             />
-            <span class="text-[#718096]">–</span>
+            <span class="text-[var(--color-text-muted)]">–</span>
             <input
               type="time"
               bind:value={activeEnd}
-              class="input input-sm rounded-xl border-[#1a202c]/10 bg-[#faf8f6] px-3 py-2 text-sm text-[#1a202c] focus:border-[#ed8936] focus:ring-2 focus:ring-[#ed8936]/20"
+              class="input input-sm rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
             />
           </div>
         </div>

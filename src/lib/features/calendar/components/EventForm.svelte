@@ -27,7 +27,6 @@
   let isGreyState = $derived(timeMode === "default");
   let isEventEditing = $state(false);
   let isManualDateOrTimeEdit = $state(false);
-
   // Recurrence state
   let isRecurring = $state(false);
   let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">(
@@ -46,10 +45,23 @@
   ]);
   let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
 
+  // Track store changes to avoid circular updates
+  let lastStoreTitle = $state("");
+  let lastStoreAddress = $state("");
+  let lastStoreImportance = $state<"low" | "medium" | "high">("medium");
+  let lastStoreTimeLabel = $state<"all-day" | "some-timing" | "timed">(
+    "all-day",
+  );
+  let lastStoreStart = $state("");
+  let lastStoreEnd = $state("");
+  let lastStoreRecurrence = $state<string>("");
+
   // Sync from store
   $effect(() => {
     const form = eventFormState.formData;
+
     eventTitle = form.title;
+    lastStoreTitle = form.title;
 
     if (form.start) {
       const startDateTime = new Date(form.start);
@@ -80,31 +92,57 @@
     }
 
     eventAddress = form.address || "";
+    lastStoreAddress = form.address || "";
     eventImportance = form.importance || "medium";
+    lastStoreImportance = form.importance || "medium";
     eventTimeLabel = form.timeLabel || "all-day";
+    lastStoreTimeLabel = form.timeLabel || "all-day";
     isEventEditing = form.isEditing;
+
+    // Track start/end for sync guards
+    lastStoreStart = form.start;
+    lastStoreEnd = form.end;
+
+    // Track recurrence for sync guard
+    lastStoreRecurrence = JSON.stringify(form.recurrence ?? { type: "NONE" });
   });
 
-  // Sync to store
+  // Sync to store (only when local value differs from last store value)
   $effect(() => {
-    eventFormActions.updateField("title", eventTitle);
+    if (eventTitle !== lastStoreTitle) {
+      eventFormActions.updateField("title", eventTitle);
+      lastStoreTitle = eventTitle;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("address", eventAddress);
+    if (eventAddress !== lastStoreAddress) {
+      eventFormActions.updateField("address", eventAddress);
+      lastStoreAddress = eventAddress;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("importance", eventImportance);
+    if (eventImportance !== lastStoreImportance) {
+      eventFormActions.updateField("importance", eventImportance);
+      lastStoreImportance = eventImportance;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("timeLabel", eventTimeLabel);
+    if (eventTimeLabel !== lastStoreTimeLabel) {
+      eventFormActions.updateField("timeLabel", eventTimeLabel);
+      lastStoreTimeLabel = eventTimeLabel;
+    }
   });
 
   $effect(() => {
     const recurrence = buildRecurrenceObject();
-    eventFormActions.updateField("recurrence", recurrence);
+    const recurrenceStr = JSON.stringify(recurrence);
+    if (recurrenceStr !== lastStoreRecurrence) {
+      eventFormActions.updateField("recurrence", recurrence);
+      lastStoreRecurrence = recurrenceStr;
+    }
   });
 
   $effect(() => {
@@ -115,10 +153,14 @@
     const endDateTime =
       eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "";
 
-    eventFormActions.updateFields({
-      start: startDateTime,
-      end: endDateTime,
-    });
+    if (startDateTime !== lastStoreStart || endDateTime !== lastStoreEnd) {
+      eventFormActions.updateFields({
+        start: startDateTime,
+        end: endDateTime,
+      });
+      lastStoreStart = startDateTime;
+      lastStoreEnd = endDateTime;
+    }
   });
 
   function buildRecurrenceObject(): Recurrence {
@@ -190,7 +232,7 @@
   aria-label="Close event form"
 >
   <div
-    class="modal-box max-h-[90vh] w-full max-w-[500px] overflow-y-auto rounded-xl border border-base-300 bg-base-100 shadow-lg"
+    class="max-h-[90vh] w-full max-w-[500px] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === "Escape" && eventFormState.close()}
     role="dialog"
@@ -198,7 +240,7 @@
     tabindex="-1"
   >
     <div
-      class="sticky top-0 z-[1] flex items-center justify-between border-b border-base-300 bg-base-100 p-4"
+      class="sticky top-0 z-[1] flex items-center justify-between border-b border-base-300 bg-white p-4"
     >
       <h3 class="m-0 text-lg font-normal text-base-content">
         {isEventEditing ? "予定を編集" : "新しい予定"}
@@ -259,7 +301,7 @@
           <button
             type="button"
             class="btn flex-1 btn-sm {eventImportance === 'low'
-              ? 'border-[#F08A77] bg-[#F08A77]/10'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
               : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "low")}
           >
@@ -268,7 +310,7 @@
           <button
             type="button"
             class="btn flex-1 btn-sm {eventImportance === 'medium'
-              ? 'border-[#F08A77] bg-[#F08A77]/10'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
               : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "medium")}
           >
@@ -277,7 +319,7 @@
           <button
             type="button"
             class="btn flex-1 btn-sm {eventImportance === 'high'
-              ? 'border-[#F08A77] bg-[#F08A77]/10'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
               : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "high")}
           >
@@ -293,7 +335,7 @@
             type="button"
             class="btn flex-1 transition-all duration-200 btn-sm
               {timeMode === 'all-day'
-              ? 'border-[#F08A77] bg-[#F08A77]/10 text-[#F08A77]'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)] text-[var(--color-primary-800)]'
               : 'border-base-300 btn-ghost'}
               {isGreyState ? 'opacity-60' : ''}"
             onclick={() => {
@@ -311,7 +353,7 @@
             type="button"
             class="btn flex-1 transition-all duration-200 btn-sm
               {timeMode === 'some-timing'
-              ? 'border-[#F08A77] bg-[#F08A77]/10 text-[#F08A77]'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)] text-[var(--color-primary-800)]'
               : 'border-base-300 btn-ghost'}
               {isGreyState ? 'opacity-60' : ''}"
             onclick={() => {
@@ -485,7 +527,7 @@
                 {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i (i)}
                   <label
                     class="btn btn-sm {weeklyDays[i]
-                      ? 'border-[#F08A77] bg-[#F08A77] text-white'
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
                       : 'border-base-300 btn-ghost'} cursor-pointer transition-all duration-200"
                   >
                     <input
@@ -521,7 +563,7 @@
                 <label
                   class="card cursor-pointer border border-base-300 p-2 transition-all duration-200 {monthlyType ===
                   'dayOfMonth'
-                    ? 'border-[#F08A77] bg-[#F08A77]/10'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
                     : ''}"
                 >
                   <div class="flex items-center gap-2">
@@ -538,7 +580,7 @@
                 <label
                   class="card cursor-pointer border border-base-300 p-2 transition-all duration-200 {monthlyType ===
                   'nthWeekday'
-                    ? 'border-[#F08A77] bg-[#F08A77]/10'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
                     : ''}"
                 >
                   <div class="flex items-center gap-2">
@@ -616,7 +658,7 @@
         </button>
         <button
           type="button"
-          class="btn border-none bg-[#F08A77] text-white hover:bg-[#E87862]"
+          class="btn border-none bg-[var(--color-primary)] font-normal text-white hover:bg-[var(--color-primary-400)]"
           onclick={() => eventActions.submitEventForm()}
         >
           更新
@@ -631,7 +673,7 @@
         </button>
         <button
           type="button"
-          class="btn border-none bg-[#F08A77] text-white hover:bg-[#E87862]"
+          class="btn border-none bg-[var(--color-primary)] font-normal text-white hover:bg-[var(--color-primary-400)]"
           onclick={() => eventActions.submitEventForm()}
         >
           作成

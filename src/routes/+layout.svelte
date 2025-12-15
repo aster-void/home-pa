@@ -61,11 +61,9 @@
     {@render children?.()}
   </div>
 {:else}
-  <div
-    class="flex h-screen min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#faf8f6] to-[#f0ebe6]"
-  >
+  <div class="flex h-screen min-h-screen flex-col bg-[var(--color-bg-app)]">
     <main
-      class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-hidden bg-transparent"
+      class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-auto bg-transparent"
     >
       {@render children?.()}
     </main>

@@ -112,7 +112,7 @@
   aria-label="Close timeline"
 >
   <div
-    class="modal-box flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-lg"
+    class="flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] shadow-xl"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === "Escape" && onClose()}
     role="dialog"
@@ -120,13 +120,13 @@
     tabindex="-1"
   >
     <div
-      class="flex items-center justify-between border-b border-base-300 bg-base-100 p-4"
+      class="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-4"
     >
-      <h3 class="m-0 text-lg font-normal text-base-content">
+      <h3 class="m-0 text-lg font-normal text-[var(--color-text-primary)]">
         タイムライン - {dataState.selectedDate.toLocaleDateString("ja-JP")}
       </h3>
       <button
-        class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-error hover:text-white"
+        class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-[var(--color-error-500)] hover:text-white"
         onclick={() => onClose()}
         aria-label="Close"
       >
@@ -136,7 +136,7 @@
 
     <div class="flex-1 overflow-y-auto p-4">
       {#if events.length === 0}
-        <p class="py-12 text-center text-base-content/40">
+        <p class="py-12 text-center text-[var(--color-text-muted)]">
           この日の予定はありません
         </p>
       {:else}
@@ -148,17 +148,18 @@
                 class="absolute left-0 flex w-full items-center"
                 style="top: {hour * 16.67}px;"
               >
-                <span class="w-10 pr-1 text-right text-xs text-base-content/40"
+                <span
+                  class="w-10 pr-1 text-right text-xs text-[var(--color-text-muted)]"
                   >{hour.toString().padStart(2, "0")}:00</span
                 >
-                <div class="h-px flex-1 bg-base-300"></div>
+                <div class="h-px flex-1 bg-[var(--color-border-default)]"></div>
               </div>
             {/each}
           </div>
 
           <!-- Current time indicator -->
           <div
-            class="absolute z-[5] h-0.5 bg-error before:absolute before:top-[-3px] before:left-[-4px] before:h-2 before:w-2 before:rounded-full before:bg-error before:content-['']"
+            class="absolute z-[5] h-0.5 bg-[var(--color-error-500)] before:absolute before:top-[-3px] before:left-[-4px] before:h-2 before:w-2 before:rounded-full before:bg-[var(--color-error-500)] before:content-['']"
             style="top: {getCurrentTimePositionScaled()}px; left: 50px; right: 0;"
           ></div>
 
@@ -191,7 +192,7 @@
                     "
                   >
                     <div
-                      class="overflow-hidden text-xs font-bold text-ellipsis whitespace-nowrap"
+                      class="overflow-hidden text-xs font-medium text-ellipsis whitespace-nowrap"
                     >
                       {event.title}
                     </div>

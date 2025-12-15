@@ -1,38 +1,140 @@
+/* Fonts - must be first */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;400;500;600&display=swap");
+
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* Fonts - Instrument Serif + Manrope */
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap");
+/* Self-hosted Source Code Pro (mono) */
+@font-face {
+  font-family: "Source Code Pro";
+  src: url("/fonts/source-code-pro/SourceCodePro-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Code Pro";
+  src: url("/fonts/source-code-pro/SourceCodePro-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Code Pro";
+  src: url("/fonts/source-code-pro/SourceCodePro-SemiBold.woff2")
+    format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Code Pro";
+  src: url("/fonts/source-code-pro/SourceCodePro-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* HomePA Theme Extension */
 @theme {
-  /* Accent Colors - Warm Orange */
-  --color-accent: #ed8936;
-  --color-accent-hover: #dd6b20;
-  --color-today: #0066cc;
+  /* === Core Brand / Interaction Colors === */
+  /* Primary — Neptune */
+  --color-primary: #7bbebb;
+  --color-primary-100: #e6f3f2;
+  --color-primary-400: #9ed1cf;
+  --color-primary-600: #7bbebb;
+  --color-primary-800: #4e8f8c;
 
-  /* Background Colors */
-  --color-bg-warm-start: #faf8f6;
-  --color-bg-warm-end: #f0ebe6;
-  --color-surface: #ffffff;
+  /* Soft Surface / Tint — Surf Crest */
+  --color-surface-50: #f4faf6;
+  --color-surface-100: #cee3d3;
+  --color-surface-200: #b6d6c1;
 
-  /* Text Colors */
-  --color-text-primary: #1a202c;
-  --color-text-secondary: #4a5568;
-  --color-text-muted: #718096;
+  /* Semantic Positive — Jungle Green */
+  --color-success-100: #e6f7f1;
+  --color-success-500: #2ab388;
+  --color-success-700: #1e8a69;
 
-  /* Event Category Colors */
+  /* === Neutral System === */
+  /* Backgrounds */
+  --color-bg-app: #ffffff;
+  --color-bg-surface: #f6f7f8;
+  --color-bg-grid: #fafafa;
+
+  /* Text */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* Borders / Dividers */
+  --color-border-default: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  /* === Semantic Colors === */
+  /* Error / Conflict */
+  --color-error-100: #fee2e2;
+  --color-error-500: #dc2626;
+
+  /* Warning */
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;
+
+  /* === Interaction States === */
+  --color-hover: var(--color-primary-400);
+  --color-active: var(--color-primary-800);
+  --color-focus: var(--color-primary-600);
+
+  /* === Event Category Colors === */
+  /* (User customizable, separate from core system) */
   --color-event-blue: #4a9eff;
   --color-event-orange: #f7a700;
   --color-event-green: #99c66d;
   --color-event-yellow: #f9e900;
 
-  /* Layout */
-  --bottom-nav-height: 80px;
+  /* === Layout === */
+  --bottom-nav-height: 60px;
 
-  /* Fonts */
-  --font-serif: "Instrument Serif", serif;
-  --font-sans: "Manrope", system-ui, sans-serif;
+  /* === Typography === */
+  /* Primary/UI: Source Code Pro (UI コンポーネント、ラベル、メタデータ) */
+  --font-primary: "Source Code Pro", "SF Mono", Monaco, Consolas, monospace;
+  /* Mono: Source Code Pro */
+  --font-mono: "Source Code Pro", "SF Mono", Monaco, Consolas, monospace;
+  /* Fallback */
+  --font-fallback: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* === Spacing Scale (8px base) === */
+  --space-xs: 6px;
+  --space-sm: 8px;
+  --space-md: 10px;
+  --space-base: 12px;
+  --space-lg: 16px;
+  --space-xl: 18px;
+  --space-xxl: 24px;
+  --space-xxxl: 32px;
+  --space-huge: 48px;
+
+  /* === Border Radius === */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 24px;
+  --radius-full: 100px;
+
+  /* === Z-Index === */
+  --z-modal: 2100;
+  --z-nav: 2000;
+  --z-suggestion: 1000;
+  --z-settings: 500;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --bottom-nav-height: 80px;
+  }
 }
 
 /* Base styles */
@@ -40,17 +142,27 @@ html,
 body {
   height: 100%;
   overflow: hidden;
-  font-family: var(--font-sans);
+  font-family: var(--font-primary), var(--font-fallback);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
+  /* Typography defaults */
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
-/* Utility class for serif headings */
-.font-serif {
-  font-family: var(--font-serif);
+/* Utility classes for font families */
+.font-primary {
+  font-family: var(--font-primary), var(--font-fallback);
 }
 
-/* Focus ring using accent color */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Focus ring using primary color at 60% opacity */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid rgba(123, 190, 187, 0.6);
   outline-offset: 2px;
 }
 

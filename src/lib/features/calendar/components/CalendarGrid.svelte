@@ -24,30 +24,44 @@
 </script>
 
 <div
-  class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-base-300 bg-base-100"
+  class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-grid)]"
 >
   <div
-    class="grid flex-shrink-0 grid-cols-7 border-b border-base-300 bg-base-200"
+    class="grid flex-shrink-0 grid-cols-7 border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)]"
   >
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       日
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       月
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       火
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       水
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       木
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       金
     </div>
-    <div class="p-2 text-center text-sm font-semibold text-base-content/60">
+    <div
+      class="p-2 text-center text-sm font-medium text-[var(--color-text-secondary)]"
+    >
       土
     </div>
   </div>
@@ -55,23 +69,23 @@
   <div class="grid flex-1 grid-cols-7 overflow-y-auto">
     {#each getCalendarDays(currentMonth) as day (day.getTime())}
       <div
-        class="relative flex min-h-[72px] cursor-pointer flex-col border border-base-300 bg-base-100 p-1 transition-all duration-200
-          {isToday(day) ? 'bg-[#F08A77]/[0.08]' : ''}
+        class="relative flex min-h-[72px] cursor-pointer flex-col border border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-1 transition-all duration-200 ease-out
+          {isToday(day) ? 'bg-[var(--color-surface-50)]' : ''}
           {isSelected(day, selectedDate)
-          ? 'border-[#0066CC] bg-[#3BADE3]/[0.1]'
+          ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
           : ''}
           {!isCurrentMonth(day, currentMonth) ? 'opacity-30' : ''}
-          hover:bg-base-200"
+          hover:bg-[var(--color-surface-50)]"
         onclick={() => onSelectDate(day)}
         onkeydown={(e) => e.key === "Enter" && onSelectDate(day)}
         role="button"
         tabindex="0"
       >
         <div
-          class="flex-shrink-0 text-center text-[0.85rem] font-medium text-base-content {isToday(
+          class="flex h-7 flex-shrink-0 items-center justify-start pl-1 text-[0.85rem] font-normal text-[var(--color-text-primary)] {isToday(
             day,
           )
-            ? 'mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-[#F08A77] font-bold text-white'
+            ? 'w-7 justify-center rounded-full bg-[var(--color-primary)] font-medium text-white'
             : ''}"
         >
           {day.getDate()}

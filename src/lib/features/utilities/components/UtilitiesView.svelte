@@ -5,13 +5,15 @@
 </script>
 
 <div
-  class="scrollbar-thin scrollbar-thumb-[#ed8936] scrollbar-track-transparent mx-auto max-h-[calc(100vh-120px)] min-h-[calc(100vh-120px)] max-w-screen-xl overflow-y-auto bg-white/60 p-8 backdrop-blur-sm max-md:p-4"
+  class="scrollbar-thin scrollbar-thumb-[var(--color-primary)] scrollbar-track-transparent mx-auto max-h-[calc(100vh-120px)] min-h-[calc(100vh-120px)] max-w-screen-xl overflow-y-auto bg-[var(--color-bg-app)]/60 p-8 backdrop-blur-sm max-md:p-4"
 >
-  <div class="mb-8 border-b border-[#1a202c]/5 pb-4 max-md:mb-4">
-    <h2 class="m-0 mb-2 font-serif text-3xl font-normal text-[#1a202c]">
+  <div
+    class="mb-8 border-b border-[var(--color-border-default)] pb-4 max-md:mb-4"
+  >
+    <h2 class="m-0 mb-2 text-3xl font-normal text-[var(--color-text-primary)]">
       Utilities
     </h2>
-    <p class="m-0 text-base text-[#718096]">
+    <p class="m-0 text-base text-[var(--color-text-secondary)]">
       Account settings, calendar import/export, and other tools
     </p>
   </div>

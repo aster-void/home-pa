@@ -83,7 +83,7 @@
           />
         {:else}
           <span
-            class="flex h-full w-full items-center justify-center bg-white/30 text-xl font-semibold text-white"
+            class="flex h-full w-full items-center justify-center bg-white/30 text-xl font-medium text-white"
           >
             {$session.data.user.name?.charAt(0).toUpperCase() ||
               $session.data.user.email?.charAt(0).toUpperCase() ||
@@ -93,12 +93,12 @@
       </div>
       <div class="flex min-w-0 flex-col gap-1">
         <span
-          class="overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-white"
+          class="overflow-hidden font-medium text-ellipsis whitespace-nowrap text-white"
         >
           {$session.data.user.name || "User"}
         </span>
         <span
-          class="overflow-hidden text-sm text-ellipsis whitespace-nowrap text-white/80"
+          class="overflow-hidden text-sm font-normal text-ellipsis whitespace-nowrap text-white/80"
         >
           {$session.data.user.email}
         </span>
@@ -109,12 +109,13 @@
       class="flex flex-col gap-1 rounded-xl bg-white/20 p-3 backdrop-blur-sm"
     >
       <span class="text-sm font-medium text-white">● Connected</span>
-      <span class="text-xs text-white/70">Your calendar syncs to the cloud</span
+      <span class="text-xs font-normal text-white/70"
+        >Your calendar syncs to the cloud</span
       >
     </div>
 
     <button
-      class="min-h-[44px] w-full cursor-pointer rounded-xl border-2 border-white/30 bg-transparent px-3 py-3 font-medium text-white transition-all duration-200 hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+      class="min-h-[44px] w-full cursor-pointer rounded-xl border-2 border-white/30 bg-transparent px-4 py-3 font-normal text-white transition-all duration-200 ease-out hover:border-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
       onclick={signOut}
       disabled={isLoading}
     >
@@ -167,14 +168,14 @@
         />
         <button
           type="submit"
-          class="btn min-h-[44px] rounded-xl border-none bg-white font-medium text-[#ed8936] shadow-sm transition-all duration-200 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+          class="btn min-h-[44px] rounded-xl border-none bg-white font-normal text-[var(--color-primary)] shadow-sm transition-all duration-200 ease-out hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
         >
           {isLoading ? "Creating account..." : "Create Account"}
         </button>
         <button
           type="button"
-          class="min-h-[44px] cursor-pointer border-none bg-transparent text-sm text-white/90 underline transition-colors duration-200 hover:text-white"
+          class="min-h-[44px] cursor-pointer border-none bg-transparent text-sm font-normal text-white/90 underline transition-colors duration-200 ease-out hover:text-white"
           onclick={() => {
             showSignUp = false;
             msg = "";
@@ -210,14 +211,14 @@
         />
         <button
           type="submit"
-          class="btn min-h-[44px] rounded-xl border-none bg-white font-medium text-[#ed8936] shadow-sm transition-all duration-200 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+          class="btn min-h-[44px] rounded-xl border-none bg-white font-normal text-[var(--color-primary)] shadow-sm transition-all duration-200 ease-out hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
         >
           {isLoading ? "Signing in..." : "Sign In"}
         </button>
         <button
           type="button"
-          class="min-h-[44px] cursor-pointer border-none bg-transparent text-sm text-white/90 underline transition-colors duration-200 hover:text-white"
+          class="min-h-[44px] cursor-pointer border-none bg-transparent text-sm font-normal text-white/90 underline transition-colors duration-200 ease-out hover:text-white"
           onclick={() => {
             showSignUp = true;
             msg = "";

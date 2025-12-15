@@ -101,23 +101,24 @@
 </script>
 
 <div
-  class="card relative mb-3 rounded-2xl border border-l-4 border-[#1a202c]/5 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] {task.type ===
+  class="card relative mb-3 rounded-xl border border-l-4 border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md {task.type ===
   '期限付き'
-    ? 'border-l-[#ed8936]'
+    ? 'border-l-[var(--color-warning-500)]'
     : task.type === 'ルーティン'
-      ? 'border-l-[#4a9eff]'
-      : 'border-l-[#718096]/30'}"
+      ? 'border-l-[var(--color-primary)]'
+      : 'border-l-[var(--color-text-muted)]/30'}"
   class:opacity-60={task.status.completionState === "completed"}
-  class:bg-[#f0ebe6]={task.status.completionState === "completed"}
+  class:bg-[var(--color-bg-surface)]={task.status.completionState ===
+    "completed"}
 >
   {#if isEnriching}
     <div
-      class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-2xl bg-[#1a202c]/70 backdrop-blur-sm"
+      class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-xl bg-[var(--color-text-primary)]/70 backdrop-blur-sm"
     >
       <div
-        class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[#ed8936]"
+        class="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-[var(--color-primary)]"
       ></div>
-      <span class="text-xs font-medium tracking-wide text-[#ed8936]"
+      <span class="text-xs font-medium tracking-wide text-white"
         >AI analyzing...</span
       >
     </div>
@@ -125,7 +126,7 @@
   <div class="mb-2">
     <div class="flex items-center justify-between gap-2">
       <h3
-        class="m-0 flex-1 text-base font-semibold text-[#1a202c]"
+        class="m-0 flex-1 text-base font-medium text-[var(--color-text-primary)]"
         class:line-through={task.status.completionState === "completed"}
       >
         {task.title}
@@ -142,7 +143,7 @@
         {/if}
         {#if sessionDurationLabel()}
           <span
-            class="badge bg-[color:var(--color-today)]/10 badge-sm font-semibold text-[color:var(--color-today)]"
+            class="badge bg-[color:var(--color-today)]/10 badge-sm font-medium text-[color:var(--color-today)]"
             >{sessionDurationLabel()}</span
           >
         {/if}
@@ -155,7 +156,7 @@
       <div
         class="flex items-center gap-1 text-sm"
         class:text-error={isUrgent()}
-        class:font-semibold={isUrgent()}
+        class:font-medium={isUrgent()}
       >
         <span class="text-[0.9rem]">📅</span>
         <span>{deadlineText()}</span>

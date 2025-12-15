@@ -80,17 +80,21 @@
 
 <div
   bind:this={cardElement}
-  class="fixed max-w-[300px] min-w-[240px] animate-[cardAppear_0.3s_ease] rounded-xl border border-base-300 bg-base-100 p-4 shadow-lg"
-  class:border-[color:var(--color-success)]={isAccepted}
-  class:shadow-[0_12px_40px_rgba(34,197,94,0.15)]={isAccepted}
+  class="fixed max-w-[300px] min-w-[240px] animate-[cardAppear_0.3s_ease] rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-4 shadow-lg"
+  class:border-[var(--color-success-500)]={isAccepted}
+  class:shadow-[0_12px_40px_rgba(42,179,136,0.15)]={isAccepted}
   style="left: {adjustedPosition.x}px; top: {adjustedPosition.y}px; z-index: 1000;"
   role="dialog"
   aria-label="Suggestion details"
 >
   <div class="mb-2 flex items-start justify-between">
-    <h4 class="flex-1 pr-2 text-base font-normal">{taskTitle}</h4>
+    <h4
+      class="flex-1 pr-2 text-base font-normal text-[var(--color-text-primary)]"
+    >
+      {taskTitle}
+    </h4>
     <button
-      class="btn h-7 min-h-7 w-7 p-0 text-base btn-ghost transition-all duration-200 btn-sm"
+      class="btn h-7 min-h-7 w-7 p-0 text-base text-[var(--color-text-secondary)] btn-ghost transition-all duration-200 btn-sm"
       onclick={onClose}
       aria-label="Close">×</button
     >
@@ -98,23 +102,25 @@
 
   <div class="mb-4">
     <div
-      class="mb-2 flex items-center justify-between rounded-lg bg-base-200 p-2"
+      class="mb-2 flex items-center justify-between rounded-lg bg-[var(--color-bg-surface)] p-2"
     >
-      <span class="text-sm">{suggestion.startTime} - {suggestion.endTime}</span>
+      <span class="text-sm text-[var(--color-text-primary)]"
+        >{suggestion.startTime} - {suggestion.endTime}</span
+      >
       <span
-        class="rounded-full bg-[color:var(--color-accent)]/10 px-2.5 py-1 text-xs text-[color:var(--color-accent)]"
+        class="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs text-[var(--color-primary)]"
         >{suggestion.duration}分</span
       >
     </div>
 
     {#if isAccepted}
       <span
-        class="inline-block rounded-full bg-success/10 px-3 py-1 text-xs text-success"
+        class="inline-block rounded-full bg-[var(--color-success-100)] px-3 py-1 text-xs text-[var(--color-success-500)]"
         >承認済み</span
       >
     {:else}
       <span
-        class="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs text-primary"
+        class="inline-block rounded-full bg-[var(--color-primary-100)] px-3 py-1 text-xs text-[var(--color-primary)]"
         >提案中</span
       >
     {/if}
@@ -123,20 +129,20 @@
   <div class="flex gap-2">
     {#if isAccepted}
       <button
-        class="btn flex-1 border border-error/20 bg-error/10 text-error transition-all duration-200 hover:border-error/40 hover:bg-error/20"
+        class="btn flex-1 border border-[var(--color-error-500)]/20 bg-[var(--color-error-100)] text-[var(--color-error-500)] transition-all duration-200 hover:border-[var(--color-error-500)]/40 hover:bg-[var(--color-error-500)]/20"
         onclick={handleDelete}
       >
         削除
       </button>
     {:else}
       <button
-        class="btn flex-1 border-none bg-success text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-success/80 hover:shadow-[0_4px_12px_rgba(34,197,94,0.3)]"
+        class="btn flex-1 border-none bg-[var(--color-success-500)] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--color-success-700)] hover:shadow-[0_4px_12px_rgba(42,179,136,0.3)]"
         onclick={handleAccept}
       >
         承認
       </button>
       <button
-        class="btn flex-1 border border-base-300 btn-ghost transition-all duration-200 hover:border-base-content/20 hover:bg-base-200"
+        class="btn flex-1 border border-[var(--color-border-default)] text-[var(--color-text-secondary)] btn-ghost transition-all duration-200 hover:border-[var(--color-text-muted)] hover:bg-[var(--color-bg-surface)]"
         onclick={handleSkip}
       >
         スキップ

@@ -127,8 +127,7 @@
                 onclick={() => handleTypeChange(option.value)}
                 aria-pressed={$taskForm.type === option.value}
               >
-                <span class="font-semibold text-base-content"
-                  >{option.label}</span
+                <span class="font-medium text-base-content">{option.label}</span
                 >
                 <span class="text-xs text-base-content/50"
                   >{option.description}</span
@@ -241,7 +240,7 @@
           </button>
           <button
             type="submit"
-            class="btn flex-1 border-none bg-[#F08A77] text-white hover:-translate-y-px hover:bg-[#E87862] hover:shadow-lg"
+            class="btn flex-1 border-none bg-[var(--color-primary)] text-white hover:-translate-y-px hover:bg-[var(--color-primary-400)] hover:shadow-lg"
             disabled={!$isTaskFormValid || $isTaskFormSubmitting}
           >
             {$isTaskFormSubmitting
