@@ -108,7 +108,7 @@
   >
     <!-- Modal -->
     <div
-      class="flex max-h-[85vh] w-full flex-col rounded-t-2xl bg-[var(--color-bg-app)] shadow-xl md:max-w-lg md:rounded-2xl"
+      class="flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl bg-[var(--color-bg-app)] shadow-xl md:max-w-lg md:rounded-2xl"
     >
       <!-- Header -->
       <div
@@ -152,7 +152,7 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4">
+      <div class="flex-1 min-h-0 overflow-y-auto p-4">
         {#if activeTab === "account"}
           <!-- Account Tab -->
           <div

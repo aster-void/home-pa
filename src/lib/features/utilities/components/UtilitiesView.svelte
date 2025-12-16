@@ -128,7 +128,7 @@
 <!-- Settings Popup -->
 <SettingsPopup open={showSettings} onClose={() => (showSettings = false)} />
 
-<!-- Mini App Modal -->
+  <!-- Mini App Modal -->
 {#if activeMiniApp}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
@@ -139,7 +139,7 @@
     onclick={handleBackdropClick}
   >
     <div
-      class="flex max-h-[90vh] w-full flex-col rounded-t-2xl bg-[var(--color-bg-app)] shadow-xl md:max-h-[80vh] md:max-w-2xl md:rounded-2xl"
+      class="flex max-h-[90vh] w-full min-h-0 flex-col overflow-hidden rounded-t-2xl bg-[var(--color-bg-app)] shadow-xl md:max-h-[80vh] md:max-w-2xl md:rounded-2xl"
     >
       {#if activeMiniApp === "transit"}
         <TransitView onClose={closeMiniApp} />

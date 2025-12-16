@@ -75,7 +75,7 @@
   }
 </script>
 
-<div class="flex h-full flex-col">
+<div class="flex h-full min-h-0 flex-col">
   <!-- Header -->
   <div
     class="flex items-center justify-between border-b border-[var(--color-border-default)] p-4"
