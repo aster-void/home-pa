@@ -24,7 +24,7 @@
 </script>
 
 <div
-  class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-grid)]"
+  class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[var(--color-border-default)] bg-[var(--color-bg-grid)]"
 >
   <div
     class="grid flex-shrink-0 grid-cols-7 border-b border-[var(--color-border-default)] bg-[var(--color-bg-surface)]"
