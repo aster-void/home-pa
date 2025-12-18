@@ -236,6 +236,36 @@
     );
   }
 
+  async function handleSuggestionMove(
+    event: CustomEvent<{
+      suggestionId: string;
+      newStartTime: string;
+      newEndTime: string;
+      newGapId: string;
+    }>,
+  ) {
+    const { suggestionId, newStartTime, newEndTime, newGapId } = event.detail;
+    await scheduleActions.moveSuggestion(
+      suggestionId,
+      newStartTime,
+      newEndTime,
+      newGapId,
+      taskList,
+    );
+  }
+
+  async function handleSuggestionDurationChange(
+    event: CustomEvent<{ suggestionId: string; newDuration: number }>,
+  ) {
+    const { suggestionId, newDuration } = event.detail;
+    await scheduleActions.updateAcceptedDuration(
+      suggestionId,
+      newDuration,
+      taskList,
+      computedGaps, // Pass gaps for constraint calculation
+    );
+  }
+
   // Component-level event handling is wired directly on the child via on: handlers below
 </script>
 
@@ -290,6 +320,8 @@
             on:suggestionSkip={handleSuggestionSkip}
             on:suggestionDelete={handleSuggestionDelete}
             on:suggestionResize={handleSuggestionResize}
+            on:suggestionMove={handleSuggestionMove}
+            on:suggestionDurationChange={handleSuggestionDurationChange}
           />
         </div>
 

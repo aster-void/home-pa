@@ -3,13 +3,20 @@
   import { createEventDispatcher } from "svelte";
   import { dataState, calendarState } from "$lib/bootstrap/compat.svelte.ts";
   import { getEventColor } from "$lib/features/calendar/utils/index.ts";
-  import type { Event as MyEvent } from "$lib/types.ts";
+  import type { Event as MyEvent, Gap } from "$lib/types.ts";
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
   } from "$lib/features/assistant/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
   import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
+  import {
+    snapToGap,
+    minutesToTime,
+    clientToSvgCoords,
+    svgCoordsToAngle,
+    angleToMinutes,
+  } from "../services/suggestion-drag.ts";
 
   interface Props {
     showLog?: boolean;
@@ -17,6 +24,7 @@
       start: string;
       end: string;
       duration: number;
+      gapId?: string;
     }> | null;
     extraEvents?: MyEvent[] | null;
     pendingSuggestions?: PendingSuggestion[];
@@ -32,6 +40,14 @@
     acceptedSuggestions = [],
     getTaskTitle = () => "Task",
   }: Props = $props();
+
+  // Convert external gaps to Gap type with gapId
+  let gapsWithIds = $derived.by((): Gap[] => {
+    return (externalGaps ?? []).map((g, i) => ({
+      ...g,
+      gapId: g.gapId ?? `gap-${i}`,
+    }));
+  });
 
   // DOM refs & sizing
   let containerElement: HTMLDivElement | null = null;
@@ -54,6 +70,13 @@
     suggestionSkip: string;
     suggestionDelete: string;
     suggestionResize: { suggestionId: string; newDuration: number };
+    suggestionMove: {
+      suggestionId: string;
+      newStartTime: string;
+      newEndTime: string;
+      newGapId: string;
+    };
+    suggestionDurationChange: { suggestionId: string; newDuration: number };
   }>();
 
   // Direct state access
@@ -314,11 +337,20 @@
     position: { x: number; y: number };
   } | null>(null);
 
-  // Drag state
+  // Drag state (for resize handle)
   let isDragging = $state(false);
   let dragId = $state<string | null>(null);
   let dragStartY = $state(0);
   let dragOrigDuration = $state(0);
+
+  // Midpoint drag state (for moving suggestions)
+  let isDraggingMidpoint = $state(false);
+  let draggingSuggestionId = $state<string | null>(null);
+  let draggingSuggestionDuration = $state(0);
+  let draggingSuggestionGapId = $state<string | null>(null);
+  let dragPreviewAngles = $state<{ start: number; end: number } | null>(null);
+  let dragPreviewGapId = $state<string | null>(null);
+  let svgElement: SVGSVGElement | null = $state(null);
 
   // Handlers
   function handleCenterClick() {
@@ -370,6 +402,15 @@
     closeSuggestionCard();
   }
 
+  function handleDurationChange(newDuration: number) {
+    if (selectedSuggestion) {
+      dispatch("suggestionDurationChange", {
+        suggestionId: selectedSuggestion.suggestion.suggestionId,
+        newDuration,
+      });
+    }
+  }
+
   function startResize(id: string, duration: number, e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -395,6 +436,81 @@
     dragId = null;
     window.removeEventListener("mousemove", onDrag);
     window.removeEventListener("mouseup", endDrag);
+  }
+
+  // Midpoint drag handlers
+  function startMidpointDrag(
+    suggestion: PendingSuggestion,
+    gapId: string,
+    e: MouseEvent,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    isDraggingMidpoint = true;
+    draggingSuggestionId = suggestion.suggestionId;
+    draggingSuggestionDuration = suggestion.duration;
+    draggingSuggestionGapId = gapId;
+    dragPreviewAngles = {
+      start: timeToAngle(suggestion.startTime),
+      end: timeToAngle(suggestion.endTime),
+    };
+    dragPreviewGapId = gapId;
+    window.addEventListener("mousemove", onMidpointDrag);
+    window.addEventListener("mouseup", endMidpointDrag);
+  }
+
+  function onMidpointDrag(e: MouseEvent) {
+    if (!isDraggingMidpoint || !svgElement || !draggingSuggestionId) return;
+
+    // Convert mouse position to SVG coordinates
+    const svgCoords = clientToSvgCoords(e.clientX, e.clientY, svgElement);
+
+    // Convert to angle (0 at top, clockwise)
+    const angle = svgCoordsToAngle(svgCoords.x, svgCoords.y, center, center);
+
+    // Convert angle to minutes
+    const targetMidpointMinutes = angleToMinutes(angle);
+
+    // Snap to valid position within gaps
+    const snapResult = snapToGap(
+      targetMidpointMinutes,
+      draggingSuggestionDuration,
+      gapsWithIds,
+      draggingSuggestionGapId ?? undefined,
+    );
+
+    if (snapResult) {
+      dragPreviewAngles = {
+        start: timeToAngle(snapResult.newStartTime),
+        end: timeToAngle(snapResult.newEndTime),
+      };
+      dragPreviewGapId = snapResult.targetGap.gapId;
+    }
+  }
+
+  function endMidpointDrag() {
+    if (isDraggingMidpoint && draggingSuggestionId && dragPreviewAngles) {
+      // Calculate final times from preview angles
+      const startMinutes = angleToMinutes(dragPreviewAngles.start);
+      const endMinutes = angleToMinutes(dragPreviewAngles.end);
+
+      dispatch("suggestionMove", {
+        suggestionId: draggingSuggestionId,
+        newStartTime: minutesToTime(startMinutes),
+        newEndTime: minutesToTime(endMinutes),
+        newGapId: dragPreviewGapId ?? draggingSuggestionGapId ?? "",
+      });
+    }
+
+    // Reset state
+    isDraggingMidpoint = false;
+    draggingSuggestionId = null;
+    draggingSuggestionDuration = 0;
+    draggingSuggestionGapId = null;
+    dragPreviewAngles = null;
+    dragPreviewGapId = null;
+    window.removeEventListener("mousemove", onMidpointDrag);
+    window.removeEventListener("mouseup", endMidpointDrag);
   }
 
   // Resize observer with throttle
@@ -440,7 +556,7 @@
 </script>
 
 <div bind:this={containerElement} class="timeline-container">
-  <svg viewBox="0 0 100 100" class="timeline-svg">
+  <svg bind:this={svgElement} viewBox="0 0 100 100" class="timeline-svg">
     <defs>
       <!-- Solid color refs for arcs -->
 
@@ -519,46 +635,92 @@
     <!-- Suggestion arcs -->
     {#each normalizedSuggestions as s (s.data.suggestionId)}
       {@const isPending = !s.isAccepted}
+      {@const isBeingDragged =
+        isDraggingMidpoint && draggingSuggestionId === s.data.suggestionId}
+      {@const shouldHide = isDraggingMidpoint && isPending && !isBeingDragged}
       {@const handlePos = getHandlePos(s.endAngle, suggestionRingRadius)}
-      <path
-        role="button"
-        tabindex="0"
-        d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
-        fill="none"
-        stroke={isPending ? "var(--color-primary-800)" : "var(--color-success-500)"}
-        stroke-width={isPending ? "2.5" : "3"}
-        stroke-linecap="round"
-        stroke-dasharray={isPending ? "2 1" : "none"}
-        class="suggestion-arc"
-        class:pending={isPending}
-        class:accepted={!isPending}
-        filter="url(#glow)"
-        onclick={(e) => onSuggestionClick(s.data, s.isAccepted, e)}
-        onkeydown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            const mouseEvent = new MouseEvent("click", {
-              bubbles: true,
-              cancelable: true,
-            });
-            onSuggestionClick(s.data, s.isAccepted, mouseEvent);
-          }
-        }}
-      />
-      {#if !isPending}
-        <circle
-          role="button"
-          tabindex="0"
-          cx={handlePos.x}
-          cy={handlePos.y}
-          r="1.2"
-          fill="#38EF7D"
-          stroke="rgba(255,255,255,0.9)"
-          stroke-width="0.3"
-          class="resize-handle"
-          onmousedown={(e) =>
-            startResize(s.data.suggestionId, s.data.duration, e)}
-        />
+
+      {#if !shouldHide}
+        {#if isBeingDragged && dragPreviewAngles}
+          <!-- Drag preview arc (shown during drag) -->
+          <path
+            d={arcPath(
+              dragPreviewAngles.start,
+              dragPreviewAngles.end,
+              suggestionRingRadius,
+            )}
+            fill="none"
+            stroke="var(--color-primary)"
+            stroke-width="3.5"
+            stroke-linecap="round"
+            stroke-dasharray="none"
+            class="suggestion-arc dragging"
+            filter="url(#glow)"
+            opacity="0.9"
+          />
+          <!-- Original position ghost -->
+          <path
+            d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
+            fill="none"
+            stroke="var(--color-primary-800)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-dasharray="4 2"
+            opacity="0.3"
+          />
+        {:else}
+          <path
+            role="button"
+            tabindex="0"
+            d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
+            fill="none"
+            stroke={isPending
+              ? "var(--color-primary-800)"
+              : "var(--color-success-500)"}
+            stroke-width={isPending ? "2.5" : "3"}
+            stroke-linecap="round"
+            stroke-dasharray={isPending ? "2 1" : "none"}
+            class="suggestion-arc"
+            class:pending={isPending}
+            class:accepted={!isPending}
+            filter="url(#glow)"
+            onmousedown={(e) => {
+              if (isPending) {
+                startMidpointDrag(s.data as PendingSuggestion, s.data.gapId, e);
+              }
+            }}
+            onclick={(e) => {
+              if (!isDraggingMidpoint) {
+                onSuggestionClick(s.data, s.isAccepted, e);
+              }
+            }}
+            onkeydown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent("click", {
+                  bubbles: true,
+                  cancelable: true,
+                });
+                onSuggestionClick(s.data, s.isAccepted, mouseEvent);
+              }
+            }}
+          />
+        {/if}
+        {#if !isPending}
+          <circle
+            role="button"
+            tabindex="0"
+            cx={handlePos.x}
+            cy={handlePos.y}
+            r="1.2"
+            fill="#38EF7D"
+            stroke="rgba(255,255,255,0.9)"
+            stroke-width="0.3"
+            class="resize-handle"
+            onmousedown={(e) =>
+              startResize(s.data.suggestionId, s.data.duration, e)}
+          />
+        {/if}
       {/if}
     {/each}
 
@@ -741,6 +903,7 @@
       onSkip={handleSkip}
       onDelete={handleDelete}
       onClose={closeSuggestionCard}
+      onDurationChange={handleDurationChange}
     />
   {/if}
 </div>

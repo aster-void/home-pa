@@ -10,10 +10,14 @@
     taskTitle: string;
     isAccepted: boolean;
     position?: { x: number; y: number };
+    /** Maximum allowed duration in minutes (for constraint feedback) */
+    maxDuration?: number;
     onAccept?: () => void;
     onSkip?: () => void;
     onDelete?: () => void;
     onClose?: () => void;
+    /** Called when user changes duration (accepted suggestions only) */
+    onDurationChange?: (newDuration: number) => void;
   }
 
   let {
@@ -21,11 +25,54 @@
     taskTitle,
     isAccepted,
     position = { x: 0, y: 0 },
+    maxDuration,
     onAccept,
     onSkip,
     onDelete,
     onClose,
+    onDurationChange,
   }: Props = $props();
+
+  // Local state for duration slider
+  let sliderDuration = $state(suggestion.duration);
+  let isDraggingSlider = $state(false);
+
+  // Min/max duration constraints
+  const MIN_DURATION = 5;
+  const effectiveMaxDuration = $derived(maxDuration ?? 180); // Default 3 hours max
+
+  // Update slider when suggestion changes
+  $effect(() => {
+    if (!isDraggingSlider) {
+      sliderDuration = suggestion.duration;
+    }
+  });
+
+  function handleSliderChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const newValue = Math.round(Number(target.value) / 5) * 5; // Snap to 5-min increments
+    sliderDuration = newValue;
+  }
+
+  function handleSliderCommit() {
+    isDraggingSlider = false;
+    if (sliderDuration !== suggestion.duration) {
+      onDurationChange?.(sliderDuration);
+    }
+  }
+
+  function handleSliderStart() {
+    isDraggingSlider = true;
+  }
+
+  function formatDuration(minutes: number): string {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    return `${minutes}m`;
+  }
 
   let cardElement: HTMLDivElement | null = null;
   let adjustedPosition = $state({ x: position.x, y: position.y });
@@ -109,11 +156,48 @@
       >
       <span
         class="rounded-full bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs text-[var(--color-primary)]"
-        >{suggestion.duration}分</span
+        >{isDraggingSlider ? sliderDuration : suggestion.duration}分</span
       >
     </div>
 
     {#if isAccepted}
+      <!-- Duration adjustment slider for accepted suggestions -->
+      <div class="mb-3">
+        <div
+          class="mb-1 flex items-center justify-between text-xs text-[var(--color-text-secondary)]"
+        >
+          <span>時間調整</span>
+          <span class="text-[var(--color-primary)]">
+            {formatDuration(sliderDuration)}
+            {#if effectiveMaxDuration < 180}
+              <span class="text-[var(--color-text-muted)]">
+                (最大 {formatDuration(effectiveMaxDuration)})
+              </span>
+            {/if}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={MIN_DURATION}
+          max={effectiveMaxDuration}
+          step="5"
+          value={sliderDuration}
+          class="range w-full range-primary range-sm"
+          oninput={handleSliderChange}
+          onmousedown={handleSliderStart}
+          ontouchstart={handleSliderStart}
+          onmouseup={handleSliderCommit}
+          ontouchend={handleSliderCommit}
+          onchange={handleSliderCommit}
+        />
+        <div
+          class="mt-1 flex justify-between text-[10px] text-[var(--color-text-muted)]"
+        >
+          <span>{MIN_DURATION}m</span>
+          <span>{formatDuration(effectiveMaxDuration)}</span>
+        </div>
+      </div>
+
       <span
         class="inline-block rounded-full bg-[var(--color-success-100)] px-3 py-1 text-xs text-[var(--color-success-500)]"
         >承認済み</span

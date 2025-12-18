@@ -246,10 +246,13 @@ export function getEventColor(event: Event): string {
     event.title ?? "",
     event.start ? event.start.toISOString() : "",
   ];
-  const hash = keyParts.join("|").split("").reduce((acc, char) => {
-    const next = acc * 31 + char.charCodeAt(0);
-    return next & next;
-  }, 0);
+  const hash = keyParts
+    .join("|")
+    .split("")
+    .reduce((acc, char) => {
+      const next = acc * 31 + char.charCodeAt(0);
+      return next & next;
+    }, 0);
 
   const base =
     palette[Math.abs(hash) % palette.length] ?? "var(--color-primary)";

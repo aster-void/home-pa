@@ -26,6 +26,12 @@ import type {
 } from "../services/suggestions/index.ts";
 import { createEngine } from "../services/suggestions/index.ts";
 import { enrichedGaps } from "./gaps.svelte.ts";
+import {
+  calculateExtension,
+  getBlockersFromAccepted,
+  timeToMinutes,
+  minutesToTime,
+} from "../services/suggestion-drag.ts";
 
 // ============================================================================
 // Types for Suggestion Management
@@ -199,23 +205,6 @@ export const hasMandatoryDropped = derived(
 // ============================================================================
 
 /**
- * Convert HH:mm time string to minutes since midnight
- */
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-/**
- * Convert minutes since midnight to HH:mm time string
- */
-function minutesToTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60) % 24;
-  const mins = Math.floor(minutes % 60);
-  return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
-}
-
-/**
  * Subtract accepted suggestions from gaps to get remaining available gaps
  */
 function subtractAcceptedFromGaps(
@@ -288,22 +277,6 @@ function subtractAcceptedFromGaps(
   }
 
   return result;
-}
-
-/**
- * Check if two time ranges overlap
- */
-function rangesOverlap(
-  start1: string,
-  end1: string,
-  start2: string,
-  end2: string,
-): boolean {
-  const s1 = timeToMinutes(start1);
-  const e1 = timeToMinutes(end1);
-  const s2 = timeToMinutes(start2);
-  const e2 = timeToMinutes(end2);
-  return s1 < e2 && s2 < e1;
 }
 
 /**
@@ -441,18 +414,80 @@ export const scheduleActions = {
   },
 
   /**
+   * Move a pending suggestion to a new time slot
+   * Called when user drags a suggestion to a new position
+   *
+   * @param suggestionId - ID of the suggestion to move
+   * @param newStartTime - New start time in HH:mm format
+   * @param newEndTime - New end time in HH:mm format
+   * @param newGapId - ID of the gap the suggestion is being moved to
+   * @param memos - Current memos for regeneration
+   */
+  async moveSuggestion(
+    suggestionId: string,
+    newStartTime: string,
+    newEndTime: string,
+    newGapId: string,
+    _memos: Memo[],
+  ): Promise<void> {
+    const result = get(scheduleResult);
+    if (!result) return;
+
+    const blockIndex = result.scheduled.findIndex(
+      (b) => b.suggestionId === suggestionId,
+    );
+    if (blockIndex === -1) {
+      console.warn(
+        "[Schedule] Cannot move: suggestion not found",
+        suggestionId,
+      );
+      return;
+    }
+
+    const block = result.scheduled[blockIndex];
+
+    // Calculate new duration from time range
+    const newDuration = timeToMinutes(newEndTime) - timeToMinutes(newStartTime);
+
+    // Update the schedule result with the moved suggestion
+    const updatedScheduled = [...result.scheduled];
+    updatedScheduled[blockIndex] = {
+      ...block,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      duration: newDuration,
+      gapId: newGapId,
+    };
+
+    // Update the store
+    scheduleResult.set({
+      ...result,
+      scheduled: updatedScheduled,
+    });
+
+    console.log("[Schedule] Moved suggestion:", suggestionId, "to", {
+      start: newStartTime,
+      end: newEndTime,
+      gap: newGapId,
+    });
+  },
+
+  /**
    * Update the duration of an accepted suggestion (drag-to-resize)
+   * Uses symmetric extension from midpoint when possible, otherwise one-sided.
    *
    * @param suggestionId - ID of the accepted suggestion
    * @param newDuration - New duration in minutes (must be multiple of 5)
    * @param memos - Current memos for regeneration
-   * @returns true if update was successful
+   * @param gaps - Optional gaps to use for constraint checking
+   * @returns Object with success flag and max allowed duration
    */
   async updateAcceptedDuration(
     suggestionId: string,
     newDuration: number,
     memos: Memo[],
-  ): Promise<boolean> {
+    gaps?: Gap[],
+  ): Promise<{ success: boolean; maxAllowed?: number }> {
     const accepted = get(acceptedSuggestions);
     const idx = accepted.findIndex((a) => a.suggestionId === suggestionId);
     if (idx === -1) {
@@ -460,7 +495,7 @@ export const scheduleActions = {
         "[Schedule] Cannot resize: accepted suggestion not found",
         suggestionId,
       );
-      return false;
+      return { success: false };
     }
 
     const suggestion = accepted[idx];
@@ -469,39 +504,55 @@ export const scheduleActions = {
     const snappedDuration = Math.round(newDuration / 5) * 5;
     if (snappedDuration < 5) {
       console.warn("[Schedule] Cannot resize: duration too small");
-      return false;
+      return { success: false, maxAllowed: 5 };
     }
 
-    // Calculate new end time
-    const newEndTime = minutesToTime(
-      timeToMinutes(suggestion.startTime) + snappedDuration,
+    // Get the gap this suggestion belongs to
+    const rawGaps = gaps ?? get(enrichedGaps);
+    const suggestionGap = rawGaps.find((g) => g.gapId === suggestion.gapId);
+
+    // Calculate current midpoint
+    const startMinutes = timeToMinutes(suggestion.startTime);
+    const endMinutes = timeToMinutes(suggestion.endTime);
+    const midpoint = Math.floor((startMinutes + endMinutes) / 2);
+
+    // Determine gap boundaries
+    const gapStart = suggestionGap
+      ? timeToMinutes(suggestionGap.start)
+      : startMinutes;
+    const gapEnd = suggestionGap
+      ? timeToMinutes(suggestionGap.end)
+      : endMinutes;
+
+    // Get blockers (other accepted suggestions)
+    const blockers = getBlockersFromAccepted(accepted, suggestionId);
+
+    // Calculate extension with constraints
+    const extensionResult = calculateExtension(
+      midpoint,
+      suggestion.duration,
+      snappedDuration,
+      gapStart,
+      gapEnd,
+      blockers,
     );
 
-    // Check for overlaps with other accepted suggestions
-    const otherAccepted = accepted.filter((_, i) => i !== idx);
-    for (const other of otherAccepted) {
-      if (
-        rangesOverlap(
-          suggestion.startTime,
-          newEndTime,
-          other.startTime,
-          other.endTime,
-        )
-      ) {
-        console.warn(
-          "[Schedule] Cannot resize: would overlap with another accepted suggestion",
-        );
-        return false;
-      }
+    if (extensionResult.blocked) {
+      console.warn(
+        "[Schedule] Cannot resize:",
+        extensionResult.blockReason ?? "blocked by constraints",
+      );
+      return { success: false, maxAllowed: extensionResult.maxAllowedDuration };
     }
 
-    // Update the suggestion
+    // Update the suggestion with new times
     acceptedSuggestions.update((list) => {
       const updated = [...list];
       updated[idx] = {
         ...suggestion,
-        duration: snappedDuration,
-        endTime: newEndTime,
+        duration: extensionResult.newDuration,
+        startTime: extensionResult.newStartTime,
+        endTime: extensionResult.newEndTime,
       };
       return updated;
     });
@@ -510,13 +561,14 @@ export const scheduleActions = {
       "[Schedule] Resized accepted suggestion:",
       suggestionId,
       "to",
-      snappedDuration,
+      extensionResult.newDuration,
       "min",
+      `(${extensionResult.newStartTime} - ${extensionResult.newEndTime})`,
     );
 
     // Regenerate to reflow other suggestions
     await scheduleActions.regenerate(memos);
-    return true;
+    return { success: true, maxAllowed: extensionResult.maxAllowedDuration };
   },
 
   /**
