@@ -70,29 +70,6 @@
     if (unsubscribeTasks) unsubscribeTasks();
   });
 
-  // Reactively compute schedule signature for auto-generation
-  let scheduleSignature = $derived.by(() => {
-    const now = new Date();
-    const todayKey = dateKey(now);
-    const currentDate = startOfDay(dataState.selectedDate);
-
-    // Only generate schedule for today
-    if (dateKey(currentDate) !== todayKey) return null;
-
-    return `${dateKey(currentDate)}|t${taskList.length}|g${computedGaps.length}`;
-  });
-
-  // Track last schedule signature to avoid re-triggering
-  let lastScheduleSignature: string | null = null;
-
-  // Auto-generate schedule when signature changes
-  $effect(() => {
-    if (scheduleSignature && scheduleSignature !== lastScheduleSignature) {
-      lastScheduleSignature = scheduleSignature;
-      scheduleActions.regenerate(taskList, { gaps: computedGaps });
-    }
-  });
-
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
     const dayStart = startOfDay(day);
     const dayEnd = endOfDay(day);
@@ -174,6 +151,29 @@
       toGapEventForDay(e, currentDate),
     );
     return gf.findGaps(mapped);
+  });
+
+  // Reactively compute schedule signature for auto-generation
+  let scheduleSignature = $derived.by(() => {
+    const now = new Date();
+    const todayKey = dateKey(now);
+    const currentDate = startOfDay(dataState.selectedDate);
+
+    // Only generate schedule for today
+    if (dateKey(currentDate) !== todayKey) return null;
+
+    return `${dateKey(currentDate)}|t${taskList.length}|g${computedGaps.length}`;
+  });
+
+  // Track last schedule signature to avoid re-triggering
+  let lastScheduleSignature: string | null = null;
+
+  // Auto-generate schedule when signature changes
+  $effect(() => {
+    if (scheduleSignature && scheduleSignature !== lastScheduleSignature) {
+      lastScheduleSignature = scheduleSignature;
+      scheduleActions.regenerate(taskList, { gaps: computedGaps });
+    }
   });
 
   // Helper to get task title from memoId
