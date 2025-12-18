@@ -43,7 +43,6 @@
     return (durationMinutes / 60) * 16.67;
   }
 
-  function getEventColor(event: Event): string {
   function formatTime(date: Date): string {
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
