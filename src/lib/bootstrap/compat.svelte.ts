@@ -21,6 +21,8 @@ export { dataState, type SimpleMemo } from "./data.svelte.ts";
 
 export { toastState, type Toast, type ToastType } from "./toast.svelte.ts";
 
+export { settingsState } from "./settings.svelte.ts";
+
 export {
   calendarState,
   type ExpandedOccurrence,

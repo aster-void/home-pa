@@ -199,6 +199,141 @@ export function startOfDay(date: Date): Date {
   return normalized;
 }
 
+// ============================================================================
+// UTC DATE-ONLY COMPARISON (for all-day events)
+// ============================================================================
+
+/**
+ * Extracts the UTC date components from a Date object
+ * Returns a simple object with year, month, day in UTC
+ */
+export function getUTCDateComponents(date: Date): {
+  year: number;
+  month: number;
+  day: number;
+} {
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth(),
+    day: date.getUTCDate(),
+  };
+}
+
+/**
+ * Converts a Date to a UTC midnight timestamp (date-only, no time)
+ * This is the canonical representation for all-day event dates
+ */
+export function toUTCDateOnly(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+/**
+ * Checks if an event (by start/end dates) occurs on a target date
+ * For all-day events, comparison is done in UTC
+ * For timed events, comparison is done in local time
+ *
+ * @param eventStart - Event start date
+ * @param eventEnd - Event end date
+ * @param targetDate - The date to check against (local date)
+ * @param isAllDay - Whether this is an all-day event
+ * @returns true if the event occurs on the target date
+ */
+export function eventOccursOnDate(
+  eventStart: Date,
+  eventEnd: Date,
+  targetDate: Date,
+  isAllDay: boolean,
+): boolean {
+  if (isAllDay) {
+    // For all-day events: compare using UTC date components
+    // All-day events are stored as UTC midnight (00:00:00.000Z)
+    const eventStartUTC = toUTCDateOnly(eventStart);
+    const eventEndUTC = toUTCDateOnly(eventEnd);
+
+    // Target date needs to be converted to UTC date for comparison
+    // We use the local date's year/month/day and treat it as a UTC date
+    const targetUTC = Date.UTC(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
+
+    // Event spans from eventStartUTC to eventEndUTC (inclusive)
+    return targetUTC >= eventStartUTC && targetUTC <= eventEndUTC;
+  } else {
+    // For timed events: compare using local time (original logic)
+    const targetStart = new Date(targetDate);
+    targetStart.setHours(0, 0, 0, 0);
+    const targetEnd = new Date(targetDate);
+    targetEnd.setHours(23, 59, 59, 999);
+
+    return (
+      eventStart.getTime() <= targetEnd.getTime() &&
+      eventEnd.getTime() >= targetStart.getTime()
+    );
+  }
+}
+
+/**
+ * Checks if two dates are the same day (UTC comparison for all-day events)
+ */
+export function isSameUTCDate(date1: Date, date2: Date): boolean {
+  return toUTCDateOnly(date1) === toUTCDateOnly(date2);
+}
+
+/**
+ * Checks if two dates are the same day using local timezone
+ */
+export function isSameLocalDate(date1: Date, date2: Date): boolean {
+  return (
+    date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate()
+  );
+}
+
+/**
+ * Compares event date with target date for position detection
+ * Returns comparison result based on whether event is all-day
+ *
+ * @param eventDate - The event's date (start or end)
+ * @param targetDate - The target date to compare against
+ * @param isAllDay - Whether this is an all-day event
+ * @returns Object with comparison flags
+ */
+export function compareDateForEvent(
+  eventDate: Date,
+  targetDate: Date,
+  isAllDay: boolean,
+): { isBefore: boolean; isAfter: boolean; isSame: boolean } {
+  if (isAllDay) {
+    const eventUTC = toUTCDateOnly(eventDate);
+    const targetUTC = Date.UTC(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+    );
+    return {
+      isBefore: eventUTC < targetUTC,
+      isAfter: eventUTC > targetUTC,
+      isSame: eventUTC === targetUTC,
+    };
+  } else {
+    const targetStart = new Date(targetDate);
+    targetStart.setHours(0, 0, 0, 0);
+    const targetEnd = new Date(targetDate);
+    targetEnd.setHours(23, 59, 59, 999);
+
+    const eventTime = eventDate.getTime();
+    return {
+      isBefore: eventTime < targetStart.getTime(),
+      isAfter: eventTime > targetEnd.getTime(),
+      isSame:
+        eventTime >= targetStart.getTime() && eventTime <= targetEnd.getTime(),
+    };
+  }
+}
+
 /**
  * Normalizes a Date to start of day (alias for startOfDay)
  */

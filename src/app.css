@@ -166,6 +166,25 @@ body {
   outline-offset: 2px;
 }
 
+/* Remove focus outline from SVG interactive elements */
+svg path[role="button"],
+svg circle[role="button"],
+svg path[tabindex="0"],
+svg circle[tabindex="0"] {
+  outline: none;
+}
+
+svg path[role="button"]:focus,
+svg circle[role="button"]:focus,
+svg path[tabindex="0"]:focus,
+svg circle[tabindex="0"]:focus,
+svg path[role="button"]:focus-visible,
+svg circle[role="button"]:focus-visible,
+svg path[tabindex="0"]:focus-visible,
+svg circle[tabindex="0"]:focus-visible {
+  outline: none;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -232,9 +251,15 @@ body {
 
 .event-arc {
   cursor: pointer;
+  outline: none;
   transition:
     stroke-width 0.2s ease,
     stroke-opacity 0.2s ease;
+}
+
+.event-arc:focus,
+.event-arc:focus-visible {
+  outline: none;
 }
 
 .event-arc:hover {
@@ -248,7 +273,13 @@ body {
 
 .gap-arc {
   cursor: pointer;
+  outline: none;
   transition: stroke-width 0.2s ease;
+}
+
+.gap-arc:focus,
+.gap-arc:focus-visible {
+  outline: none;
 }
 
 .gap-arc:hover {
@@ -257,7 +288,13 @@ body {
 
 .suggestion-arc {
   cursor: pointer;
+  outline: none;
   transition: stroke-width 0.2s ease;
+}
+
+.suggestion-arc:focus,
+.suggestion-arc:focus-visible {
+  outline: none;
 }
 
 .suggestion-arc:hover {
@@ -266,7 +303,13 @@ body {
 
 .resize-handle {
   cursor: ns-resize;
+  outline: none;
   transition: r 0.15s ease;
+}
+
+.resize-handle:focus,
+.resize-handle:focus-visible {
+  outline: none;
 }
 
 .resize-handle:hover {

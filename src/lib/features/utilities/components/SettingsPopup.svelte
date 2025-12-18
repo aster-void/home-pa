@@ -6,7 +6,10 @@
    * Opens from settings icon in UtilitiesView.
    */
 
-  import { calendarActions } from "$lib/bootstrap/compat.svelte.ts";
+  import {
+    calendarActions,
+    settingsState,
+  } from "$lib/bootstrap/compat.svelte.ts";
   import { UserSettings } from "$lib/features/shared/components/index.ts";
 
   interface Props {
@@ -152,13 +155,46 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 min-h-0 overflow-y-auto p-4">
+      <div class="min-h-0 flex-1 overflow-y-auto p-4">
         {#if activeTab === "account"}
           <!-- Account Tab -->
-          <div
-            class="rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-800)] p-5 text-white shadow-[0_4px_20px_rgba(123,190,187,0.25)]"
-          >
-            <UserSettings />
+          <div class="flex flex-col gap-4">
+            <div
+              class="rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-800)] p-5 text-white shadow-[0_4px_20px_rgba(123,190,187,0.25)]"
+            >
+              <UserSettings />
+            </div>
+
+            <!-- Active Hours Setting -->
+            <div
+              class="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-4"
+            >
+              <h3
+                class="mb-2 text-base font-medium text-[var(--color-text-primary)]"
+              >
+                Active Hours
+              </h3>
+              <p class="mb-3 text-sm text-[var(--color-text-secondary)]">
+                Set your active hours for task scheduling in the Assistant view.
+              </p>
+              <div class="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={settingsState.activeStartTime}
+                  onchange={(e) =>
+                    settingsState.setActiveStartTime(e.currentTarget.value)}
+                  class="input-bordered input input-sm w-32 rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-app)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                />
+                <span class="text-sm text-[var(--color-text-muted)]">–</span>
+                <input
+                  type="time"
+                  value={settingsState.activeEndTime}
+                  onchange={(e) =>
+                    settingsState.setActiveEndTime(e.currentTarget.value)}
+                  class="input-bordered input input-sm w-32 rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-app)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                />
+              </div>
+            </div>
           </div>
         {:else}
           <!-- Import/Export Tab -->

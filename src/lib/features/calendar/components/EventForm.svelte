@@ -44,6 +44,7 @@
     false,
   ]);
   let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
+  let isDeleting = $state(false);
 
   // Track store changes to avoid circular updates
   let lastStoreTitle = $state("");
@@ -220,6 +221,21 @@
     isManualDateOrTimeEdit = true;
     eventTimeLabel = "timed";
     eventFormActions.switchTimeLabel("timed");
+  }
+
+  async function handleDelete(): Promise<void> {
+    const form = eventFormState.formData;
+    if (!form.editingId || isDeleting) return;
+    const confirmed = window.confirm("この予定を削除しますか？");
+    if (!confirmed) return;
+
+    isDeleting = true;
+    const success = await eventActions.delete(form.editingId);
+    isDeleting = false;
+
+    if (success) {
+      eventFormState.close();
+    }
   }
 </script>
 
@@ -647,8 +663,18 @@
       </div>
     {/if}
 
-    <div class="flex justify-end gap-2 border-t border-base-300 p-4">
+    <div
+      class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 p-4"
+    >
       {#if isEventEditing}
+        <button
+          type="button"
+          class="btn mr-auto btn-outline btn-error"
+          onclick={handleDelete}
+          disabled={isDeleting}
+        >
+          {isDeleting ? "削除中..." : "削除"}
+        </button>
         <button
           type="button"
           class="btn border border-base-300 btn-ghost"

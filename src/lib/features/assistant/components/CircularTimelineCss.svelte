@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { createEventDispatcher } from "svelte";
   import { dataState, calendarState } from "$lib/bootstrap/compat.svelte.ts";
+  import { getEventColor } from "$lib/features/calendar/utils/index.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
   import type {
     PendingSuggestion,
@@ -441,24 +442,7 @@
 <div bind:this={containerElement} class="timeline-container">
   <svg viewBox="0 0 100 100" class="timeline-svg">
     <defs>
-      <!-- Gradients -->
-      <linearGradient id="eventGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.9" />
-        <stop offset="50%" stop-color="#FF8E53" stop-opacity="1" />
-        <stop offset="100%" stop-color="#FFA726" stop-opacity="0.9" />
-      </linearGradient>
-      <linearGradient id="pendingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#667EEA" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#764BA2" stop-opacity="0.8" />
-      </linearGradient>
-      <linearGradient id="acceptedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#11998E" stop-opacity="0.9" />
-        <stop offset="100%" stop-color="#38EF7D" stop-opacity="0.9" />
-      </linearGradient>
-      <linearGradient id="gapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#a8edea" stop-opacity="0.6" />
-        <stop offset="100%" stop-color="#fed6e3" stop-opacity="0.6" />
-      </linearGradient>
+      <!-- Solid color refs for arcs -->
 
       <!-- Glow filters -->
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -541,7 +525,7 @@
         tabindex="0"
         d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
         fill="none"
-        stroke={isPending ? "url(#pendingGrad)" : "url(#acceptedGrad)"}
+        stroke={isPending ? "var(--color-primary-800)" : "var(--color-success-500)"}
         stroke-width={isPending ? "2.5" : "3"}
         stroke-linecap="round"
         stroke-dasharray={isPending ? "2 1" : "none"}
@@ -587,7 +571,7 @@
         tabindex="0"
         d={arcPath(ev.startAngle, ev.endAngle, radius)}
         fill="none"
-        stroke="url(#eventGrad)"
+        stroke={getEventColor(ev.ref)}
         stroke-width={isAllDay ? "2" : "3.5"}
         stroke-linecap="round"
         stroke-opacity={isAllDay ? 0.5 : 0.95}
@@ -614,7 +598,7 @@
         tabindex="0"
         d={arcPath(gap.startAngle, gap.endAngle, gapRingRadius)}
         fill="none"
-        stroke="url(#gapGrad)"
+        stroke="color-mix(in srgb, var(--color-warning-500) 85%, var(--color-primary-400))"
         stroke-width="3"
         stroke-linecap="round"
         class="gap-arc"
@@ -643,7 +627,7 @@
         y1={center}
         x2={timeX}
         y2={timeY}
-        stroke="#FF6B6B"
+        stroke="var(--color-primary)"
         stroke-width="0.5"
         stroke-linecap="round"
         filter="url(#glow)"
@@ -652,7 +636,7 @@
         cx={timeX}
         cy={timeY}
         r="1.2"
-        fill="#FF6B6B"
+        fill="var(--color-primary)"
         filter="url(#glow)"
       />
     {/if}

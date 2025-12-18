@@ -3,7 +3,11 @@
   // LogsView removed from header; settings panel is minimal
   import LogsView from "$lib/features/logs/components/LogsView.svelte";
   import CircularTimelineCss from "./CircularTimelineCss.svelte";
-  import { calendarState, dataState } from "$lib/bootstrap/index.svelte.ts";
+  import {
+    calendarState,
+    dataState,
+    settingsState,
+  } from "$lib/bootstrap/index.svelte.ts";
   import {
     scheduleActions,
     pendingSuggestions,
@@ -22,10 +26,6 @@
   // Local state
   // Settings panel toggle (replaces top header controls)
   let showSettings = $state(false);
-
-  // Active hours (day boundaries for gap finding)
-  let activeStart = $state("08:00");
-  let activeEnd = $state("23:00");
 
   // Task list (synced from store)
   let taskList = $state(get(tasks));
@@ -164,7 +164,10 @@
 
   // Reactively compute gaps based on selected day events
   let computedGaps = $derived.by(() => {
-    const gf = new GapFinder({ dayStart: activeStart, dayEnd: activeEnd });
+    const gf = new GapFinder({
+      dayStart: settingsState.activeStartTime,
+      dayEnd: settingsState.activeEndTime,
+    });
     const currentDate = startOfDay(dataState.selectedDate);
 
     const mapped = selectedDayEvents.map((e) =>
@@ -396,27 +399,7 @@
         >
       </div>
       <div class="flex flex-col gap-4">
-        <div
-          class="flex items-center gap-3 text-sm text-[var(--color-text-secondary)]"
-        >
-          <span class="font-medium">Active hours</span>
-          <div class="inline-flex items-center gap-2">
-            <input
-              type="time"
-              bind:value={activeStart}
-              class="input input-sm rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-            />
-            <span class="text-[var(--color-text-muted)]">–</span>
-            <input
-              type="time"
-              bind:value={activeEnd}
-              class="input input-sm rounded-xl border-[var(--color-border-default)] bg-[var(--color-bg-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-            />
-          </div>
-        </div>
-        <div class="mt-2">
-          <LogsView />
-        </div>
+        <LogsView />
       </div>
     </section>
   {/if}

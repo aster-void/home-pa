@@ -98,6 +98,7 @@
               originalEvent.start,
               originalEvent.end,
               day,
+              originalEvent.timeLabel === "all-day",
             )}
             {@const showLabel = isFirstDayOfEvent(originalEvent, day)}
             {@const rowIndex = eventRowMap.get(truncatedEvent.id) ?? 0}

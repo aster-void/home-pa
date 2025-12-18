@@ -2,6 +2,11 @@
  * Calendar utility functions
  */
 import type { Event } from "$lib/types.ts";
+import {
+  eventOccursOnDate,
+  compareDateForEvent,
+  toUTCDateOnly,
+} from "$lib/utils/date-utils.ts";
 
 /**
  * Get the position for the current time indicator
@@ -57,33 +62,38 @@ export function getEventHeightScaled(event: Event): number {
 
 /**
  * Get events for a specific date (including midnight-crossing events)
+ *
+ * For all-day events: Uses UTC date comparison to handle timezone differences correctly.
+ * All-day events are stored as UTC midnight (00:00:00.000Z), so we compare
+ * the date components in UTC to avoid timezone-related display issues.
+ *
+ * For timed events: Uses local time comparison as the events have specific times.
  */
 export function getEventsForDate(events: Event[], targetDate: Date): Event[] {
-  const targetDateStart = new Date(targetDate);
-  targetDateStart.setHours(0, 0, 0, 0);
-  const targetDateEnd = new Date(targetDate);
-  targetDateEnd.setHours(23, 59, 59, 999);
-  const targetDateStartTime = targetDateStart.getTime();
-  const targetDateEndTime = targetDateEnd.getTime();
-
   return events
     .filter((event) => {
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
-      const eventStartTime = eventStartDate.getTime();
-      const eventEndTime = eventEndDate.getTime();
-
-      // Include events where target date falls between start and end (inclusive)
-      return (
-        eventStartTime <= targetDateEndTime &&
-        eventEndTime >= targetDateStartTime
-      );
+      const isAllDay = event.timeLabel === "all-day";
+      return eventOccursOnDate(event.start, event.end, targetDate, isAllDay);
     })
     .map((event) => {
-      const eventStartDate = new Date(event.start);
-      const eventEndDate = new Date(event.end);
-      const eventStartTime = eventStartDate.getTime();
-      const eventEndTime = eventEndDate.getTime();
+      const isAllDay = event.timeLabel === "all-day";
+
+      if (isAllDay) {
+        // For all-day events, don't truncate - they span full days
+        // The event already represents full days, no time truncation needed
+        return event;
+      }
+
+      // For timed events, handle midnight-crossing scenarios
+      const targetDateStart = new Date(targetDate);
+      targetDateStart.setHours(0, 0, 0, 0);
+      const targetDateEnd = new Date(targetDate);
+      targetDateEnd.setHours(23, 59, 59, 999);
+      const targetDateStartTime = targetDateStart.getTime();
+      const targetDateEndTime = targetDateEnd.getTime();
+
+      const eventStartTime = event.start.getTime();
+      const eventEndTime = event.end.getTime();
 
       const startsOnTarget =
         eventStartTime >= targetDateStartTime &&
@@ -202,67 +212,130 @@ export function getEventColumns(events: Event[]): Event[][] {
 
 /**
  * Check if this is the first day of an event
+ *
+ * For all-day events: Uses UTC date comparison
+ * For timed events: Uses local time comparison
  */
 export function isFirstDayOfEvent(event: Event, targetDate: Date): boolean {
-  const eventStartDate = new Date(event.start);
-  eventStartDate.setHours(0, 0, 0, 0);
-  const targetDateOnly = new Date(targetDate);
-  targetDateOnly.setHours(0, 0, 0, 0);
-  return eventStartDate.getTime() === targetDateOnly.getTime();
+  const isAllDay = event.timeLabel === "all-day";
+  const comparison = compareDateForEvent(event.start, targetDate, isAllDay);
+  return comparison.isSame;
 }
 
 /**
  * Get event color based on importance
  */
 export function getEventColor(event: Event): string {
+  const palette: readonly string[] = [
+    "var(--color-primary)",
+    "var(--color-primary-400)",
+    "var(--color-primary-800)",
+    "color-mix(in srgb, var(--color-primary) 75%, white)",
+    "var(--color-success-500)",
+    "color-mix(in srgb, var(--color-success-500) 78%, white)",
+    "var(--color-warning-500)",
+    "color-mix(in srgb, var(--color-warning-500) 78%, white)",
+    "var(--color-error-500)",
+    "color-mix(in srgb, var(--color-error-500) 75%, white)",
+    "color-mix(in srgb, var(--color-primary-800) 70%, black)",
+    "color-mix(in srgb, var(--color-primary) 65%, var(--color-surface-100))",
+  ];
+
+  const keyParts = [
+    event.id ?? "",
+    event.title ?? "",
+    event.start ? event.start.toISOString() : "",
+  ];
+  const hash = keyParts.join("|").split("").reduce((acc, char) => {
+    const next = acc * 31 + char.charCodeAt(0);
+    return next & next;
+  }, 0);
+
+  const base =
+    palette[Math.abs(hash) % palette.length] ?? "var(--color-primary)";
+
   const importance = event.importance || "medium";
-  const opacity = (event as Event & { isForever?: boolean }).isForever
-    ? 0.85
-    : 1;
+  if (importance === "high") {
+    return `color-mix(in srgb, ${base} 85%, black)`;
+  }
+  if (importance === "low") {
+    return `color-mix(in srgb, ${base} 85%, white)`;
+  }
 
-  const colors: Record<string, string> = {
-    high: `rgba(248, 113, 113, ${opacity})`,
-    medium: `rgba(251, 191, 36, ${opacity})`,
-    low: `rgba(74, 222, 128, ${opacity})`,
-  };
-
-  return colors[importance] || colors.medium;
+  return base;
 }
 
 /**
  * Get event bar position for calendar grid view
+ *
+ * For all-day events: Uses UTC date comparison for timezone safety
+ * For timed events: Uses local time comparison
+ *
+ * @param eventStart - Event start date
+ * @param eventEnd - Event end date
+ * @param day - The day being rendered
+ * @param isAllDay - Whether this is an all-day event (optional, defaults to true for backwards compatibility)
  */
 export function getEventBarPosition(
   eventStart: Date,
   eventEnd: Date,
   day: Date,
+  isAllDay = true,
 ): "start" | "middle" | "end" | "single" {
-  const eventStartDate = new Date(eventStart);
-  eventStartDate.setHours(0, 0, 0, 0);
-  const eventEndDate = new Date(eventEnd);
-  eventEndDate.setHours(0, 0, 0, 0);
-  const currentDate = new Date(day);
-  currentDate.setHours(0, 0, 0, 0);
+  if (isAllDay) {
+    // For all-day events: use UTC date comparison
+    const eventStartUTC = toUTCDateOnly(eventStart);
+    const eventEndUTC = toUTCDateOnly(eventEnd);
+    const currentUTC = Date.UTC(
+      day.getFullYear(),
+      day.getMonth(),
+      day.getDate(),
+    );
 
-  const eventStartTime = eventStartDate.getTime();
-  const eventEndTime = eventEndDate.getTime();
-  const currentTime = currentDate.getTime();
+    // Single day event
+    if (eventStartUTC === eventEndUTC) {
+      return "single";
+    }
 
-  // Single day event
-  if (eventStartTime === eventEndTime) {
+    // Multi-day event
+    if (currentUTC === eventStartUTC) {
+      return "start";
+    } else if (currentUTC === eventEndUTC) {
+      return "end";
+    } else if (currentUTC > eventStartUTC && currentUTC < eventEndUTC) {
+      return "middle";
+    }
+
+    return "single";
+  } else {
+    // For timed events: use local time comparison
+    const eventStartDate = new Date(eventStart);
+    eventStartDate.setHours(0, 0, 0, 0);
+    const eventEndDate = new Date(eventEnd);
+    eventEndDate.setHours(0, 0, 0, 0);
+    const currentDate = new Date(day);
+    currentDate.setHours(0, 0, 0, 0);
+
+    const eventStartTime = eventStartDate.getTime();
+    const eventEndTime = eventEndDate.getTime();
+    const currentTime = currentDate.getTime();
+
+    // Single day event
+    if (eventStartTime === eventEndTime) {
+      return "single";
+    }
+
+    // Multi-day event
+    if (currentTime === eventStartTime) {
+      return "start";
+    } else if (currentTime === eventEndTime) {
+      return "end";
+    } else if (currentTime > eventStartTime && currentTime < eventEndTime) {
+      return "middle";
+    }
+
     return "single";
   }
-
-  // Multi-day event
-  if (currentTime === eventStartTime) {
-    return "start";
-  } else if (currentTime === eventEndTime) {
-    return "end";
-  } else if (currentTime > eventStartTime && currentTime < eventEndTime) {
-    return "middle";
-  }
-
-  return "single";
 }
 
 /**

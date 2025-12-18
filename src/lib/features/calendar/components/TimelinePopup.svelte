@@ -5,6 +5,7 @@
     calendarState,
     eventActions,
   } from "$lib/bootstrap/compat.svelte.ts";
+  import { getEventColor } from "../utils/index.ts";
 
   interface Props {
     events: Event[];
@@ -43,19 +44,6 @@
   }
 
   function getEventColor(event: Event): string {
-    const importance = event.importance || "medium";
-    switch (importance) {
-      case "high":
-        return "rgba(240, 138, 119, 0.9)";
-      case "medium":
-        return "rgba(99, 102, 241, 0.8)";
-      case "low":
-        return "rgba(34, 197, 94, 0.7)";
-      default:
-        return "rgba(99, 102, 241, 0.8)";
-    }
-  }
-
   function formatTime(date: Date): string {
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");

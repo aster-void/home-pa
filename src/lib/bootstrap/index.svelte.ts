@@ -26,6 +26,9 @@ export { dataState, type SimpleMemo } from "./data.svelte.ts";
 // Toast State
 export { toastState, type Toast, type ToastType } from "./toast.svelte.ts";
 
+// Settings State
+export { settingsState } from "./settings.svelte.ts";
+
 // Calendar State
 export {
   calendarState,
