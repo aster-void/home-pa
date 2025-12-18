@@ -6,6 +6,7 @@
     Toast,
   } from "$lib/features/shared/components/index.ts";
   import { initializeStores } from "$lib/bootstrap/bootstrap.ts";
+  import { loadTasks } from "$lib/features/tasks/state/taskActions.ts";
   import { authClient } from "$lib/auth-client";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
@@ -26,6 +27,18 @@
     );
   }
 
+  // Load tasks once when authenticated
+  let tasksLoaded = false;
+  $effect(() => {
+    const isLoading = $session.isPending;
+    const isAuthenticated = !!$session.data?.user;
+
+    if (!isLoading && isAuthenticated && !tasksLoaded) {
+      tasksLoaded = true;
+      loadTasks();
+    }
+  });
+
   // Client-side auth guard (backup for server-side redirect)
   $effect(() => {
     const isLoading = $session.isPending;
@@ -34,7 +47,6 @@
 
     if (!isLoading && !isAuthenticated && !isPublicRoute(pathname)) {
       const redirectTo = encodeURIComponent(pathname + $page.url.search);
-      // eslint-disable-next-line svelte/no-navigation-without-resolve -- Dynamic redirect URL based on current pathname, cannot be statically resolved
       goto(`/auth?redirectTo=${redirectTo}`, { replaceState: true });
     }
   });
@@ -44,19 +56,18 @@
   <link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="app-container">
-  {@render children?.()}
-  <BottomNavigation />
-  <Toast />
-</div>
-
-<style>
-  .app-container {
-    height: 100vh;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--bg-primary);
-    overflow: hidden;
-  }
-</style>
+{#if isPublicRoute($page.url.pathname)}
+  <div class="flex h-screen min-h-screen flex-col overflow-hidden">
+    {@render children?.()}
+  </div>
+{:else}
+  <div class="flex h-screen min-h-screen flex-col bg-[var(--color-bg-app)]">
+    <main
+      class="box-border flex h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] max-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] min-h-[calc(100vh-var(--bottom-nav-height,80px)-env(safe-area-inset-bottom))] w-full flex-col overflow-auto bg-transparent"
+    >
+      {@render children?.()}
+    </main>
+    <BottomNavigation />
+    <Toast />
+  </div>
+{/if}

@@ -1,18 +1,71 @@
-# Cursor AI Rules for home-pa project
+<git>
+Push to `fork dev` by default: `git push fork dev`
+Use `fork` remote for personal development, `origin` only when requested.
+</git>
 
-## Git Preferences
-- Always push to `fork dev` branch by default: `git push fork dev`
-- Use `fork` remote for personal development work
-- Use `origin` remote only when specifically requested
-- Add debugs
+<stack>
+SvelteKit + Prisma (MongoDB) + better-auth
+Svelte 5 runes syntax for all new components
+</stack>
 
-## Project Context
-- This is a SvelteKit + Prisma (MongoDB) + better-auth project
-- Use Svelte 5 runes syntax for all new components
+<structure>
+src/lib/
+├── features/           # Feature modules
+│   ├── {feature}/      # assistant, calendar, tasks, memo, utilities, logs
+│   │   ├── components/ # UI components
+│   │   ├── state/      # Svelte 5 reactive state classes
+│   │   └── services/   # Business logic (optional)
+│   └── shared/         # Shared components across features
+├── utils/              # Utility functions
+├── server/             # Server-only code
+├── bootstrap/          # App initialization
+└── types.ts            # Shared type definitions
+</structure>
 
-## Code Quality
-- Run `bun run check` before committing to verify type checking, linting, and formatting
+<check>
+Run `bun run check` before committing (type + lint + format)
+</check>
 
-Read AGENTS.md for the specific code examples.
+<skills>
+MUST read `docs/skills/` before working on related areas.
+- UI/styling → docs/skills/designer.md
+</skills>
+
+<reference>
+Code examples: AGENTS.md
+</reference>
 
 @AGENTS.md
+
+<typescript-debugger>
+## Checklist
+
+1. **No `any`** - Use `unknown` and validate with valibot
+2. **No `as`** - Fix types at source
+4. **No `!`** - Explicit checks instead
+5. **NO `value is T`** - Use valibot instead
+7. **Discriminated unions** - Add `type` field to narrow
+
+## Good Practices
+
+1. `as const` - For literal types only
+2. `value satisfies T` - Type-checks value without changing its type (safe, unlike `is T`)
+3. Builtin narrowing - `typeof`, `Array.isArray`, `in`, `instanceof` are always safe
+4. `T extends SomeType` if T is required to have some trait
+5. `foo?.bar` - Use `?.` for safe property access
+6. When refactoring - Fix ONE type error at a time (type inference changes)
+
+## When Stuck - NEVER Give Up
+
+**IMPORTANT: Every time you encounter a type error, repeat this checklist in your response before attempting a fix.**
+
+When you're stuck and considering `any` or `as`, STOP:
+
+1. **Read the library's documentation** - Most type issues come from misunderstanding the library API
+2. **Search GitHub issues** (library repo) - Someone likely faced the same problem
+3. Read error message more carefully
+4. Use valibot to validate (if the type is unknown at runtime)
+5. Ask the user
+
+**`any` and `as` are admitting defeat.** Always use choose another method.
+</typescript-debugger>

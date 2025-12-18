@@ -5,7 +5,6 @@
     eventFormState,
     eventFormActions,
     eventActions,
-    uiActions,
   } from "$lib/bootstrap/compat.svelte.ts";
   import {
     utcToLocalDateString,
@@ -28,7 +27,6 @@
   let isGreyState = $derived(timeMode === "default");
   let isEventEditing = $state(false);
   let isManualDateOrTimeEdit = $state(false);
-
   // Recurrence state
   let isRecurring = $state(false);
   let recurrenceFrequency = $state<"DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY">(
@@ -46,11 +44,25 @@
     false,
   ]);
   let monthlyType = $state<"dayOfMonth" | "nthWeekday">("nthWeekday");
+  let isDeleting = $state(false);
+
+  // Track store changes to avoid circular updates
+  let lastStoreTitle = $state("");
+  let lastStoreAddress = $state("");
+  let lastStoreImportance = $state<"low" | "medium" | "high">("medium");
+  let lastStoreTimeLabel = $state<"all-day" | "some-timing" | "timed">(
+    "all-day",
+  );
+  let lastStoreStart = $state("");
+  let lastStoreEnd = $state("");
+  let lastStoreRecurrence = $state<string>("");
 
   // Sync from store
   $effect(() => {
     const form = eventFormState.formData;
+
     eventTitle = form.title;
+    lastStoreTitle = form.title;
 
     if (form.start) {
       const startDateTime = new Date(form.start);
@@ -81,31 +93,57 @@
     }
 
     eventAddress = form.address || "";
+    lastStoreAddress = form.address || "";
     eventImportance = form.importance || "medium";
+    lastStoreImportance = form.importance || "medium";
     eventTimeLabel = form.timeLabel || "all-day";
+    lastStoreTimeLabel = form.timeLabel || "all-day";
     isEventEditing = form.isEditing;
+
+    // Track start/end for sync guards
+    lastStoreStart = form.start;
+    lastStoreEnd = form.end;
+
+    // Track recurrence for sync guard
+    lastStoreRecurrence = JSON.stringify(form.recurrence ?? { type: "NONE" });
   });
 
-  // Sync to store
+  // Sync to store (only when local value differs from last store value)
   $effect(() => {
-    eventFormActions.updateField("title", eventTitle);
+    if (eventTitle !== lastStoreTitle) {
+      eventFormActions.updateField("title", eventTitle);
+      lastStoreTitle = eventTitle;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("address", eventAddress);
+    if (eventAddress !== lastStoreAddress) {
+      eventFormActions.updateField("address", eventAddress);
+      lastStoreAddress = eventAddress;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("importance", eventImportance);
+    if (eventImportance !== lastStoreImportance) {
+      eventFormActions.updateField("importance", eventImportance);
+      lastStoreImportance = eventImportance;
+    }
   });
 
   $effect(() => {
-    eventFormActions.updateField("timeLabel", eventTimeLabel);
+    if (eventTimeLabel !== lastStoreTimeLabel) {
+      eventFormActions.updateField("timeLabel", eventTimeLabel);
+      lastStoreTimeLabel = eventTimeLabel;
+    }
   });
 
   $effect(() => {
     const recurrence = buildRecurrenceObject();
-    eventFormActions.updateField("recurrence", recurrence);
+    const recurrenceStr = JSON.stringify(recurrence);
+    if (recurrenceStr !== lastStoreRecurrence) {
+      eventFormActions.updateField("recurrence", recurrence);
+      lastStoreRecurrence = recurrenceStr;
+    }
   });
 
   $effect(() => {
@@ -116,10 +154,14 @@
     const endDateTime =
       eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "";
 
-    eventFormActions.updateFields({
-      start: startDateTime,
-      end: endDateTime,
-    });
+    if (startDateTime !== lastStoreStart || endDateTime !== lastStoreEnd) {
+      eventFormActions.updateFields({
+        start: startDateTime,
+        end: endDateTime,
+      });
+      lastStoreStart = startDateTime;
+      lastStoreEnd = endDateTime;
+    }
   });
 
   function buildRecurrenceObject(): Recurrence {
@@ -180,87 +222,121 @@
     eventTimeLabel = "timed";
     eventFormActions.switchTimeLabel("timed");
   }
+
+  async function handleDelete(): Promise<void> {
+    const form = eventFormState.formData;
+    if (!form.editingId || isDeleting) return;
+    const confirmed = window.confirm("この予定を削除しますか？");
+    if (!confirmed) return;
+
+    isDeleting = true;
+    const success = await eventActions.delete(form.editingId);
+    isDeleting = false;
+
+    if (success) {
+      eventFormState.close();
+    }
+  }
 </script>
 
 <div
-  class="event-form-modal"
-  onclick={() => uiActions.hideEventForm()}
-  onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+  class="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+  onclick={() => eventFormState.close()}
+  onkeydown={(e) => e.key === "Escape" && eventFormState.close()}
   role="button"
   tabindex="-1"
   aria-label="Close event form"
 >
   <div
-    class="modal-content"
+    class="max-h-[90vh] w-full max-w-[500px] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === "Escape" && uiActions.hideEventForm()}
+    onkeydown={(e) => e.key === "Escape" && eventFormState.close()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
-    <div class="modal-header">
-      <h3>{isEventEditing ? "予定を編集" : "新しい予定"}</h3>
+    <div
+      class="sticky top-0 z-[1] flex items-center justify-between border-b border-base-300 bg-white p-4"
+    >
+      <h3 class="m-0 text-lg font-normal text-base-content">
+        {isEventEditing ? "予定を編集" : "新しい予定"}
+      </h3>
       <button
-        class="close-button"
-        onclick={() => uiActions.hideEventForm()}
+        class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-error hover:text-white"
+        onclick={() => eventFormState.close()}
         aria-label="Close"
       >
         ✕
       </button>
     </div>
 
-    <div class="modal-body">
+    <div class="flex flex-col gap-4 p-4">
       <!-- Title -->
-      <div class="form-group sticky-title">
-        <div class="inline-field">
-          <label for="event-title">タイトル</label>
-          <input
-            id="event-title"
-            type="text"
-            bind:value={eventTitle}
-            placeholder="予定のタイトルを入力"
-            class:error={eventFormState.errors.title}
-          />
-          {#if eventFormState.errors.title}
-            <div class="field-error">{eventFormState.errors.title}</div>
-          {/if}
-        </div>
+      <div class="form-control">
+        <label class="label" for="event-title">
+          <span class="label-text text-sm text-base-content/60">タイトル</span>
+        </label>
+        <input
+          id="event-title"
+          type="text"
+          class="input-bordered input w-full {eventFormState.errors.title
+            ? 'input-error'
+            : ''}"
+          bind:value={eventTitle}
+          placeholder="予定のタイトルを入力"
+        />
+        {#if eventFormState.errors.title}
+          <p class="label">
+            <span class="label-text-alt text-error"
+              >{eventFormState.errors.title}</span
+            >
+          </p>
+        {/if}
       </div>
 
       <!-- Address -->
-      <div class="form-group">
-        <div class="inline-field">
-          <label for="event-address">場所</label>
-          <input
-            id="event-address"
-            type="text"
-            bind:value={eventAddress}
-            placeholder="場所を入力（任意）"
-          />
-        </div>
+      <div class="form-control">
+        <label class="label" for="event-address">
+          <span class="label-text text-sm text-base-content/60">場所</span>
+        </label>
+        <input
+          id="event-address"
+          type="text"
+          class="input-bordered input w-full"
+          bind:value={eventAddress}
+          placeholder="場所を入力（任意）"
+        />
       </div>
 
       <!-- Importance -->
-      <div class="form-group">
-        <div class="inline-field" id="event-importance">
-          <label for="event-importance">重要度</label>
+      <div class="form-control">
+        <span class="label">
+          <span class="label-text text-sm text-base-content/60">重要度</span>
+        </span>
+        <div class="flex gap-2" role="group" aria-label="重要度">
           <button
             type="button"
-            class="star-button {eventImportance === 'low' ? 'active' : ''}"
+            class="btn flex-1 btn-sm {eventImportance === 'low'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
+              : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "low")}
           >
             ⭐
           </button>
           <button
             type="button"
-            class="star-button {eventImportance === 'medium' ? 'active' : ''}"
+            class="btn flex-1 btn-sm {eventImportance === 'medium'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
+              : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "medium")}
           >
             ⭐⭐
           </button>
           <button
             type="button"
-            class="star-button {eventImportance === 'high' ? 'active' : ''}"
+            class="btn flex-1 btn-sm {eventImportance === 'high'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
+              : 'border-base-300 btn-ghost'} border transition-all duration-200"
             onclick={() => (eventImportance = "high")}
           >
             ⭐⭐⭐
@@ -269,13 +345,15 @@
       </div>
 
       <!-- Time Label Switches -->
-      <div class="form-group">
-        <div class="time-label-switches" id="time-label-switches">
+      <div class="form-control">
+        <div class="flex gap-2">
           <button
             type="button"
-            class="time-switch {timeMode === 'all-day'
-              ? 'active'
-              : ''} {isGreyState ? 'grey' : ''}"
+            class="btn flex-1 transition-all duration-200 btn-sm
+              {timeMode === 'all-day'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)] text-[var(--color-primary-800)]'
+              : 'border-base-300 btn-ghost'}
+              {isGreyState ? 'opacity-60' : ''}"
             onclick={() => {
               timeMode = "all-day";
               eventTimeLabel = "all-day";
@@ -289,9 +367,11 @@
           </button>
           <button
             type="button"
-            class="time-switch {timeMode === 'some-timing'
-              ? 'active'
-              : ''} {isGreyState ? 'grey' : ''}"
+            class="btn flex-1 transition-all duration-200 btn-sm
+              {timeMode === 'some-timing'
+              ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)] text-[var(--color-primary-800)]'
+              : 'border-base-300 btn-ghost'}
+              {isGreyState ? 'opacity-60' : ''}"
             onclick={() => {
               timeMode = "some-timing";
               eventTimeLabel = "some-timing";
@@ -308,118 +388,169 @@
       </div>
 
       <!-- Date Settings -->
-      <div class="form-group">
-        <div class="inline-field">
-          <label for="event-start-date">開始日</label>
-          <input
-            id="event-start-date"
-            type="date"
-            bind:value={eventStartDate}
-            onfocus={() =>
-              eventTimeLabel === "some-timing" && switchToTimedMode()}
-            oninput={() =>
-              eventTimeLabel === "some-timing" && switchToTimedMode()}
-          />
-        </div>
-        <div class="inline-field">
-          <label for="event-end-date">終了日</label>
-          <input
-            id="event-end-date"
-            type="date"
-            bind:value={eventEndDate}
-            onfocus={() =>
-              eventTimeLabel === "some-timing" && switchToTimedMode()}
-            oninput={() =>
-              eventTimeLabel === "some-timing" && switchToTimedMode()}
-          />
+      <div class="form-control">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="label" for="event-start-date">
+              <span class="label-text text-sm text-base-content/60">開始日</span
+              >
+            </label>
+            <input
+              id="event-start-date"
+              type="date"
+              class="input-bordered input w-full"
+              bind:value={eventStartDate}
+              onfocus={() =>
+                eventTimeLabel === "some-timing" && switchToTimedMode()}
+              oninput={() =>
+                eventTimeLabel === "some-timing" && switchToTimedMode()}
+            />
+          </div>
+          <div>
+            <label class="label" for="event-end-date">
+              <span class="label-text text-sm text-base-content/60">終了日</span
+              >
+            </label>
+            <input
+              id="event-end-date"
+              type="date"
+              class="input-bordered input w-full"
+              bind:value={eventEndDate}
+              onfocus={() =>
+                eventTimeLabel === "some-timing" && switchToTimedMode()}
+              oninput={() =>
+                eventTimeLabel === "some-timing" && switchToTimedMode()}
+            />
+          </div>
         </div>
       </div>
 
       <!-- Time Settings -->
-      <div class="form-group">
-        <div class="inline-field">
-          <label for="event-start-time">開始時間</label>
-          <input
-            id="event-start-time"
-            type="time"
-            bind:value={eventStartTime}
-            class:error={eventFormState.errors.start}
-            onfocus={() =>
-              (eventTimeLabel === "all-day" ||
-                eventTimeLabel === "some-timing") &&
-              switchToTimedMode()}
-            oninput={() =>
-              (eventTimeLabel === "all-day" ||
-                eventTimeLabel === "some-timing") &&
-              switchToTimedMode()}
-          />
-          {#if eventFormState.errors.start}
-            <div class="field-error">{eventFormState.errors.start}</div>
-          {/if}
-        </div>
-        <div class="inline-field">
-          <label for="event-end-time">終了時間</label>
-          <input
-            id="event-end-time"
-            type="time"
-            bind:value={eventEndTime}
-            class:error={eventFormState.errors.end}
-            onfocus={() =>
-              (eventTimeLabel === "all-day" ||
-                eventTimeLabel === "some-timing") &&
-              switchToTimedMode()}
-            oninput={() =>
-              (eventTimeLabel === "all-day" ||
-                eventTimeLabel === "some-timing") &&
-              switchToTimedMode()}
-          />
-          {#if eventFormState.errors.end}
-            <div class="field-error">{eventFormState.errors.end}</div>
-          {/if}
+      <div class="form-control">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="label" for="event-start-time">
+              <span class="label-text text-sm text-base-content/60"
+                >開始時間</span
+              >
+            </label>
+            <input
+              id="event-start-time"
+              type="time"
+              class="input-bordered input w-full {eventFormState.errors.start
+                ? 'input-error'
+                : ''}"
+              bind:value={eventStartTime}
+              onfocus={() =>
+                (eventTimeLabel === "all-day" ||
+                  eventTimeLabel === "some-timing") &&
+                switchToTimedMode()}
+              oninput={() =>
+                (eventTimeLabel === "all-day" ||
+                  eventTimeLabel === "some-timing") &&
+                switchToTimedMode()}
+            />
+            {#if eventFormState.errors.start}
+              <p class="label">
+                <span class="label-text-alt text-error"
+                  >{eventFormState.errors.start}</span
+                >
+              </p>
+            {/if}
+          </div>
+          <div>
+            <label class="label" for="event-end-time">
+              <span class="label-text text-sm text-base-content/60"
+                >終了時間</span
+              >
+            </label>
+            <input
+              id="event-end-time"
+              type="time"
+              class="input-bordered input w-full {eventFormState.errors.end
+                ? 'input-error'
+                : ''}"
+              bind:value={eventEndTime}
+              onfocus={() =>
+                (eventTimeLabel === "all-day" ||
+                  eventTimeLabel === "some-timing") &&
+                switchToTimedMode()}
+              oninput={() =>
+                (eventTimeLabel === "all-day" ||
+                  eventTimeLabel === "some-timing") &&
+                switchToTimedMode()}
+            />
+            {#if eventFormState.errors.end}
+              <p class="label">
+                <span class="label-text-alt text-error"
+                  >{eventFormState.errors.end}</span
+                >
+              </p>
+            {/if}
+          </div>
         </div>
       </div>
 
       <!-- Recurrence Toggle -->
-      <div class="recurrence-toggle">
-        <label class="toggle-switch">
-          <input type="checkbox" bind:checked={isRecurring} />
-          <span class="toggle-slider"></span>
-          <span class="toggle-label">繰り返し設定</span>
+      <div class="form-control py-2">
+        <label class="label cursor-pointer justify-start gap-2">
+          <input
+            type="checkbox"
+            class="toggle toggle-primary"
+            bind:checked={isRecurring}
+          />
+          <span class="label-text text-sm text-base-content">繰り返し設定</span>
         </label>
       </div>
 
       {#if isRecurring}
-        <div class="recurrence-panel">
-          <div class="recurrence-field">
-            <label for="recurrence-interval-input" class="field-label"
-              >繰り返し</label
-            >
-            <div class="interval-row">
+        <div class="card flex flex-col gap-4 bg-base-200 p-4">
+          <div class="form-control">
+            <label class="label" for="recurrence-interval-input">
+              <span class="label-text text-sm text-base-content/60"
+                >繰り返し</span
+              >
+            </label>
+            <div class="flex items-center gap-2">
               <input
                 id="recurrence-interval-input"
                 type="number"
                 min="1"
+                class="input-bordered input w-[60px] text-center"
                 bind:value={recurrenceInterval}
-                class="interval-number"
                 placeholder="1"
               />
-              <select bind:value={recurrenceFrequency} class="unit-select">
+              <select
+                class="select-bordered select"
+                bind:value={recurrenceFrequency}
+              >
                 <option value="DAILY">日</option>
                 <option value="WEEKLY">週</option>
                 <option value="MONTHLY">月</option>
                 <option value="YEARLY">年</option>
               </select>
-              <span class="unit-suffix">ごと</span>
+              <span class="text-sm text-base-content/60">ごと</span>
             </div>
           </div>
 
           {#if recurrenceFrequency === "WEEKLY"}
-            <div class="recurrence-field">
-              <span class="field-label">曜日</span>
-              <div class="day-grid">
+            <div class="form-control">
+              <span class="label">
+                <span class="label-text text-sm text-base-content/60">曜日</span
+                >
+              </span>
+              <div class="flex flex-wrap gap-1" role="group" aria-label="曜日">
                 {#each ["日", "月", "火", "水", "木", "金", "土"] as day, i (i)}
-                  <label class="day-pill {weeklyDays[i] ? 'active' : ''}">
-                    <input type="checkbox" bind:checked={weeklyDays[i]} />
+                  <label
+                    class="btn btn-sm {weeklyDays[i]
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                      : 'border-base-300 btn-ghost'} cursor-pointer transition-all duration-200"
+                  >
+                    <input
+                      type="checkbox"
+                      class="hidden"
+                      bind:checked={weeklyDays[i]}
+                    />
                     {day}
                   </label>
                 {/each}
@@ -438,39 +569,49 @@
             {@const positionText =
               weekOfMonth > 4 ? "最終" : `第${weekOfMonth}`}
 
-            <div class="recurrence-field">
-              <span class="field-label">繰り返しパターン</span>
-              <div class="monthly-options">
+            <fieldset class="form-control">
+              <legend class="label">
+                <span class="label-text text-sm text-base-content/60"
+                  >繰り返しパターン</span
+                >
+              </legend>
+              <div class="flex flex-col gap-2">
                 <label
-                  class="option-card {monthlyType === 'dayOfMonth'
-                    ? 'selected'
+                  class="card cursor-pointer border border-base-300 p-2 transition-all duration-200 {monthlyType ===
+                  'dayOfMonth'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
                     : ''}"
                 >
-                  <input
-                    type="radio"
-                    name="monthly-type"
-                    value="dayOfMonth"
-                    bind:group={monthlyType}
-                  />
-                  <span class="option-text">毎月{dayOfMonth}日</span>
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="monthly-type"
+                      value="dayOfMonth"
+                      class="radio radio-sm radio-primary"
+                      bind:group={monthlyType}
+                    />
+                    <span class="text-sm">毎月{dayOfMonth}日</span>
+                  </div>
                 </label>
                 <label
-                  class="option-card {monthlyType === 'nthWeekday'
-                    ? 'selected'
+                  class="card cursor-pointer border border-base-300 p-2 transition-all duration-200 {monthlyType ===
+                  'nthWeekday'
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)]'
                     : ''}"
                 >
-                  <input
-                    type="radio"
-                    name="monthly-type"
-                    value="nthWeekday"
-                    bind:group={monthlyType}
-                  />
-                  <span class="option-text"
-                    >毎月{positionText}{weekday}曜日</span
-                  >
+                  <div class="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="monthly-type"
+                      value="nthWeekday"
+                      class="radio radio-sm radio-primary"
+                      bind:group={monthlyType}
+                    />
+                    <span class="text-sm">毎月{positionText}{weekday}曜日</span>
+                  </div>
                 </label>
               </div>
-            </div>
+            </fieldset>
           {/if}
 
           {#if recurrenceFrequency === "YEARLY"}
@@ -480,22 +621,32 @@
             {@const month = startDate.getMonth() + 1}
             {@const day = startDate.getDate()}
 
-            <div class="recurrence-field">
-              <span class="field-label">繰り返しパターン</span>
-              <div class="yearly-info">毎年{month}月{day}日</div>
+            <div class="form-control">
+              <span class="label">
+                <span class="label-text text-sm text-base-content/60"
+                  >繰り返しパターン</span
+                >
+              </span>
+              <div class="rounded bg-base-100 p-2 text-sm text-base-content">
+                毎年{month}月{day}日
+              </div>
             </div>
           {/if}
 
-          <div class="recurrence-field">
-            <label for="recurrence-end" class="field-label">
-              終了日
-              <small class="field-hint">空欄 = ずっと繰り返す</small>
+          <div class="form-control">
+            <label class="label" for="recurrence-end">
+              <span class="label-text text-sm text-base-content/60">
+                終了日
+                <span class="ml-1 text-xs opacity-70"
+                  >空欄 = ずっと繰り返す</span
+                >
+              </span>
             </label>
             <input
               id="recurrence-end"
               type="date"
+              class="input-bordered input w-full"
               bind:value={recurrenceEndDate}
-              class="date-input"
             />
           </div>
         </div>
@@ -504,24 +655,36 @@
 
     <!-- General Error Display -->
     {#if eventFormState.errors.general}
-      <div class="general-error">
-        <div class="error-icon">⚠️</div>
-        <div class="error-message">{eventFormState.errors.general}</div>
+      <div
+        class="mx-4 flex items-center gap-2 rounded-lg border border-error bg-error/10 p-3"
+      >
+        <div class="text-xl">⚠️</div>
+        <div class="text-sm text-error">{eventFormState.errors.general}</div>
       </div>
     {/if}
 
-    <div class="form-actions">
+    <div
+      class="flex flex-wrap items-center justify-end gap-2 border-t border-base-300 p-4"
+    >
       {#if isEventEditing}
         <button
           type="button"
-          class="cancel-btn"
+          class="btn mr-auto btn-outline btn-error"
+          onclick={handleDelete}
+          disabled={isDeleting}
+        >
+          {isDeleting ? "削除中..." : "削除"}
+        </button>
+        <button
+          type="button"
+          class="btn border border-base-300 btn-ghost"
           onclick={() => eventActions.cancelEventForm()}
         >
           キャンセル
         </button>
         <button
           type="button"
-          class="submit-btn"
+          class="btn border-none bg-[var(--color-primary)] font-normal text-white hover:bg-[var(--color-primary-400)]"
           onclick={() => eventActions.submitEventForm()}
         >
           更新
@@ -529,14 +692,14 @@
       {:else}
         <button
           type="button"
-          class="cancel-btn"
+          class="btn border border-base-300 btn-ghost"
           onclick={() => eventActions.cancelEventForm()}
         >
           キャンセル
         </button>
         <button
           type="button"
-          class="submit-btn"
+          class="btn border-none bg-[var(--color-primary)] font-normal text-white hover:bg-[var(--color-primary-400)]"
           onclick={() => eventActions.submitEventForm()}
         >
           作成
@@ -545,382 +708,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .event-form-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    z-index: 3000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-md);
-  }
-
-  .modal-content {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-    width: 100%;
-    max-width: 500px;
-    max-height: 90vh;
-    overflow-y: auto;
-    border: 1px solid var(--ui-border);
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-md);
-    border-bottom: 1px solid var(--ui-border);
-    position: sticky;
-    top: 0;
-    background: var(--bg-card);
-    z-index: 1;
-  }
-
-  .modal-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-normal);
-    color: var(--text-primary);
-  }
-
-  .close-button {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: var(--space-xs);
-    border-radius: var(--radius-sm);
-    transition: all 0.15s ease;
-  }
-
-  .close-button:hover {
-    background: var(--danger);
-    color: white;
-  }
-
-  .modal-body {
-    padding: var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .inline-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .inline-field label {
-    font-size: var(--fs-sm);
-    color: var(--text-secondary);
-    font-weight: var(--font-weight-normal);
-  }
-
-  .inline-field input {
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-md);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    font-size: var(--fs-base);
-    transition: border-color 0.15s ease;
-  }
-
-  .inline-field input:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-  }
-
-  .inline-field input.error {
-    border-color: var(--danger);
-  }
-
-  .field-error {
-    font-size: var(--fs-xs);
-    color: var(--danger);
-  }
-
-  .star-button {
-    background: transparent;
-    border: 1px solid var(--ui-border);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    opacity: 0.5;
-    transition: all 0.15s ease;
-  }
-
-  .star-button.active {
-    opacity: 1;
-    border-color: var(--accent-primary);
-    background: rgba(240, 138, 119, 0.1);
-  }
-
-  .time-label-switches {
-    display: flex;
-    gap: var(--space-sm);
-  }
-
-  .time-switch {
-    flex: 1;
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-size: var(--fs-sm);
-  }
-
-  .time-switch.active {
-    border-color: var(--accent-primary);
-    background: rgba(240, 138, 119, 0.1);
-    color: var(--accent-primary);
-  }
-
-  .time-switch.grey {
-    opacity: 0.6;
-  }
-
-  .recurrence-toggle {
-    padding: var(--space-sm) 0;
-  }
-
-  .toggle-switch {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    cursor: pointer;
-  }
-
-  .toggle-switch input {
-    display: none;
-  }
-
-  .toggle-slider {
-    width: 40px;
-    height: 22px;
-    background: var(--ui-border);
-    border-radius: 11px;
-    position: relative;
-    transition: background 0.2s ease;
-  }
-
-  .toggle-slider::after {
-    content: "";
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    background: white;
-    border-radius: 50%;
-    top: 2px;
-    left: 2px;
-    transition: transform 0.2s ease;
-  }
-
-  .toggle-switch input:checked + .toggle-slider {
-    background: var(--accent-primary);
-  }
-
-  .toggle-switch input:checked + .toggle-slider::after {
-    transform: translateX(18px);
-  }
-
-  .toggle-label {
-    font-size: var(--fs-sm);
-    color: var(--text-primary);
-  }
-
-  .recurrence-panel {
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-
-  .recurrence-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
-
-  .field-label {
-    font-size: var(--fs-sm);
-    color: var(--text-secondary);
-  }
-
-  .field-hint {
-    opacity: 0.7;
-    margin-left: var(--space-xs);
-  }
-
-  .interval-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-  }
-
-  .interval-number {
-    width: 60px;
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    text-align: center;
-  }
-
-  .unit-select {
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .unit-suffix {
-    color: var(--text-secondary);
-    font-size: var(--fs-sm);
-  }
-
-  .day-grid {
-    display: flex;
-    gap: var(--space-xs);
-    flex-wrap: wrap;
-  }
-
-  .day-pill {
-    padding: var(--space-xs) var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-full, 20px);
-    cursor: pointer;
-    font-size: var(--fs-sm);
-    transition: all 0.15s ease;
-  }
-
-  .day-pill input {
-    display: none;
-  }
-
-  .day-pill.active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-    color: white;
-  }
-
-  .monthly-options {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .option-card {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .option-card input {
-    display: none;
-  }
-
-  .option-card.selected {
-    border-color: var(--accent-primary);
-    background: rgba(240, 138, 119, 0.1);
-  }
-
-  .yearly-info {
-    padding: var(--space-sm);
-    background: var(--bg-card);
-    border-radius: var(--radius-sm);
-    color: var(--text-primary);
-  }
-
-  .date-input {
-    padding: var(--space-sm);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    color: var(--text-primary);
-  }
-
-  .general-error {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-    background: rgba(255, 59, 59, 0.1);
-    border: 1px solid var(--danger);
-    border-radius: var(--radius-md);
-    margin: 0 var(--space-md);
-  }
-
-  .error-icon {
-    font-size: 1.2rem;
-  }
-
-  .error-message {
-    color: var(--danger);
-    font-size: var(--fs-sm);
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-sm);
-    padding: var(--space-md);
-    border-top: 1px solid var(--ui-border);
-  }
-
-  .cancel-btn,
-  .submit-btn {
-    padding: var(--space-sm) var(--space-lg);
-    border-radius: var(--radius-md);
-    font-size: var(--fs-sm);
-    font-weight: var(--font-weight-normal);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-
-  .cancel-btn {
-    background: transparent;
-    border: 1px solid var(--ui-border);
-    color: var(--text-secondary);
-  }
-
-  .cancel-btn:hover {
-    background: var(--bg-secondary);
-  }
-
-  .submit-btn {
-    background: var(--accent-primary);
-    border: none;
-    color: white;
-  }
-
-  .submit-btn:hover {
-    opacity: 0.9;
-  }
-</style>

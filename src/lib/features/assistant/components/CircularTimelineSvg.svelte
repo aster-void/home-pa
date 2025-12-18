@@ -2,12 +2,14 @@
   import { onMount } from "svelte";
   import { createEventDispatcher } from "svelte";
   import { dataState, calendarState } from "$lib/bootstrap/compat.svelte.ts";
+  import { getEventColor } from "$lib/features/calendar/utils/index.ts";
   import type { Event as MyEvent } from "$lib/types.ts";
   import type {
     PendingSuggestion,
     AcceptedSuggestion,
   } from "$lib/features/assistant/state/schedule.ts";
   import SuggestionCard from "./SuggestionCard.svelte";
+  import { startOfDay, endOfDay } from "$lib/utils/date-utils.ts";
 
   interface Props {
     showLog?: boolean;
@@ -33,7 +35,6 @@
 
   // DOM refs & sizing
   let containerElement: HTMLDivElement | null = null;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let _size = $state(300);
 
   // Gap type for dispatcher
@@ -48,12 +49,7 @@
   // Dispatcher
   const dispatch = createEventDispatcher<{
     eventSelected: MyEvent;
-<<<<<<<< HEAD:src/lib/features/assistant/components/CircularTimelineSvg.svelte
-    eventDelete: MyEvent;
-    gapSelected: any;
-========
     gapSelected: GapData;
->>>>>>>> fork/main:src/lib/features/assistant/components/CircularTimelineCss.svelte
     suggestionAccept: string;
     suggestionSkip: string;
     suggestionDelete: string;
@@ -122,8 +118,15 @@
   }
 
   function getEffectiveEnd(ev: MyEvent): Date {
-    // All-day events now have inclusive end dates (23:59:59.999), so use as-is
-    return new Date(ev.end);
+    const end = new Date(ev.end);
+    if (
+      ev.timeLabel === "all-day" &&
+      end.getHours() === 0 &&
+      end.getMinutes() === 0
+    ) {
+      return new Date(end.getTime() - 1);
+    }
+    return end;
   }
 
   // Build arc path
@@ -154,13 +157,8 @@
   }
 
   let normalizedEvents = $derived.by((): NormalizedEvent[] => {
-    const baseDate = new Date(selectedDateCurrent.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
-    const dayStart = new Date(baseDate);
-    dayStart.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in derived computation, not reactive state
-    const dayEnd = new Date(baseDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    const dayStart = startOfDay(selectedDateCurrent);
+    const dayEnd = endOfDay(selectedDateCurrent);
     const ds = dayStart.getTime();
     const de = dayEnd.getTime();
 
@@ -336,9 +334,7 @@
     if (val) {
       const [y, m, d] = val.split("-").map(Number);
       const baseTime = new Date(Date.UTC(y, m - 1, d)).getTime();
-      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date creation in event handler, not reactive state
-      const next = new Date(baseTime);
-      next.setHours(0, 0, 0, 0);
+      const next = startOfDay(new Date(baseTime));
       dataState.setSelectedDate(next);
     }
   }
@@ -346,23 +342,12 @@
   function onSuggestionClick(
     s: PendingSuggestion | AcceptedSuggestion,
     isAccepted: boolean,
-    e: MouseEvent | KeyboardEvent,
+    e: MouseEvent,
   ) {
-    let x: number, y: number;
-    if (e instanceof MouseEvent) {
-      x = e.clientX + 10;
-      y = e.clientY - 50;
-    } else {
-      // For keyboard events, get position from the target element
-      const target = e.currentTarget as SVGPathElement;
-      const rect = target.getBoundingClientRect();
-      x = rect.left + rect.width / 2;
-      y = rect.top + rect.height / 2;
-    }
     selectedSuggestion = {
       suggestion: s,
       isAccepted,
-      position: { x, y },
+      position: { x: e.clientX + 10, y: e.clientY - 50 },
     };
   }
 
@@ -457,24 +442,7 @@
 <div bind:this={containerElement} class="timeline-container">
   <svg viewBox="0 0 100 100" class="timeline-svg">
     <defs>
-      <!-- Gradients -->
-      <linearGradient id="eventGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#FF6B6B" stop-opacity="0.9" />
-        <stop offset="50%" stop-color="#FF8E53" stop-opacity="1" />
-        <stop offset="100%" stop-color="#FFA726" stop-opacity="0.9" />
-      </linearGradient>
-      <linearGradient id="pendingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#667EEA" stop-opacity="0.8" />
-        <stop offset="100%" stop-color="#764BA2" stop-opacity="0.8" />
-      </linearGradient>
-      <linearGradient id="acceptedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#11998E" stop-opacity="0.9" />
-        <stop offset="100%" stop-color="#38EF7D" stop-opacity="0.9" />
-      </linearGradient>
-      <linearGradient id="gapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#a8edea" stop-opacity="0.6" />
-        <stop offset="100%" stop-color="#fed6e3" stop-opacity="0.6" />
-      </linearGradient>
+      <!-- Solid color refs for arcs -->
 
       <!-- Glow filters -->
       <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -557,7 +525,7 @@
         tabindex="0"
         d={arcPath(s.startAngle, s.endAngle, suggestionRingRadius)}
         fill="none"
-        stroke={isPending ? "url(#pendingGrad)" : "url(#acceptedGrad)"}
+        stroke={isPending ? "var(--color-primary-800)" : "var(--color-success-500)"}
         stroke-width={isPending ? "2.5" : "3"}
         stroke-linecap="round"
         stroke-dasharray={isPending ? "2 1" : "none"}
@@ -565,22 +533,15 @@
         class:pending={isPending}
         class:accepted={!isPending}
         filter="url(#glow)"
-        role="button"
-        tabindex="0"
-        aria-label={isPending ? `Pending suggestion: ${getTaskTitle(s.data.memoId)}` : `Accepted suggestion: ${getTaskTitle(s.data.memoId)}`}
         onclick={(e) => onSuggestionClick(s.data, s.isAccepted, e)}
         onkeydown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-<<<<<<<< HEAD:src/lib/features/assistant/components/CircularTimelineSvg.svelte
-            onSuggestionClick(s.data, s.isAccepted, e);
-========
             const mouseEvent = new MouseEvent("click", {
               bubbles: true,
               cancelable: true,
             });
             onSuggestionClick(s.data, s.isAccepted, mouseEvent);
->>>>>>>> fork/main:src/lib/features/assistant/components/CircularTimelineCss.svelte
           }
         }}
       />
@@ -595,18 +556,8 @@
           stroke="rgba(255,255,255,0.9)"
           stroke-width="0.3"
           class="resize-handle"
-          role="button"
-          tabindex="0"
-          aria-label="Resize suggestion duration"
           onmousedown={(e) =>
             startResize(s.data.suggestionId, s.data.duration, e)}
-          onkeydown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              // For keyboard, we could show a dialog or use arrow keys
-              // For now, just focus the element
-            }
-          }}
         />
       {/if}
     {/each}
@@ -615,83 +566,12 @@
     {#each normalizedEvents as ev (ev.ref.id)}
       {@const radius = eventBaseRadius - ev.lane * (laneWidth + laneGap)}
       {@const isAllDay = ev.ref.timeLabel === "all-day"}
-<<<<<<<< HEAD:src/lib/features/assistant/components/CircularTimelineSvg.svelte
-      {@const midAngle = (ev.startAngle + ev.endAngle) / 2}
-      {@const deleteX = center + (radius - 2) * Math.cos(midAngle - Math.PI / 2)}
-      {@const deleteY = center + (radius - 2) * Math.sin(midAngle - Math.PI / 2)}
-      <g class="event-group">
-        <path
-          d={arcPath(ev.startAngle, ev.endAngle, radius)}
-          fill="none"
-          stroke="url(#eventGrad)"
-          stroke-width={isAllDay ? "2" : "3.5"}
-          stroke-linecap="round"
-          stroke-opacity={isAllDay ? 0.5 : 0.95}
-          class="event-arc"
-          class:all-day={isAllDay}
-          filter="url(#glow)"
-          role="button"
-          tabindex="0"
-          aria-label={`Event: ${ev.ref.title}`}
-          onmouseenter={(e) => hoverEvent(ev.ref, e)}
-          onmousemove={updateMouse}
-          onmouseleave={clearHover}
-          onclick={() => dispatch("eventSelected", ev.ref)}
-          onkeydown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              dispatch("eventSelected", ev.ref);
-            }
-          }}
-        />
-        <!-- Delete button (small, appears on hover) -->
-        <circle
-          cx={deleteX}
-          cy={deleteY}
-          r="1.5"
-          fill="rgba(239, 68, 68, 0.9)"
-          stroke="white"
-          stroke-width="0.3"
-          class="delete-btn"
-          role="button"
-          tabindex="0"
-          aria-label={`Delete event: ${ev.ref.title}`}
-          onclick={(e) => {
-            e.stopPropagation();
-            if (confirm(`Delete "${ev.ref.title}"?`)) {
-              dispatch("eventDelete", ev.ref);
-            }
-          }}
-          onkeydown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              if (confirm(`Delete "${ev.ref.title}"?`)) {
-                dispatch("eventDelete", ev.ref);
-              }
-            }
-          }}
-          style="cursor: pointer; opacity: 0; transition: opacity 0.2s;"
-        />
-        <text
-          x={deleteX}
-          y={deleteY}
-          font-size="1.8"
-          fill="white"
-          text-anchor="middle"
-          dominant-baseline="middle"
-          class="delete-icon"
-          aria-hidden="true"
-          style="cursor: pointer; opacity: 0; transition: opacity 0.2s; pointer-events: none;"
-        >×</text>
-      </g>
-========
       <path
         role="button"
         tabindex="0"
         d={arcPath(ev.startAngle, ev.endAngle, radius)}
         fill="none"
-        stroke="url(#eventGrad)"
+        stroke={getEventColor(ev.ref)}
         stroke-width={isAllDay ? "2" : "3.5"}
         stroke-linecap="round"
         stroke-opacity={isAllDay ? 0.5 : 0.95}
@@ -709,7 +589,6 @@
           }
         }}
       />
->>>>>>>> fork/main:src/lib/features/assistant/components/CircularTimelineCss.svelte
     {/each}
 
     <!-- Gap arcs (outermost, rendered last to appear on top) -->
@@ -719,14 +598,11 @@
         tabindex="0"
         d={arcPath(gap.startAngle, gap.endAngle, gapRingRadius)}
         fill="none"
-        stroke="url(#gapGrad)"
+        stroke="color-mix(in srgb, var(--color-warning-500) 85%, var(--color-primary-400))"
         stroke-width="3"
         stroke-linecap="round"
         class="gap-arc"
         filter="url(#softGlow)"
-        role="button"
-        tabindex="0"
-        aria-label={`Free time gap: ${gap.start} to ${gap.end}`}
         onmouseenter={(e) => hoverGap(gap, e)}
         onmousemove={updateMouse}
         onmouseleave={clearHover}
@@ -751,7 +627,7 @@
         y1={center}
         x2={timeX}
         y2={timeY}
-        stroke="#FF6B6B"
+        stroke="var(--color-primary)"
         stroke-width="0.5"
         stroke-linecap="round"
         filter="url(#glow)"
@@ -760,7 +636,7 @@
         cx={timeX}
         cy={timeY}
         r="1.2"
-        fill="#FF6B6B"
+        fill="var(--color-primary)"
         filter="url(#glow)"
       />
     {/if}
@@ -777,44 +653,69 @@
   </svg>
 
   <!-- Center display -->
-  <button class="center-display" onclick={handleCenterClick}>
-    <div class="date-text">{formatDate(selectedDateCurrent)}</div>
-    <div class="date-label">tap to change</div>
+  <button
+    class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent p-2 text-center"
+    onclick={handleCenterClick}
+  >
+    <div
+      class="text-[clamp(10px,3vw,16px)] font-light tracking-wide text-black/80"
+    >
+      {formatDate(selectedDateCurrent)}
+    </div>
+    <div
+      class="mt-0.5 text-[clamp(6px,1.5vw,8px)] tracking-widest text-black/50 uppercase"
+    >
+      tap to change
+    </div>
   </button>
 
   <input
     bind:this={centerDateInput}
     type="date"
-    class="hidden-input"
+    class="pointer-events-none absolute opacity-0"
     value={selectedDateCurrent.toISOString().slice(0, 10)}
     onchange={handleDateChange}
   />
 
   <!-- Tooltips (fixed position) -->
   {#if hoveredEvent}
-    <div class="tooltip" style="left: {mousePos.x}px; top: {mousePos.y}px;">
-      <div class="tooltip-title">{hoveredEvent.title}</div>
-      <div class="tooltip-time">
+    <div
+      class="pointer-events-none fixed z-[1000] max-w-[220px] animate-[fadeIn_0.15s_ease] rounded-lg border border-black/10 bg-white/98 p-3 shadow-lg backdrop-blur-md"
+      style="left: {mousePos.x}px; top: {mousePos.y}px;"
+    >
+      <div class="mb-1 text-sm font-medium">{hoveredEvent.title}</div>
+      <div class="text-xs text-black/70">
         {hoveredEvent.timeLabel === "all-day"
           ? "All day"
           : `${dateToHM(new Date(hoveredEvent.start))} - ${dateToHM(new Date(hoveredEvent.end))}`}
       </div>
       {#if hoveredEvent.description}
-        <div class="tooltip-desc">{hoveredEvent.description}</div>
+        <div class="mt-1 text-[10px] text-black/60 italic">
+          {hoveredEvent.description}
+        </div>
       {/if}
     </div>
   {/if}
 
   {#if hoveredGap}
-    <div class="tooltip gap" style="left: {mousePos.x}px; top: {mousePos.y}px;">
-      <div class="tooltip-title">Free Time</div>
-      <div class="tooltip-time">{hoveredGap.start} - {hoveredGap.end}</div>
-      <div class="tooltip-duration">{hoveredGap.duration} min available</div>
+    <div
+      class="pointer-events-none fixed z-[1000] max-w-[220px] animate-[fadeIn_0.15s_ease] rounded-lg border border-[#a8edea]/40 bg-white/98 p-3 shadow-lg backdrop-blur-md"
+      style="left: {mousePos.x}px; top: {mousePos.y}px;"
+    >
+      <div class="mb-1 text-sm font-medium">Free Time</div>
+      <div class="text-xs text-black/70">
+        {hoveredGap.start} - {hoveredGap.end}
+      </div>
+      <div class="mt-0.5 text-xs text-[#11998e]">
+        {hoveredGap.duration} min available
+      </div>
     </div>
   {/if}
 
   {#if showLog}
-    <div class="debug">
+    <div
+      class="pointer-events-none absolute bottom-1 left-1 text-[8px] text-black/40"
+    >
       events: {normalizedEvents.length} | gaps: {normalizedGaps.length} | suggestions:
       {normalizedSuggestions.length}
     </div>
@@ -823,7 +724,8 @@
   <!-- Suggestion Card -->
   {#if selectedSuggestion}
     <div
-      class="backdrop"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm"
+      style="z-index: 2100;"
       onclick={closeSuggestionCard}
       onkeydown={(e) => e.key === "Escape" && closeSuggestionCard()}
       role="button"
@@ -842,205 +744,3 @@
     />
   {/if}
 </div>
-
-<style>
-  .timeline-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border-radius: 50%;
-    overflow: visible;
-  }
-
-  .timeline-svg {
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-  }
-
-  .event-arc {
-    cursor: pointer;
-    transition:
-      stroke-width 0.2s ease,
-      stroke-opacity 0.2s ease;
-  }
-
-  .event-arc:hover {
-    stroke-width: 5 !important;
-    stroke-opacity: 1 !important;
-  }
-
-  .event-arc.all-day:hover {
-    stroke-width: 3 !important;
-  }
-
-  .event-group {
-    position: relative;
-  }
-
-  .event-group:hover .delete-btn {
-    opacity: 1 !important;
-    pointer-events: auto;
-  }
-
-  .event-group:hover .delete-icon {
-    opacity: 1 !important;
-    pointer-events: none;
-  }
-
-  .delete-btn:hover {
-    r: 2;
-    filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.8));
-  }
-
-  .gap-arc {
-    cursor: pointer;
-    transition: stroke-width 0.2s ease;
-  }
-
-  .gap-arc:hover {
-    stroke-width: 4;
-  }
-
-  .suggestion-arc {
-    cursor: pointer;
-    transition: stroke-width 0.2s ease;
-  }
-
-  .suggestion-arc:hover {
-    stroke-width: 4 !important;
-  }
-
-  .resize-handle {
-    cursor: ns-resize;
-    transition: r 0.15s ease;
-  }
-
-  .resize-handle:hover {
-    r: 1.8;
-  }
-
-  .center-display {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    text-align: center;
-    padding: 8px;
-  }
-
-  .date-text {
-    font-size: clamp(10px, 3vw, 16px);
-    font-weight: 300;
-    color: rgba(0, 0, 0, 0.8);
-    letter-spacing: 0.05em;
-  }
-
-  .date-label {
-    font-size: clamp(6px, 1.5vw, 8px);
-    color: rgba(0, 0, 0, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-top: 2px;
-  }
-
-  .hidden-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .tooltip {
-    position: fixed;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 10px 14px;
-    z-index: 1000;
-    pointer-events: none;
-    max-width: 220px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: fadeIn 0.15s ease;
-  }
-
-  .tooltip.gap {
-    border-color: rgba(168, 237, 234, 0.4);
-  }
-
-  .tooltip-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.9);
-    margin-bottom: 4px;
-  }
-
-  .tooltip-time {
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.7);
-  }
-
-  .tooltip-desc {
-    font-size: 10px;
-    color: rgba(0, 0, 0, 0.6);
-    margin-top: 4px;
-    font-style: italic;
-  }
-
-  .tooltip-duration {
-    font-size: 11px;
-    color: #11998e;
-    margin-top: 2px;
-  }
-
-  .debug {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    font-size: 8px;
-    color: rgba(0, 0, 0, 0.4);
-    pointer-events: none;
-  }
-
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    z-index: 998;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 768px) {
-    .event-arc {
-      stroke-width: 2.5;
-    }
-    .event-arc.all-day {
-      stroke-width: 1.5;
-    }
-    .suggestion-arc {
-      stroke-width: 2;
-    }
-    .gap-arc {
-      stroke-width: 2;
-    }
-  }
-</style>

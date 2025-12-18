@@ -4,15 +4,16 @@
     dataState,
     calendarState,
     eventActions,
-    uiActions,
   } from "$lib/bootstrap/compat.svelte.ts";
+  import { getEventColor } from "../utils/index.ts";
 
   interface Props {
     events: Event[];
     parseRecurrenceForEdit: (event: Event) => void;
+    onClose: () => void;
   }
 
-  let { events, parseRecurrenceForEdit }: Props = $props();
+  let { events, parseRecurrenceForEdit, onClose }: Props = $props();
 
   function getCurrentTimePositionScaled(): number {
     const now = new Date();
@@ -43,19 +44,6 @@
   }
 
   function getEventColor(event: Event): string {
-    const importance = event.importance || "medium";
-    switch (importance) {
-      case "high":
-        return "rgba(240, 138, 119, 0.9)";
-      case "medium":
-        return "rgba(99, 102, 241, 0.8)";
-      case "low":
-        return "rgba(34, 197, 94, 0.7)";
-      default:
-        return "rgba(99, 102, 241, 0.8)";
-    }
-  }
-
   function formatTime(date: Date): string {
     const hours = date.getHours().toString().padStart(2, "0");
     const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -104,68 +92,78 @@
 </script>
 
 <div
-  class="timeline-popup"
-  onclick={() => uiActions.hideTimelinePopup()}
-  onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+  class="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+  onclick={() => onClose()}
+  onkeydown={(e) => e.key === "Escape" && onClose()}
   role="button"
   tabindex="-1"
   aria-label="Close timeline"
 >
   <div
-    class="popup-content"
+    class="flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] shadow-xl"
     onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.key === "Escape" && uiActions.hideTimelinePopup()}
+    onkeydown={(e) => e.key === "Escape" && onClose()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
-    <div class="popup-header">
-      <h3>
+    <div
+      class="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-4"
+    >
+      <h3 class="m-0 text-lg font-normal text-[var(--color-text-primary)]">
         タイムライン - {dataState.selectedDate.toLocaleDateString("ja-JP")}
       </h3>
       <button
-        class="close-button"
-        onclick={() => uiActions.hideTimelinePopup()}
+        class="btn btn-ghost transition-all duration-200 btn-sm hover:bg-[var(--color-error-500)] hover:text-white"
+        onclick={() => onClose()}
         aria-label="Close"
       >
         ✕
       </button>
     </div>
 
-    <div class="timeline-container">
+    <div class="flex-1 overflow-y-auto p-4">
       {#if events.length === 0}
-        <p class="empty-state">この日の予定はありません</p>
+        <p class="py-12 text-center text-[var(--color-text-muted)]">
+          この日の予定はありません
+        </p>
       {:else}
-        <div class="timeline-view">
+        <div class="relative h-[400px] min-h-[400px]">
           <!-- Hour indicators -->
-          <div class="timeline-hours">
-            <!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+          <div class="absolute top-0 left-0 h-full w-[50px]">
             {#each Array(24) as _, hour (hour)}
-              <div class="hour-indicator" style="top: {hour * 16.67}px;">
-                <span class="hour-label"
+              <div
+                class="absolute left-0 flex w-full items-center"
+                style="top: {hour * 16.67}px;"
+              >
+                <span
+                  class="w-10 pr-1 text-right text-xs text-[var(--color-text-muted)]"
                   >{hour.toString().padStart(2, "0")}:00</span
                 >
-                <div class="hour-line"></div>
+                <div class="h-px flex-1 bg-[var(--color-border-default)]"></div>
               </div>
             {/each}
           </div>
 
           <!-- Current time indicator -->
           <div
-            class="current-time-line"
-            style="top: {getCurrentTimePositionScaled()}px;"
+            class="absolute z-[5] h-0.5 bg-[var(--color-error-500)] before:absolute before:top-[-3px] before:left-[-4px] before:h-2 before:w-2 before:rounded-full before:bg-[var(--color-error-500)] before:content-['']"
+            style="top: {getCurrentTimePositionScaled()}px; left: 50px; right: 0;"
           ></div>
 
           <!-- Event columns -->
-          <div class="timeline-columns">
+          <div
+            class="absolute flex"
+            style="left: 55px; right: 0; top: 0; height: 100%;"
+          >
             {#each eventColumns as column, columnIndex (columnIndex)}
               <div
-                class="timeline-column"
+                class="relative h-full"
                 style="width: {100 / eventColumns.length}%;"
               >
                 {#each column as event (event.id)}
                   <div
-                    class="timeline-event-block"
+                    class="absolute right-0.5 left-0.5 min-h-[20px] cursor-pointer overflow-hidden rounded px-1 py-0.5 transition-all duration-200 hover:z-10 hover:scale-[1.02] hover:shadow-md"
                     onclick={() => handleEventClick(event)}
                     onkeydown={(e) =>
                       e.key === "Enter" && handleEventClick(event)}
@@ -181,8 +179,12 @@
                       color: white;
                     "
                   >
-                    <div class="timeline-event-title">{event.title}</div>
-                    <div class="timeline-event-time">
+                    <div
+                      class="overflow-hidden text-xs font-medium text-ellipsis whitespace-nowrap"
+                    >
+                      {event.title}
+                    </div>
+                    <div class="text-[10px] opacity-80">
                       {#if event.timeLabel === "all-day"}
                         00:00 - 23:59
                       {:else}
@@ -199,177 +201,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  .timeline-popup {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    z-index: 2500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-md);
-  }
-
-  .popup-content {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-soft);
-    width: 100%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--ui-border);
-  }
-
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-md);
-    border-bottom: 1px solid var(--ui-border);
-    background: var(--bg-card);
-  }
-
-  .popup-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-normal);
-    color: var(--text-primary);
-  }
-
-  .close-button {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    color: var(--text-secondary);
-    padding: var(--space-xs);
-    border-radius: var(--radius-sm);
-    transition: all 0.15s ease;
-  }
-
-  .close-button:hover {
-    background: var(--danger);
-    color: white;
-  }
-
-  .timeline-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: var(--space-md);
-  }
-
-  .empty-state {
-    text-align: center;
-    color: var(--text-tertiary);
-    padding: var(--space-xl);
-  }
-
-  .timeline-view {
-    position: relative;
-    height: 400px;
-    min-height: 400px;
-  }
-
-  .timeline-hours {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 50px;
-    height: 100%;
-  }
-
-  .hour-indicator {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    display: flex;
-    align-items: center;
-  }
-
-  .hour-label {
-    font-size: var(--fs-xs);
-    color: var(--text-tertiary);
-    width: 40px;
-    text-align: right;
-    padding-right: var(--space-xs);
-  }
-
-  .hour-line {
-    flex: 1;
-    height: 1px;
-    background: var(--ui-border);
-  }
-
-  .current-time-line {
-    position: absolute;
-    left: 50px;
-    right: 0;
-    height: 2px;
-    background: var(--danger);
-    z-index: 5;
-  }
-
-  .current-time-line::before {
-    content: "";
-    position: absolute;
-    left: -4px;
-    top: -3px;
-    width: 8px;
-    height: 8px;
-    background: var(--danger);
-    border-radius: 50%;
-  }
-
-  .timeline-columns {
-    position: absolute;
-    left: 55px;
-    right: 0;
-    top: 0;
-    height: 100%;
-    display: flex;
-  }
-
-  .timeline-column {
-    position: relative;
-    height: 100%;
-  }
-
-  .timeline-event-block {
-    position: absolute;
-    left: 2px;
-    right: 2px;
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs);
-    cursor: pointer;
-    overflow: hidden;
-    transition:
-      transform 0.1s ease,
-      box-shadow 0.1s ease;
-    min-height: 20px;
-  }
-
-  .timeline-event-block:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    z-index: 10;
-  }
-
-  .timeline-event-title {
-    font-size: var(--fs-xs);
-    font-weight: var(--font-weight-bold);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .timeline-event-time {
-    font-size: 10px;
-    opacity: 0.8;
-  }
-</style>

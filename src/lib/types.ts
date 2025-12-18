@@ -46,6 +46,17 @@ export interface Event {
   icalData?: string; // Raw iCalendar VEVENT component string for recurrence expansion
 }
 
+/** JSON-serialized Event (dates as ISO strings) */
+export type EventJSON = Omit<
+  Event,
+  "start" | "end" | "rdateUtc" | "exdateUtc"
+> & {
+  start: string;
+  end: string;
+  rdateUtc?: string[];
+  exdateUtc?: string[];
+};
+
 // ============================================================================
 // MEMO SYSTEM TYPES (Suggestion Engine)
 // ============================================================================

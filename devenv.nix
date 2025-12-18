@@ -1,18 +1,20 @@
-{ pkgs, inputs, ... }:
-
-let
+{
+  pkgs,
+  inputs,
+  ...
+}: let
   prisma = inputs.nix-prisma-utils.lib.prisma-factory {
     inherit pkgs;
     hash = "sha256-6JzcEN8jvnBhmIMbl3jzjQiU2BEjviZAg+5NChcXIIo=";
     bunLock = ./bun.lock;
   };
-in
-{
+in {
   packages = with pkgs; [
     bun
     mongodb
   ];
 
+  dotenv.disableHint = true;
   languages.javascript = {
     enable = true;
     bun.enable = true;

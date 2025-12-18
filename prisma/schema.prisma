@@ -26,6 +26,7 @@ model User {
   sessions       Session[]
   accounts       Account[]
   calendarEvents CalendarEvent[]
+  memos          Memo[]
 
   @@unique([email])
   @@map("user")
@@ -116,4 +117,43 @@ model CalendarEvent {
   @@index([userId, dtstart])
   @@index([userId, hasRecurrence])
   @@map("calendar_event")
+}
+
+// Memo system for task suggestions
+model Memo {
+  id                     String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title                  String
+  genre                  String?
+  type                   String   // 期限付き | バックログ | ルーティン
+  createdAt              DateTime @default(now())
+  deadline               DateTime?
+
+  // Recurrence goal (for ルーティン type)
+  recurrenceGoalCount    Int?
+  recurrenceGoalPeriod   String?  // day | week | month
+
+  locationPreference     String   // home/near_home | workplace/near_workplace | no_preference
+
+  // Status tracking
+  timeSpentMinutes       Int      @default(0)
+  completionState        String   @default("not_started") // not_started | in_progress | completed
+  completionsThisPeriod  Int?
+  periodStartDate        DateTime?
+
+  // Duration estimates
+  sessionDuration        Int?     // minutes
+  totalDurationExpected  Int?     // minutes
+
+  lastActivity           DateTime?
+  importance             String?  // low | medium | high
+
+  updatedAt              DateTime @updatedAt
+
+  @@index([userId, type])
+  @@index([userId, completionState])
+  @@index([userId, deadline])
+  @@map("memo")
 }

@@ -36,38 +36,42 @@
   );
 </script>
 
-<div class="debug-info">
-  <h3>Sliding Window Debug Info</h3>
-  <div class="debug-stats">
-    <div class="debug-stat">
-      <strong>Window:</strong>
+<div
+  class="m-2 rounded-lg border border-[#00C8FF]/20 bg-[#00C8FF]/5 p-4 text-xs"
+>
+  <h3 class="m-0 mb-2 text-sm text-[#0066CC]">Sliding Window Debug Info</h3>
+  <div class="flex flex-wrap gap-2">
+    <div class="rounded bg-base-200 px-2 py-1 text-base-content/60">
+      <strong class="text-base-content">Window:</strong>
       {windowStart} - {windowEnd}
     </div>
-    <div class="debug-stat">
-      <strong>Total Events:</strong>
+    <div class="rounded bg-base-200 px-2 py-1 text-base-content/60">
+      <strong class="text-base-content">Total Events:</strong>
       {totalEvents}
     </div>
-    <div class="debug-stat">
-      <strong>Display Events:</strong>
+    <div class="rounded bg-base-200 px-2 py-1 text-base-content/60">
+      <strong class="text-base-content">Display Events:</strong>
       {displayEvents}
     </div>
-    <div class="debug-stat">
-      <strong>Forever Events:</strong>
+    <div class="rounded bg-base-200 px-2 py-1 text-base-content/60">
+      <strong class="text-base-content">Forever Events:</strong>
       {foreverEvents.length}
     </div>
-    <div class="debug-stat">
-      <strong>Calendar Store:</strong>
+    <div class="rounded bg-base-200 px-2 py-1 text-base-content/60">
+      <strong class="text-base-content">Calendar Store:</strong>
       Loading: {isLoading ? "Yes" : "No"}, Error: {error || "None"}
     </div>
   </div>
   {#if foreverEvents.length > 0}
-    <div class="forever-events-list">
-      <h4>Forever Recurring Events:</h4>
-      <ul>
+    <div class="mt-2 border-t border-[#00C8FF]/20 pt-2">
+      <h4 class="m-0 mb-1 text-[0.8rem] text-base-content">
+        Forever Recurring Events:
+      </h4>
+      <ul class="m-0 pl-4 text-base-content/60">
         {#each foreverEvents as event (event.id)}
-          <li>
+          <li class="mb-1">
             {event.title}
-            <span class="forever-indicator">∞</span>
+            <span class="text-[0.7rem] text-[#0066CC]">∞</span>
             (Master ID: {(event as Event & { eventId?: string }).eventId ||
               event.id})
           </li>
@@ -76,64 +80,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .debug-info {
-    background: rgba(0, 200, 255, 0.05);
-    border: 1px solid rgba(0, 200, 255, 0.2);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    margin: var(--space-sm) var(--space-md);
-    font-size: 0.75rem;
-  }
-
-  .debug-info h3 {
-    margin: 0 0 var(--space-sm) 0;
-    font-size: 0.85rem;
-    color: var(--primary);
-  }
-
-  .debug-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-  }
-
-  .debug-stat {
-    background: var(--bg-secondary);
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-sm);
-    color: var(--text-secondary);
-  }
-
-  .debug-stat strong {
-    color: var(--text);
-  }
-
-  .forever-events-list {
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px solid rgba(0, 200, 255, 0.2);
-  }
-
-  .forever-events-list h4 {
-    margin: 0 0 var(--space-xs) 0;
-    font-size: 0.8rem;
-    color: var(--text);
-  }
-
-  .forever-events-list ul {
-    margin: 0;
-    padding-left: var(--space-md);
-    color: var(--text-secondary);
-  }
-
-  .forever-events-list li {
-    margin-bottom: 0.25rem;
-  }
-
-  .forever-indicator {
-    color: var(--primary);
-    font-size: 0.7rem;
-  }
-</style>

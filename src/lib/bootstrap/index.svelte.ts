@@ -18,13 +18,16 @@
 // ============================================================================
 
 // UI State
-export { uiState, type AppView } from "./ui.svelte.ts";
+export { uiState } from "./ui.svelte.ts";
 
 // Data State (memos, suggestion logs, selected date)
 export { dataState, type SimpleMemo } from "./data.svelte.ts";
 
 // Toast State
 export { toastState, type Toast, type ToastType } from "./toast.svelte.ts";
+
+// Settings State
+export { settingsState } from "./settings.svelte.ts";
 
 // Calendar State
 export {

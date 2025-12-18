@@ -8,7 +8,7 @@
  */
 
 import type { CalendarEvent } from "@prisma/client";
-import type { Event, Recurrence } from "$lib/types.ts";
+import type { Event, EventJSON, Recurrence } from "$lib/types.ts";
 import { createVEvent, type ParsedEvent } from "./ical-service.ts";
 
 // ============================================================================
@@ -43,32 +43,46 @@ export function dbEventToAppEvent(dbEvent: CalendarEvent): Event {
   }
 
   // Convert end date: For all-day events, DB stores exclusive DTEND (iCal standard)
-  // App uses inclusive end dates: 
-  // - Single-day: 12/12 00:00:00 to 12/12 23:59:59.999
-  // - Multi-day: 12/12 00:00:00 to 12/15 23:59:59.999 (inclusive of last day)
+  // App uses inclusive end dates, so we need to subtract 1 day for multi-day events
   let appEndDate: Date;
   if (dbEvent.isAllDay && dbEvent.dtend) {
     // For all-day events, dtend is exclusive (day after event ends)
-    // Convert to inclusive: subtract 1 day and set to end of day
-    // This works for both single-day and multi-day events
-    const exclusiveEnd = new Date(dbEvent.dtend);
-    exclusiveEnd.setHours(0, 0, 0, 0);
-    // Convert exclusive to inclusive: subtract 1 day, set to end of that day
-    const inclusiveEnd = new Date(exclusiveEnd);
-    inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
-    inclusiveEnd.setHours(23, 59, 59, 999); // End of the last day (inclusive)
-    appEndDate = inclusiveEnd;
+    // Convert to inclusive: subtract 1 day
+    // IMPORTANT: Use UTC operations to avoid timezone issues
+    const exclusiveEndUTC = Date.UTC(
+      dbEvent.dtend.getUTCFullYear(),
+      dbEvent.dtend.getUTCMonth(),
+      dbEvent.dtend.getUTCDate(),
+    );
+    const startUTC = Date.UTC(
+      dbEvent.dtstart.getUTCFullYear(),
+      dbEvent.dtstart.getUTCMonth(),
+      dbEvent.dtstart.getUTCDate(),
+    );
+
+    // Check if it's multi-day (exclusive end > start)
+    if (exclusiveEndUTC > startUTC) {
+      // Multi-day event: convert exclusive to inclusive (subtract 1 day in UTC)
+      const inclusiveEnd = new Date(dbEvent.dtend);
+      inclusiveEnd.setUTCDate(inclusiveEnd.getUTCDate() - 1);
+      // Keep it as UTC midnight for consistent all-day handling
+      appEndDate = new Date(
+        Date.UTC(
+          inclusiveEnd.getUTCFullYear(),
+          inclusiveEnd.getUTCMonth(),
+          inclusiveEnd.getUTCDate(),
+        ),
+      );
+    } else {
+      // Single-day event: end = start
+      appEndDate = dbEvent.dtstart;
+    }
   } else if (dbEvent.dtend) {
     // Timed events: use dtend as-is (not exclusive)
     appEndDate = dbEvent.dtend;
   } else {
-    // No end date: use start as end (set to end of same day for all-day)
-    if (dbEvent.isAllDay) {
-      appEndDate = new Date(dbEvent.dtstart);
-      appEndDate.setHours(23, 59, 59, 999);
-    } else {
-      appEndDate = dbEvent.dtstart;
-    }
+    // No end date: use start as end
+    appEndDate = dbEvent.dtstart;
   }
 
   return {
@@ -138,20 +152,48 @@ export function appEventToDbCreate(
 
   const isAllDay = event.timeLabel === "all-day";
 
-  // For all-day events, iCalendar uses exclusive DTEND (the day after the event ends)
-  // App uses inclusive end dates (23:59:59.999), so we convert to exclusive (next day 00:00)
-  // This works for both single-day and multi-day events:
-  // - Single-day: 12/12 23:59:59.999 -> 12/13 00:00:00 (exclusive)
-  // - Multi-day: 12/15 23:59:59.999 -> 12/16 00:00:00 (exclusive)
+  // For all-day events, handle multi-day events correctly
+  // iCalendar uses exclusive DTEND for all-day events (the day after the event ends)
+  // IMPORTANT: Use UTC operations to avoid timezone issues
   let dbDtend: Date | null = null;
   if (isAllDay && event.end) {
-    const endDate = new Date(event.end);
-    // Get the date part (all-day events end at 23:59:59.999, so we need the next day)
-    endDate.setHours(0, 0, 0, 0);
-    // Convert inclusive end to exclusive: add 1 day
-    const exclusiveEnd = new Date(endDate);
-    exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-    dbDtend = exclusiveEnd;
+    const startUTC = Date.UTC(
+      event.start.getUTCFullYear(),
+      event.start.getUTCMonth(),
+      event.start.getUTCDate(),
+    );
+    const endUTC = Date.UTC(
+      event.end.getUTCFullYear(),
+      event.end.getUTCMonth(),
+      event.end.getUTCDate(),
+    );
+
+    // Check if it's a multi-day event (different days in UTC)
+    if (endUTC > startUTC) {
+      // Multi-day event: convert inclusive end to exclusive (add 1 day in UTC)
+      const exclusiveEnd = new Date(event.end);
+      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+      dbDtend = new Date(
+        Date.UTC(
+          exclusiveEnd.getUTCFullYear(),
+          exclusiveEnd.getUTCMonth(),
+          exclusiveEnd.getUTCDate(),
+        ),
+      );
+    }
+    // Single-day all-day events: dtend can be null (or same as dtstart + 1 day)
+    // For consistency, we'll set it to start + 1 day
+    else {
+      const exclusiveEnd = new Date(event.start);
+      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+      dbDtend = new Date(
+        Date.UTC(
+          exclusiveEnd.getUTCFullYear(),
+          exclusiveEnd.getUTCMonth(),
+          exclusiveEnd.getUTCDate(),
+        ),
+      );
+    }
   } else if (!isAllDay) {
     // Timed events: use the end date as-is
     dbDtend = event.end;
@@ -226,19 +268,49 @@ export function appEventToDbUpdate(
 
   if (updates.end !== undefined) {
     // For all-day events, convert inclusive end to exclusive (iCal standard)
+    // IMPORTANT: Use UTC operations to avoid timezone issues
     const isAllDay =
       updates.timeLabel !== undefined
         ? updates.timeLabel === "all-day"
         : existingEvent.isAllDay;
 
     if (isAllDay && updates.end) {
-      // Convert inclusive end (23:59:59.999) to exclusive (next day 00:00)
-      // Works for both single-day and multi-day all-day events
-      const endDate = new Date(updates.end);
-      endDate.setHours(0, 0, 0, 0);
-      const exclusiveEnd = new Date(endDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      result.dtend = exclusiveEnd;
+      const startSource = updates.start ?? existingEvent.dtstart;
+      const startUTC = Date.UTC(
+        startSource.getUTCFullYear(),
+        startSource.getUTCMonth(),
+        startSource.getUTCDate(),
+      );
+      const endUTC = Date.UTC(
+        updates.end.getUTCFullYear(),
+        updates.end.getUTCMonth(),
+        updates.end.getUTCDate(),
+      );
+
+      // Check if it's a multi-day event
+      if (endUTC > startUTC) {
+        // Multi-day: convert inclusive end to exclusive (add 1 day in UTC)
+        const exclusiveEnd = new Date(updates.end);
+        exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+        result.dtend = new Date(
+          Date.UTC(
+            exclusiveEnd.getUTCFullYear(),
+            exclusiveEnd.getUTCMonth(),
+            exclusiveEnd.getUTCDate(),
+          ),
+        );
+      } else {
+        // Single-day: set to start + 1 day in UTC
+        const exclusiveEnd = new Date(startSource);
+        exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+        result.dtend = new Date(
+          Date.UTC(
+            exclusiveEnd.getUTCFullYear(),
+            exclusiveEnd.getUTCMonth(),
+            exclusiveEnd.getUTCDate(),
+          ),
+        );
+      }
     } else {
       result.dtend = updates.end;
     }
@@ -255,17 +327,44 @@ export function appEventToDbUpdate(
     needsIcalRegen = true;
 
     // If switching to/from all-day, also update dtend format
+    // IMPORTANT: Use UTC operations to avoid timezone issues
     if (updates.end !== undefined) {
       // Already handled above
     } else if (updates.timeLabel === "all-day" && existingEvent.dtend) {
       // Converting timed event to all-day: convert dtend to exclusive format
-      // For all-day, we assume the end date should be end of the same day as start
-      const startDate = new Date(updates.start ?? existingEvent.dtstart);
-      startDate.setHours(0, 0, 0, 0);
-      // Set exclusive end to start + 1 day (single-day all-day event)
-      const exclusiveEnd = new Date(startDate);
-      exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-      result.dtend = exclusiveEnd;
+      const startSource = updates.start ?? existingEvent.dtstart;
+      const startUTC = Date.UTC(
+        startSource.getUTCFullYear(),
+        startSource.getUTCMonth(),
+        startSource.getUTCDate(),
+      );
+      const endUTC = Date.UTC(
+        existingEvent.dtend.getUTCFullYear(),
+        existingEvent.dtend.getUTCMonth(),
+        existingEvent.dtend.getUTCDate(),
+      );
+
+      if (endUTC > startUTC) {
+        const exclusiveEnd = new Date(existingEvent.dtend);
+        exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+        result.dtend = new Date(
+          Date.UTC(
+            exclusiveEnd.getUTCFullYear(),
+            exclusiveEnd.getUTCMonth(),
+            exclusiveEnd.getUTCDate(),
+          ),
+        );
+      } else {
+        const exclusiveEnd = new Date(startSource);
+        exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+        result.dtend = new Date(
+          Date.UTC(
+            exclusiveEnd.getUTCFullYear(),
+            exclusiveEnd.getUTCMonth(),
+            exclusiveEnd.getUTCDate(),
+          ),
+        );
+      }
     }
   }
 
@@ -417,14 +516,44 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
   const isAllDay = event.timeLabel === "all-day";
 
   // For all-day events, convert inclusive end to exclusive (iCal standard)
+  // IMPORTANT: Use UTC operations to avoid timezone issues
   let parsedDtend: Date | null = null;
   if (isAllDay && event.end) {
-    const endDate = new Date(event.end);
-    endDate.setHours(0, 0, 0, 0);
+    const startUTC = Date.UTC(
+      event.start.getUTCFullYear(),
+      event.start.getUTCMonth(),
+      event.start.getUTCDate(),
+    );
+    const endUTC = Date.UTC(
+      event.end.getUTCFullYear(),
+      event.end.getUTCMonth(),
+      event.end.getUTCDate(),
+    );
 
-    const exclusiveEnd = new Date(endDate);
-    exclusiveEnd.setDate(exclusiveEnd.getDate() + 1);
-    parsedDtend = exclusiveEnd;
+    // Check if it's a multi-day event
+    if (endUTC > startUTC) {
+      // Multi-day: convert inclusive end to exclusive (add 1 day in UTC)
+      const exclusiveEnd = new Date(event.end);
+      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+      parsedDtend = new Date(
+        Date.UTC(
+          exclusiveEnd.getUTCFullYear(),
+          exclusiveEnd.getUTCMonth(),
+          exclusiveEnd.getUTCDate(),
+        ),
+      );
+    } else {
+      // Single-day: set to start + 1 day in UTC
+      const exclusiveEnd = new Date(event.start);
+      exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() + 1);
+      parsedDtend = new Date(
+        Date.UTC(
+          exclusiveEnd.getUTCFullYear(),
+          exclusiveEnd.getUTCMonth(),
+          exclusiveEnd.getUTCDate(),
+        ),
+      );
+    }
   } else if (!isAllDay) {
     parsedDtend = event.end;
   }
@@ -455,6 +584,7 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
   };
 }
 
+// ============================================================================
 // JSON SERIALIZATION HELPERS
 // ============================================================================
 
@@ -462,14 +592,13 @@ export function appEventToParsedEvent(event: Event): ParsedEvent {
  * Prepare app Event for JSON serialization (API response)
  * Converts Date objects to ISO strings
  */
-export function eventToJSON(event: Event): Record<string, unknown> {
+export function eventToJSON(event: Event): EventJSON {
   return {
     ...event,
     start: event.start.toISOString(),
     end: event.end.toISOString(),
-    recurrence: event.recurrence,
-    // Include icalData for recurrence expansion on client
-    icalData: event.icalData,
+    rdateUtc: event.rdateUtc?.map((d) => d.toISOString()),
+    exdateUtc: event.exdateUtc?.map((d) => d.toISOString()),
   };
 }
 
@@ -477,19 +606,19 @@ export function eventToJSON(event: Event): Record<string, unknown> {
  * Parse JSON back to app Event
  * Converts ISO strings to Date objects
  */
-export function eventFromJSON(json: Record<string, unknown>): Event {
+export function eventFromJSON(json: EventJSON): Event {
   return {
     ...json,
-    start: new Date(json.start as string),
-    end: new Date(json.end as string),
-    // Preserve icalData for recurrence expansion
-    icalData: json.icalData as string | undefined,
-  } as Event;
+    start: new Date(json.start),
+    end: new Date(json.end),
+    rdateUtc: json.rdateUtc?.map((d) => new Date(d)),
+    exdateUtc: json.exdateUtc?.map((d) => new Date(d)),
+  };
 }
 
 /**
  * Parse array of events from JSON
  */
-export function eventsFromJSON(jsonArray: Record<string, unknown>[]): Event[] {
+export function eventsFromJSON(jsonArray: EventJSON[]): Event[] {
   return jsonArray.map(eventFromJSON);
 }

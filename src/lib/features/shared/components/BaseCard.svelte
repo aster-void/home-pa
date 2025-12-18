@@ -2,119 +2,47 @@
   let p: {
     title: string;
     status?: string;
-    statusType?: "active" | "inactive" | "warning" | "error";
+    statusType?: "active" | "inactive" | "warning" | "error" | "success";
     class?: string;
     children?: import("svelte").Snippet;
   } = $props();
 </script>
 
-<div class="card {p.class ?? ''}">
-  <div class="card-header">
-    <h3>{p.title}</h3>
+<div
+  class="rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-surface)] p-6 shadow-sm transition-all duration-200 ease-out focus-within:shadow-md hover:shadow-md md:p-4 {p.class ??
+    ''}"
+>
+  <div
+    class="mb-4 flex items-center justify-between border-b border-[var(--color-border-default)] pb-3 max-[480px]:flex-col max-[480px]:items-start max-[480px]:gap-2"
+  >
+    <h3
+      class="m-0 text-lg font-medium tracking-normal text-[var(--color-text-primary)]"
+    >
+      {p.title}
+    </h3>
     {#if p.status}
-      <div class="status-section">
-        <span class="status-indicator {p.statusType ?? 'inactive'}"
-          >{p.status}</span
+      <div class="flex items-center">
+        <span
+          class="rounded-lg border px-3 py-1.5 text-sm font-normal {p.statusType ===
+            'active' || !p.statusType
+            ? 'border-[var(--color-primary)] bg-[var(--color-primary-100)] text-[var(--color-primary-800)]'
+            : ''} {p.statusType === 'inactive'
+            ? 'border-[var(--color-border-default)] bg-[var(--color-bg-surface)] text-[var(--color-text-muted)]'
+            : ''} {p.statusType === 'warning'
+            ? 'border-[var(--color-warning-500)] bg-[var(--color-warning-100)] text-[var(--color-warning-500)]'
+            : ''} {p.statusType === 'error'
+            ? 'border-[var(--color-error-500)] bg-[var(--color-error-100)] text-[var(--color-error-500)]'
+            : ''} {p.statusType === 'success'
+            ? 'border-[var(--color-success-500)] bg-[var(--color-success-100)] text-[var(--color-success-700)]'
+            : ''}"
         >
+          {p.status}
+        </span>
       </div>
     {/if}
   </div>
 
-  <div class="card-content">
+  <div class="min-h-[200px]">
     {@render p.children?.()}
   </div>
 </div>
-
-<style>
-  .card {
-    background: var(--bg-card);
-    border: 1px solid rgba(15, 34, 48, 0.05);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-subtle);
-    transition:
-      transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1),
-      box-shadow 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
-  }
-
-  .card:focus-within,
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-soft);
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid rgba(15, 34, 48, 0.08);
-  }
-
-  .card-header h3 {
-    margin: 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
-    letter-spacing: 1px;
-  }
-
-  .status-section {
-    display: flex;
-    align-items: center;
-  }
-
-  .status-indicator {
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-md);
-    font-size: var(--fs-sm);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    border: 1px solid transparent;
-  }
-
-  .status-indicator.active {
-    background: rgba(240, 138, 119, 0.1);
-    color: var(--coral);
-    border-color: var(--coral);
-  }
-
-  .status-indicator.inactive {
-    background: rgba(154, 166, 178, 0.05);
-    color: var(--muted);
-    border-color: rgba(154, 166, 178, 0.2);
-  }
-
-  .status-indicator.warning {
-    background: rgba(255, 193, 7, 0.1);
-    color: #ffc107;
-    border-color: #ffc107;
-  }
-
-  .status-indicator.error {
-    background: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-    border-color: #dc3545;
-  }
-
-  .card-content {
-    min-height: 200px;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .card {
-      padding: var(--space-sm);
-    }
-  }
-
-  @media (max-width: 480px) {
-    .card-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-sm);
-    }
-  }
-</style>

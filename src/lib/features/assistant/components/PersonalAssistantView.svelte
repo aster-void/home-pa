@@ -3,7 +3,11 @@
   // LogsView removed from header; settings panel is minimal
   import LogsView from "$lib/features/logs/components/LogsView.svelte";
   import CircularTimelineCss from "./CircularTimelineCss.svelte";
-  import { calendarState, dataState } from "$lib/bootstrap/index.svelte.ts";
+  import {
+    calendarState,
+    dataState,
+    settingsState,
+  } from "$lib/bootstrap/index.svelte.ts";
   import {
     scheduleActions,
     pendingSuggestions,
@@ -13,30 +17,22 @@
   import type { Event, Gap } from "$lib/types.ts";
   import { GapFinder } from "$lib/features/assistant/services/gap-finder.ts";
   import { get } from "svelte/store";
+  import {
+    startOfDay,
+    endOfDay,
+    parseTimeOnDate,
+  } from "$lib/utils/date-utils.ts";
 
   // Local state
   // Settings panel toggle (replaces top header controls)
   let showSettings = $state(false);
 
-  // Active hours (day boundaries for gap finding)
-  let activeStart = $state("08:00");
-  let activeEnd = $state("23:00");
-
   // Task list (synced from store)
   let taskList = $state(get(tasks));
 
   // Selected items for details display
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
-  let selectedEvent = $state<Event | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in template section
+  let _selectedEvent = $state<Event | null>(null);
   let _selectedGap = $state<Gap | null>(null);
-
-  function startOfDay(date: Date): Date {
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const normalized = new Date(date);
-    normalized.setHours(0, 0, 0, 0);
-    return normalized;
-  }
 
   function dateKey(date: Date): string {
     return startOfDay(date).toISOString().slice(0, 10);
@@ -87,7 +83,7 @@
   });
 
   // Track last schedule signature to avoid re-triggering
-  let lastScheduleSignature = $state<string | null>(null);
+  let lastScheduleSignature: string | null = null;
 
   // Auto-generate schedule when signature changes
   $effect(() => {
@@ -98,13 +94,8 @@
   });
 
   function overlapsDay(eventStart: Date, eventEnd: Date, day: Date) {
-    const baseDay = new Date(day.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const dayStart = new Date(baseDay);
-    dayStart.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const dayEnd = new Date(baseDay);
-    dayEnd.setHours(23, 59, 59, 999);
+    const dayStart = startOfDay(day);
+    const dayEnd = endOfDay(day);
     return (
       eventStart.getTime() <= dayEnd.getTime() &&
       eventEnd.getTime() >= dayStart.getTime()
@@ -119,15 +110,9 @@
       return { id: e.id, title: e.title, start: dayStart, end: dayEnd };
     }
 
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const targetDay = new Date(day);
-    targetDay.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const startDay = new Date(e.start);
-    startDay.setHours(0, 0, 0, 0);
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const endDay = new Date(e.end);
-    endDay.setHours(0, 0, 0, 0);
+    const targetDay = startOfDay(day);
+    const startDay = startOfDay(e.start);
+    const endDay = startOfDay(e.end);
 
     const startsToday = startDay.getTime() === targetDay.getTime();
     const endsToday = endDay.getTime() === targetDay.getTime();
@@ -179,7 +164,10 @@
 
   // Reactively compute gaps based on selected day events
   let computedGaps = $derived.by(() => {
-    const gf = new GapFinder({ dayStart: activeStart, dayEnd: activeEnd });
+    const gf = new GapFinder({
+      dayStart: settingsState.activeStartTime,
+      dayEnd: settingsState.activeEndTime,
+    });
     const currentDate = startOfDay(dataState.selectedDate);
 
     const mapped = selectedDayEvents.map((e) =>
@@ -187,15 +175,6 @@
     );
     return gf.findGaps(mapped);
   });
-
-  function parseTimeOnDate(base: Date, time: string): Date {
-    const [hours, minutes] = time.split(":").map(Number);
-    const baseTime = new Date(base.getTime());
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in utility function, not reactive state
-    const next = new Date(baseTime);
-    next.setHours(hours ?? 0, minutes ?? 0, 0, 0);
-    return next;
-  }
 
   // Helper to get task title from memoId
   function getTaskTitle(memoId: string): string {
@@ -260,25 +239,36 @@
   // Component-level event handling is wired directly on the child via on: handlers below
 </script>
 
-<div class="personal-assistant-view">
-  <!-- Minimal bottom-left Settings trigger -->
-  <button class="settings-trigger" onclick={() => (showSettings = true)}
-    >settings</button
+<div
+  class="relative m-0 flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg-app)]/60 p-0 backdrop-blur-sm"
+>
+  <!-- Minimal top-left Settings trigger -->
+  <button
+    class="fixed top-3 left-3 z-[250] cursor-pointer rounded-lg border-none bg-[var(--color-bg-app)]/80 px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-[var(--color-bg-app)] hover:text-[var(--color-primary)] hover:shadow-md"
+    onclick={() => (showSettings = true)}>settings</button
   >
 
   <!-- Main Content -->
-  <main class="pa-main">
+  <main
+    class="relative flex h-full min-h-0 w-full flex-1 flex-row items-start overflow-x-hidden overflow-y-auto"
+  >
     <!-- Timeline Section - Takes majority of space -->
-    <section class="timeline-section">
-      <div class="timeline-stack">
-        <div class="timeline-container">
+    <section
+      class="z-10 m-4 flex w-full min-w-0 flex-1 items-stretch justify-center overflow-y-visible"
+    >
+      <div
+        class="flex min-h-0 w-full flex-1 flex-col items-center gap-4 overflow-y-visible"
+      >
+        <div
+          class="relative h-[min(70vw,60vh)] w-[min(70vw,60vh)] flex-shrink-0 overflow-visible"
+        >
           <CircularTimelineCss
             externalGaps={computedGaps}
             pendingSuggestions={$pendingSuggestions}
             acceptedSuggestions={$acceptedSuggestions}
             {getTaskTitle}
             on:eventSelected={(e: CustomEvent<Event>) =>
-              (selectedEvent = e.detail)}
+              (_selectedEvent = e.detail)}
             on:gapSelected={(
               e: CustomEvent<{
                 start: string;
@@ -303,21 +293,44 @@
           />
         </div>
 
-        <div class="event-list-panel">
-          <div class="event-list-header">
-            <h3>Events</h3>
-            <span class="event-list-date"
+        <div
+          class="mb-[calc(var(--bottom-nav-height,80px)+1rem)] w-full max-w-[720px] rounded-xl border border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-5 shadow-sm"
+        >
+          <div
+            class="mb-4 flex items-center justify-between border-b border-[var(--color-border-default)] pb-3"
+          >
+            <h3
+              class="m-0 text-xl font-normal text-[var(--color-text-primary)]"
+            >
+              Events
+            </h3>
+            <span
+              class="rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--color-primary)]"
               >{formatDateLabel(dataState.selectedDate)}</span
             >
           </div>
           {#if displayEvents.length === 0}
-            <p class="event-empty">この日の予定はありません</p>
+            <p
+              class="m-0 py-6 text-center text-sm text-[var(--color-text-muted)]"
+            >
+              この日の予定はありません
+            </p>
           {:else}
-            <ul class="event-list">
+            <ul class="m-0 flex list-none flex-col gap-2 p-0">
               {#each displayEvents as event (event.id)}
-                <li class="event-row">
-                  <div class="event-row-title">{event.title}</div>
-                  <div class="event-row-time">{formatEventTime(event)}</div>
+                <li
+                  class="flex items-center justify-between rounded-xl border border-transparent bg-[var(--color-bg-surface)] p-3 px-4 transition-all duration-200 hover:border-[var(--color-primary)]/20 hover:bg-[var(--color-surface-100)]"
+                >
+                  <div
+                    class="text-sm font-medium text-[var(--color-text-primary)]"
+                  >
+                    {event.title}
+                  </div>
+                  <div
+                    class="rounded-lg bg-[var(--color-bg-app)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] shadow-sm"
+                  >
+                    {formatEventTime(event)}
+                  </div>
                 </li>
               {/each}
             </ul>
@@ -341,12 +354,12 @@
       {/if}
 
       
-      {#if selectedEvent}
+      {#if _selectedEvent}
         <div class="event-details">
-          <h3>{selectedEvent.title}</h3>
-          <p>{selectedEvent.start.toTimeString().slice(0, 5)} - {selectedEvent.end.toTimeString().slice(0, 5)}</p>
-          {#if selectedEvent.description}
-            <p class="description">{selectedEvent.description}</p>
+          <h3>{_selectedEvent.title}</h3>
+          <p>{_selectedEvent.start.toTimeString().slice(0, 5)} - {_selectedEvent.end.toTimeString().slice(0, 5)}</p>
+          {#if _selectedEvent.description}
+            <p class="description">{_selectedEvent.description}</p>
           {/if}
           <div class="event-actions">
             <button class="action-btn secondary">Edit</button>
@@ -360,7 +373,7 @@
   <!-- Settings Panel (bottom sheet) -->
   {#if showSettings}
     <div
-      class="settings-backdrop"
+      class="fixed inset-0 modal-backdrop z-[499] animate-[fadeIn_0.2s_ease] bg-black/40 backdrop-blur-sm"
       onclick={() => (showSettings = false)}
       onkeydown={(e) => e.key === "Escape" && (showSettings = false)}
       role="button"
@@ -368,447 +381,26 @@
       aria-label="Close settings"
     ></div>
     <section
-      class="settings-section"
+      class="fixed right-0 bottom-[calc(var(--bottom-nav-height,80px)+env(safe-area-inset-bottom))] left-0 z-[500] modal-box flex max-h-[calc(50vh-var(--bottom-nav-height,80px))] animate-[slideUp_0.3s_ease] flex-col overflow-y-auto rounded-t-xl border-t border-[var(--color-border-default)] bg-[var(--color-bg-app)] p-6 shadow-[0_-8px_32px_rgba(0,0,0,0.12)]"
       role="dialog"
       aria-modal="true"
       tabindex="-1"
     >
-      <div class="settings-header">
-        <h3>Settings</h3>
+      <div
+        class="mb-6 flex items-center justify-between border-b border-[var(--color-border-default)] pb-4"
+      >
+        <h3 class="m-0 text-xl font-normal text-[var(--color-text-primary)]">
+          Settings
+        </h3>
         <button
-          class="settings-close"
+          class="btn h-9 min-h-9 w-9 rounded-xl p-0 text-[var(--color-text-secondary)] btn-ghost transition-all duration-200 btn-sm hover:bg-[var(--color-error-100)] hover:text-[var(--color-error-500)]"
           onclick={() => (showSettings = false)}
           aria-label="Close">✕</button
         >
       </div>
-      <div class="settings-content">
-        <div class="settings-row">
-          <span class="label">Active hours</span>
-          <div class="inputs">
-            <input type="time" bind:value={activeStart} />
-            <span>–</span>
-            <input type="time" bind:value={activeEnd} />
-          </div>
-        </div>
-        <div class="settings-logs">
-          <LogsView />
-        </div>
+      <div class="flex flex-col gap-4">
+        <LogsView />
       </div>
     </section>
   {/if}
 </div>
-
-<style>
-  .personal-assistant-view {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
-
-  /* Settings trigger (minimal, bottom-left) */
-  .settings-trigger {
-    position: fixed;
-    left: 8px;
-    top: 8px;
-    z-index: 250;
-    background: transparent;
-    border: none;
-    padding: 2px 4px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
-  }
-
-  /* Main Layout - Side by side on desktop */
-  .pa-main {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-    flex: 1;
-  }
-
-  /* Timeline Section - Takes full width with margins */
-  .timeline-section {
-    flex: 1;
-    width: 100%;
-    min-width: 0; /* Allow shrinking */
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    z-index: 10;
-    margin: var(--space-md);
-    overflow-y: visible;
-  }
-
-  .timeline-stack {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-    width: 100%;
-    min-height: 0;
-    flex: 1;
-    align-items: center;
-    overflow-y: visible;
-  }
-
-  .timeline-container {
-    width: min(70vw, 60vh);
-    height: min(70vw, 60vh);
-    flex-shrink: 0;
-    position: relative;
-    overflow: visible;
-  }
-
-  .event-list-panel {
-    width: 100%;
-    max-width: 720px;
-    background: var(--bg-card);
-    border: 1px solid var(--ui-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-md);
-    box-shadow: var(--shadow-soft);
-    margin-bottom: calc(var(--bottom-nav-height, 80px) + var(--space-md));
-  }
-
-  .event-list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-md);
-    padding-bottom: var(--space-sm);
-    border-bottom: 1px solid var(--ui-border);
-  }
-
-  .event-list-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-normal);
-    color: var(--text-primary);
-  }
-
-  .event-list-date {
-    color: var(--accent-primary);
-    font-size: var(--fs-sm);
-    font-weight: var(--font-weight-normal);
-    background: rgba(240, 138, 119, 0.1);
-    padding: 4px 12px;
-    border-radius: var(--radius-full, 20px);
-  }
-
-  .event-empty {
-    margin: 0;
-    color: var(--text-tertiary);
-    font-size: var(--fs-sm);
-    text-align: center;
-    padding: var(--space-lg) 0;
-  }
-
-  .event-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-
-  .event-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-sm) var(--space-md);
-    background: var(--bg-secondary);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    transition: all 0.15s ease;
-  }
-
-  .event-row:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--ui-border);
-  }
-
-  .event-row-title {
-    color: var(--text-primary);
-    font-weight: var(--font-weight-normal);
-    font-size: var(--fs-sm);
-  }
-
-  .event-row-time {
-    color: var(--text-secondary);
-    font-size: var(--fs-xs);
-    font-family: var(--font-sans);
-    background: var(--bg-card);
-    padding: 2px 8px;
-    border-radius: var(--radius-sm);
-  }
-
-  /* Content Section 
-  .content-section {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 50vw;
-    height: 100vh;
-    padding: calc(var(--space-lg) + 60px) var(--space-md) var(--space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-    overflow-y: auto;
-    background: var(--white);
-    z-index: 5;
-  }*/
-
-  /* Gap Details 
-  .gap-details {
-    background: var(--coral);
-    color: var(--white);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 20px rgba(240, 138, 119, 0.3);
-  }
-
-  .gap-details h3 {
-    margin: 0 0 var(--space-sm) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-md);
-    font-weight: var(--font-weight-bold);
-  }
-
-  .gap-details p {
-    margin: 0 0 var(--space-md) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-sm);
-    opacity: 0.9;
-  }
-
-  .gap-actions {
-    display: flex;
-    gap: var(--space-sm);
-  }
-
-  /* Event Details 
-  .event-details {
-    background: var(--navy-50);
-    border: 2px solid var(--navy-200);
-    padding: var(--space-lg);
-    border-radius: var(--radius-lg);
-  }
-
-  .event-details h3 {
-    margin: 0 0 var(--space-sm) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-md);
-    font-weight: var(--font-weight-bold);
-    color: var(--navy-900);
-  }
-
-  .event-details p {
-    margin: 0 0 var(--space-sm) 0;
-    font-family: var(--font-family);
-    font-size: var(--fs-sm);
-    color: var(--navy-600);
-  }
-
-  .event-details .description {
-    font-style: italic;
-    color: var(--navy-500);
-  }
-
-  .event-actions {
-    display: flex;
-    gap: var(--space-sm);
-    margin-top: var(--space-md);
-  }*/
-
-  /* Action Buttons 
-  .action-btn {
-    padding: var(--space-sm) var(--space-md);
-    border: none;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: var(--fs-sm);
-    font-family: var(--font-family);
-    font-weight: var(--font-weight-bold);
-    transition: all 0.2s ease;
-  }
-
-  .action-btn.primary {
-    background: var(--coral);
-    color: var(--white);
-  }
-
-  .action-btn.primary:hover {
-    background: var(--navy-600);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(240, 138, 119, 0.3);
-  }
-
-  .action-btn.secondary {
-    background: var(--navy-100);
-    color: var(--navy-700);
-  }
-
-  .action-btn.secondary:hover {
-    background: var(--navy-200);
-    transform: translateY(-2px);
-  }
-
-  .action-btn.danger {
-    background: var(--red-100);
-    color: var(--red-700);
-  }
-
-  .action-btn.danger:hover {
-    background: var(--red-200);
-    transform: translateY(-2px);
-  }*/
-  /* Settings Panel (bottom sheet) */
-  .settings-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    z-index: 499;
-    animation: fadeIn 0.2s ease;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  .settings-section {
-    position: fixed;
-    bottom: calc(var(--bottom-nav-height, 80px) + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
-    max-height: calc(50vh - var(--bottom-nav-height, 80px));
-    background: var(--bg-card);
-    border-top: 1px solid var(--ui-border);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: var(--space-lg);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
-    z-index: 500;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease;
-  }
-
-  @keyframes slideUp {
-    from {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-
-  .settings-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--ui-border);
-  }
-
-  .settings-header h3 {
-    margin: 0;
-    font-size: var(--fs-lg);
-    font-weight: var(--font-weight-normal);
-    color: var(--text-primary);
-  }
-
-  .settings-close {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    transition: all 0.15s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .settings-close:hover {
-    background: var(--danger);
-    color: white;
-  }
-
-  .settings-content {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-
-  .settings-row {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-
-  .settings-row .inputs {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .settings-logs {
-    margin-top: var(--space-sm);
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .pa-main {
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    .timeline-section {
-      flex: 1;
-      width: calc(100% - 2 * var(--space-md));
-      min-height: 0;
-      margin: var(--space-md);
-    }
-
-    .timeline-stack {
-      width: 100%;
-      max-width: 100%;
-    }
-
-    .event-list-panel {
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
-    .timeline-container {
-      max-width: none;
-      max-height: none;
-    }
-  }
-</style>

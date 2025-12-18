@@ -15,11 +15,13 @@ import type { EventFormData } from "../features/calendar/state/eventForm.svelte.
 // Re-export from Svelte 5 reactive modules
 // ============================================================================
 
-export { uiState, type AppView } from "./ui.svelte.ts";
+export { uiState } from "./ui.svelte.ts";
 
 export { dataState, type SimpleMemo } from "./data.svelte.ts";
 
 export { toastState, type Toast, type ToastType } from "./toast.svelte.ts";
+
+export { settingsState } from "./settings.svelte.ts";
 
 export {
   calendarState,
@@ -48,6 +50,7 @@ import { dataState } from "./data.svelte.ts";
 import { calendarState } from "../features/calendar/state/calendar.svelte.ts";
 import { toastState } from "./toast.svelte.ts";
 import { eventFormState } from "../features/calendar/state/eventForm.svelte.ts";
+import { addDays } from "../utils/date-utils.ts";
 
 // Calendar actions wrapper
 export const calendarActions = {
@@ -89,15 +92,7 @@ export const eventFormActions = {
 
 // UI actions wrapper
 export const uiActions = {
-  setView: uiState.setView.bind(uiState),
   setViewMode: uiState.setViewMode.bind(uiState),
-  toggleMemo: uiState.toggleMemo.bind(uiState),
-  setMemoOpen: uiState.setMemoOpen.bind(uiState),
-  showEventForm: uiState.openEventForm.bind(uiState),
-  hideEventForm: uiState.closeEventForm.bind(uiState),
-  toggleEventForm: uiState.toggleEventForm.bind(uiState),
-  showTimelinePopup: uiState.openTimelinePopup.bind(uiState),
-  hideTimelinePopup: uiState.closeTimelinePopup.bind(uiState),
   setCurrentSuggestion: uiState.setCurrentSuggestion.bind(uiState),
   clearCurrentSuggestion: uiState.clearCurrentSuggestion.bind(uiState),
   setLoading: uiState.setLoading.bind(uiState),
@@ -107,9 +102,7 @@ export const uiActions = {
   navigateToToday: dataState.goToToday.bind(dataState),
   navigateDate: (days: number) => {
     const current = dataState.selectedDate;
-    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- Date manipulation in action function, not reactive state
-    const newDate = new Date(current);
-    newDate.setDate(newDate.getDate() + days);
+    const newDate = addDays(current, days);
     dataState.setSelectedDate(newDate);
   },
 };

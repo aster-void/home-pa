@@ -92,13 +92,8 @@ init_replica_set() {
   echo "Initializing replica set '${REPLICA_SET_NAME}'..."
   
   # Determine the host for replica set member
-  # If running in Docker, use the container name, otherwise use localhost
-  local member_host
-  if [ "${host}" = "localhost" ] || [ "${host}" = "127.0.0.1" ]; then
-    member_host="localhost:${port}"
-  else
-    member_host="${host}:${port}"
-  fi
+  # RS_MEMBER_HOST allows overriding for local dev (app runs on host, mongo in docker)
+  local member_host="${RS_MEMBER_HOST:-${host}}:${port}"
   
   mongosh --host "${host}:${port}" --eval "
     try {
